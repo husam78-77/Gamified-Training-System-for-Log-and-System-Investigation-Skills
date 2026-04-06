@@ -1,0 +1,36 @@
+/* KineticBreach.css */
+
+.kinetic-wrapper {
+    background-color: #0A0A0A;
+    background-image:
+        linear-gradient(rgba(255, 0, 60, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 0, 60, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    color: #e5e2e1;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.skew-box {
+    transform: skewX(-12deg);
+}
+
+.skew-text {
+    transform: skewX(12deg);
+}
+
+.glitch-text {
+    text-shadow: 2px 0 #00FFFF, -2px 0 #FF003C;
+}
+
+.slash-top-right {
+    clip-path: polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%);
+}
+
+.persona-shadow {
+    box-shadow: 20px 20px 0px rgba(255, 0, 60, 0.2);
+}

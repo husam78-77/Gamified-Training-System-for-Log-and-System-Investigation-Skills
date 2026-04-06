@@ -1,0 +1,37 @@
+/* PhantomLogin.css */
+
+.phantom-wrapper {
+    background-color: #131313;
+    color: #e5e2e1;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.slashed-card {
+    clip-path: polygon(0 0, 95% 0, 100% 5%, 100% 100%, 5% 100%, 0 95%);
+}
+
+.shiver-effect {
+    transition: all 0.2s ease-in-out;
+}
+
+.shiver-effect:hover {
+    transform: translateX(4px) skewX(-6deg);
+}
+
+.glitch-border {
+    position: relative;
+}
+
+.glitch-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(45deg, transparent 40%, #FF003C 50%, transparent 60%);
+    z-index: -1;
+    opacity: 0.3;
+}
