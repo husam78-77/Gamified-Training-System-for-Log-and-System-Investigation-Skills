@@ -1,14 +1,46 @@
-import React from 'react';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { loginUser } from '../../services/authService';
 import './Login.css';
 
 export default function PhantomLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    console.log('Sending:', { email, password });
+    try {
+      const data = await loginUser({ email, password });
+      login(data.data.user, data.data.token);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    // Wire to your Google OAuth endpoint when ready
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`;
+  };
+
   return (
     <div className="phantom-wrapper font-body selection:bg-primary-container selection:text-white">
-      {/* Background Layer: Blurred SOC Terminal */}
+
+      {/* Background */}
       <div className="fixed inset-0 z-0">
         <img
           className="w-full h-full object-cover filter blur-lg brightness-[0.2] contrast-125 scale-110"
-          data-alt="Blurred cybersecurity operations center with multiple monitors displaying red terminal code and data streams in a dark room"
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCEy2zIVPPR22mzl5y53pxk4frkkFDpTNDPpdCXVLTonBTxgroGHtxQ9o7X9Uc3HZFfnDjdIIgHS9_D9wj54UUNhiX1HDusTpnshZHe_c4etSWfM-qe_ABQUohuHKqvmzWQFiSy6SOQXPmWcFCvHvUXKVa6_7VvAIBq8E00P0kCu5rVkCh8LeOamASFilKg69IkUSZvlYmfkuDD9Dp7p7SToGWacUPLKcFzpI4izRFDxgFDPUpyIJCb5FoBjPLjZCMBEQRBGS2wBcx"
           alt="SOC Background"
         />
@@ -16,19 +48,17 @@ export default function PhantomLogin() {
         <div className="absolute inset-0 bg-[#FF003C]/5 mix-blend-overlay"></div>
       </div>
 
-      {/* Restricted Area Watermark */}
+      {/* Restricted Watermark */}
       <div className="fixed top-12 left-12 z-10 pointer-events-none opacity-20">
         <div className="font-headline font-black text-6xl tracking-tighter text-outline-variant border-2 border-outline-variant px-6 py-2 rotate-[-12deg]">
           RESTRICTED AREA
         </div>
       </div>
 
-      {/* Main Content Canvas */}
       <main className="relative z-20 min-h-screen flex items-center justify-center p-6">
-        {/* Login Container: Skewed & Slashed */}
         <div className="w-full max-w-md transform skew-x-[-2deg] transition-all duration-500">
 
-          {/* Branding Anchor */}
+          {/* Branding */}
           <div className="mb-12 flex flex-col items-start transform skew-x-[2deg]">
             <h1 className="font-headline font-black italic text-5xl md:text-6xl text-[#FF003C] tracking-tighter drop-shadow-[0_0_15px_rgba(255,0,60,0.5)]">
               PHANTOM PROTOCOL
@@ -39,23 +69,34 @@ export default function PhantomLogin() {
             </div>
           </div>
 
-          {/* The Card */}
-          <div className="slashed-card bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 p-8 md:p-12 shadow-[20px_20px_60px_rgba(0,0,0,0.8)] relative group">
-
-            {/* Inner Glitch Accent */}
+          {/* Card */}
+          <div className="slashed-card bg-surface-container-lowest/80 backdrop-blur-2xl border border-white/5 p-8 md:p-12 shadow-[20px_20px_60px_rgba(0,0,0,0.8)] relative">
             <div className="absolute top-0 right-0 w-24 h-1 bg-[#FF003C] shadow-[0_0_15px_#FF003C]"></div>
 
-            <form className="space-y-8 transform skew-x-[2deg]">
-              {/* Operative ID Field */}
+            <form className="space-y-8 transform skew-x-[2deg]" onSubmit={handleSubmit}>
+
+              {/* Error Message */}
+              {error && (
+                <div className="flex items-center gap-3 border border-[#FF003C]/50 bg-[#FF003C]/10 px-4 py-3">
+                  <span className="material-symbols-outlined text-[#FF003C] text-sm">error</span>
+                  <p className="font-label text-xs tracking-widest text-[#FF003C] uppercase">{error}</p>
+                </div>
+              )}
+
+              {/* Email Field */}
               <div className="space-y-2 group/input">
                 <label className="block font-label font-bold text-sm tracking-[0.2em] text-[#00FFFF] opacity-70 group-focus-within/input:opacity-100 transition-opacity">
-                  OPERATIVE_ID
+                  OPERATIVE_EMAIL
                 </label>
                 <div className="relative">
                   <input
-                    className="w-full bg-transparent border-0 border-b-2 border-outline-variant py-4 px-0 text-xl font-headline focus:ring-0 focus:border-[#FF003C] placeholder:text-white/10 transition-all uppercase tracking-widest"
-                    placeholder="PX-000-ALPHA"
-                    type="text"
+                    className="w-full bg-transparent border-0 border-b-2 border-outline-variant py-4 px-0 text-xl font-headline focus:ring-0 focus:border-[#FF003C] placeholder:text-white/10 transition-all tracking-widest"
+                    placeholder="agent@domain.com"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
                   />
                   <div className="absolute right-0 bottom-4 opacity-30">
                     <span className="material-symbols-outlined">person_filled</span>
@@ -63,7 +104,7 @@ export default function PhantomLogin() {
                 </div>
               </div>
 
-              {/* Access Key Field */}
+              {/* Password Field */}
               <div className="space-y-2 group/input">
                 <label className="block font-label font-bold text-sm tracking-[0.2em] text-[#00FFFF] opacity-70 group-focus-within/input:opacity-100 transition-opacity">
                   ACCESS_KEY
@@ -73,6 +114,10 @@ export default function PhantomLogin() {
                     className="w-full bg-transparent border-0 border-b-2 border-outline-variant py-4 px-0 text-xl font-headline focus:ring-0 focus:border-[#FF003C] placeholder:text-white/10 transition-all"
                     placeholder="••••••••••••"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
                   />
                   <div className="absolute right-0 bottom-4 opacity-30">
                     <span className="material-symbols-outlined">vpn_key</span>
@@ -81,13 +126,42 @@ export default function PhantomLogin() {
               </div>
 
               {/* Login Button */}
-              <div className="pt-6">
+              <div className="pt-6 space-y-4">
                 <button
-                  className="w-full bg-[#FF003C] hover:bg-[#D10031] text-white font-headline font-black text-xl py-6 px-8 flex items-center justify-between group/btn transition-all shiver-effect shadow-[0_10px_30px_rgba(255,0,60,0.3)]"
+                  className="w-full bg-[#FF003C] hover:bg-[#D10031] disabled:opacity-50 disabled:cursor-not-allowed text-white font-headline font-black text-xl py-6 px-8 flex items-center justify-between group/btn transition-all shiver-effect shadow-[0_10px_30px_rgba(255,0,60,0.3)]"
                   type="submit"
+                  disabled={loading}
                 >
-                  <span className="uppercase tracking-tighter">INITIATE ACCESS</span>
-                  <span className="material-symbols-outlined transform group-hover/btn:translate-x-2 transition-transform">arrow_forward_ios</span>
+                  <span className="uppercase tracking-tighter">
+                    {loading ? 'AUTHENTICATING...' : 'INITIATE ACCESS'}
+                  </span>
+                  {loading
+                    ? <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                    : <span className="material-symbols-outlined transform group-hover/btn:translate-x-2 transition-transform">arrow_forward_ios</span>
+                  }
+                </button>
+
+                {/* Divider */}
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 h-[1px] bg-gradient-to-r from-transparent to-white/10"></div>
+                  <span className="font-label text-[10px] tracking-widest text-white/30 uppercase">or</span>
+                  <div className="flex-1 h-[1px] bg-gradient-to-l from-transparent to-white/10"></div>
+                </div>
+
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  className="w-full bg-transparent border border-white/10 hover:border-[#00FFFF]/40 hover:bg-white/5 text-white font-label font-bold text-sm py-4 px-8 flex items-center justify-center gap-3 transition-all tracking-widest uppercase"
+                >
+                  {/* Google SVG Icon */}
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                  </svg>
+                  Continue with Google
                 </button>
               </div>
 
@@ -97,6 +171,17 @@ export default function PhantomLogin() {
                   <span className="w-2 h-2 bg-[#00FFFF]/20 group-hover/link:bg-[#00FFFF] transition-colors"></span>
                   Forgotten credentials?
                 </a>
+
+                {/* Register Link */}
+                <div className="h-[1px] w-full bg-gradient-to-r from-white/10 to-transparent"></div>
+                <Link
+                  to="/register"
+                  className="font-label text-xs tracking-widest text-white/40 hover:text-white/80 transition-colors flex items-center gap-2 group/link"
+                >
+                  <span className="w-2 h-2 bg-white/10 group-hover/link:bg-white/60 transition-colors"></span>
+                  No account? <span className="text-[#00FFFF]/70 hover:text-[#00FFFF] ml-1">Request Clearance →</span>
+                </Link>
+
                 <div className="h-[1px] w-full bg-gradient-to-r from-white/10 to-transparent"></div>
                 <p className="font-label text-[10px] text-white/30 uppercase tracking-[0.3em]">
                   Connection status: <span className="text-[#00FF00]">ENCRYPTED</span>
@@ -107,7 +192,7 @@ export default function PhantomLogin() {
         </div>
       </main>
 
-      {/* Terminal Overlay Elements */}
+      {/* Terminal Overlays */}
       <div className="fixed bottom-8 right-8 z-30 font-label text-[10px] text-[#00FFFF]/40 space-y-1 text-right pointer-events-none">
         <p>IP_ORIGIN: 192.168.1.104</p>
         <p>LATENCY: 14MS</p>

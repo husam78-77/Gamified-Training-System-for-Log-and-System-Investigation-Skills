@@ -1,9 +1,48 @@
-import React from 'react';
+import { useState, useEffect } from 'react';                          // 👈 added useEffect
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'; // 👈 added useSearchParams
+import { registerUser } from '../../services/authService';
 import './Register.css';
 
 export default function OperativeEnlistment() {
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [accepted, setAccepted] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // 👇 Prefill email if coming from Google OAuth
+  useEffect(() => {
+    const googleEmail = searchParams.get('email');
+    if (googleEmail) setEmail(decodeURIComponent(googleEmail));
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!accepted) {
+      setError('You must accept the protocol to enlist.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await registerUser({ username, email, password });
+      navigate('/login');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="enlistment-wrapper font-body selection:bg-primary-container selection:text-on-primary-container">
+
       {/* Background Scrolling "Breaches" */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden flex justify-around opacity-10">
         <div className="scrolling-text font-label text-secondary tracking-[1em] whitespace-nowrap text-xs">
@@ -32,7 +71,9 @@ export default function OperativeEnlistment() {
           <a className="text-white/60 hover:text-white transition-colors font-headline font-black uppercase tracking-tighter hover:skew-x-[-12deg] hover:bg-[#FF003C] hover:text-white duration-150 px-4 py-1" href="#!">RANKS</a>
         </nav>
         <div className="flex gap-4">
-          <button className="font-headline font-black uppercase tracking-tighter text-[#FF003C] px-6 py-2 border border-[#FF003C]/30 hover:bg-[#FF003C] hover:text-white transition-all">LOGIN</button>
+          <Link to="/login" className="font-headline font-black uppercase tracking-tighter text-[#FF003C] px-6 py-2 border border-[#FF003C]/30 hover:bg-[#FF003C] hover:text-white transition-all">
+            LOGIN
+          </Link>
           <button className="font-headline font-black uppercase tracking-tighter bg-[#FF003C] text-white px-6 py-2 slashed-button shiver transition-all">JOIN</button>
         </div>
       </header>
@@ -52,7 +93,7 @@ export default function OperativeEnlistment() {
 
           {/* Progress Indicator */}
           <div className="flex flex-col gap-6 mt-12">
-            <div className="flex items-center gap-6 group">
+            <div className="flex items-center gap-6">
               <span className="font-headline text-5xl font-black italic text-[#FF003C]">01</span>
               <div className="h-[2px] w-full bg-surface-container-highest relative">
                 <div className="absolute inset-0 w-full bg-[#FF003C]"></div>
@@ -73,16 +114,35 @@ export default function OperativeEnlistment() {
           </div>
         </div>
 
-        {/* Simplified Enlistment Form */}
+        {/* Form */}
         <div className="lg:col-span-8 flex flex-col gap-10">
-          {/* MAIN ENLISTMENT PANEL */}
           <section className="bg-surface-container-high slashed-container p-10 flex flex-col gap-10 shadow-[20px_20px_0px_rgba(255,0,60,0.05)] border-t border-white/5">
             <div className="flex justify-between items-end">
               <h2 className="font-headline text-3xl font-black text-white italic">PHANTOM_PROTOCOL_REGISTRY</h2>
-              <span className="font-label text-xs text-[#FF003C] tracking-widest">AWAITING_INPUT...</span>
+              <span className="font-label text-xs text-[#FF003C] tracking-widest">
+                {loading ? 'PROCESSING...' : 'AWAITING_INPUT...'}
+              </span>
             </div>
 
-            <div className="flex flex-col gap-8">
+            {/* Error Message */}
+            {error && (
+              <div className="flex items-center gap-3 border border-[#FF003C]/50 bg-[#FF003C]/10 px-4 py-3">
+                <span className="material-symbols-outlined text-[#FF003C] text-sm">error</span>
+                <p className="font-label text-xs tracking-widest text-[#FF003C] uppercase">{error}</p>
+              </div>
+            )}
+
+            {/* 👇 Google email prefill notice */}
+            {searchParams.get('email') && (
+              <div className="flex items-center gap-3 border border-[#00FFFF]/30 bg-[#00FFFF]/5 px-4 py-3">
+                <span className="material-symbols-outlined text-[#00FFFF] text-sm">info</span>
+                <p className="font-label text-xs tracking-widest text-[#00FFFF]/70 uppercase">
+                  Google signal detected — email pre-loaded. Set a username and passcode to complete enlistment.
+                </p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-8">
               {/* Username */}
               <div className="flex flex-col gap-2">
                 <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">OPERATIVE_USERNAME</label>
@@ -90,17 +150,33 @@ export default function OperativeEnlistment() {
                   className="bg-surface-container-lowest border-0 border-b-2 border-outline focus:border-secondary focus:ring-0 text-white font-label p-4 transition-all"
                   placeholder="GHOST_PROTOCOL"
                   type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
                 />
                 <span className="font-label text-[10px] text-white/30 italic">Neural signature identifier for network access.</span>
               </div>
 
               {/* Email */}
               <div className="flex flex-col gap-2">
-                <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">ENCRYPTED_EMAIL</label>
+                <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">
+                  ENCRYPTED_EMAIL
+                  {/* 👇 Show lock icon if prefilled from Google */}
+                  {searchParams.get('email') && (
+                    <span className="ml-2 text-[#00FFFF]/60 normal-case tracking-normal">
+                      (via Google)
+                    </span>
+                  )}
+                </label>
                 <input
-                  className="bg-surface-container-lowest border-0 border-b-2 border-outline focus:border-secondary focus:ring-0 text-white font-label p-4 transition-all"
+                  className="bg-surface-container-lowest border-0 border-b-2 border-outline focus:border-secondary focus:ring-0 text-white font-label p-4 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="SIGNAL@SECURE_NODE.IO"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  // 👇 Lock the field if prefilled from Google
+                  readOnly={!!searchParams.get('email')}
                 />
               </div>
 
@@ -111,29 +187,50 @@ export default function OperativeEnlistment() {
                   className="bg-surface-container-lowest border-0 border-b-2 border-outline focus:border-secondary focus:ring-0 text-white font-label p-4 transition-all"
                   placeholder="••••••••••••"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
+                <span className="font-label text-[10px] text-white/30 italic">Min 8 chars, 1 uppercase, 1 number.</span>
               </div>
-            </div>
 
-            <div className="flex items-start gap-4 mt-4">
-              <input
-                className="mt-1 w-5 h-5 bg-surface-container-lowest border-outline text-primary focus:ring-offset-background focus:ring-primary"
-                id="protocol_accept"
-                type="checkbox"
-              />
-              <label className="font-label text-[10px] leading-relaxed text-white/40 uppercase cursor-pointer" htmlFor="protocol_accept">
-                I UNDERSTAND THAT JOINING THE KINETIC BREACH IS AN IRREVERSIBLE ACTION. MY NEURAL SIGNATURE WILL BE LOGGED, AND MY OPERATIVE STATUS WILL BE PERMANENT.
-              </label>
-            </div>
+              {/* Checkbox */}
+              <div className="flex items-start gap-4 mt-4">
+                <input
+                  className="mt-1 w-5 h-5 bg-surface-container-lowest border-outline text-primary focus:ring-offset-background focus:ring-primary cursor-pointer"
+                  id="protocol_accept"
+                  type="checkbox"
+                  checked={accepted}
+                  onChange={(e) => setAccepted(e.target.checked)}
+                />
+                <label className="font-label text-[10px] leading-relaxed text-white/40 uppercase cursor-pointer" htmlFor="protocol_accept">
+                  I UNDERSTAND THAT JOINING THE KINETIC BREACH IS AN IRREVERSIBLE ACTION. MY NEURAL SIGNATURE WILL BE LOGGED, AND MY OPERATIVE STATUS WILL BE PERMANENT.
+                </label>
+              </div>
+
+              {/* Already have account */}
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-white/10"></span>
+                <Link to="/login" className="font-label text-xs tracking-widest text-white/40 hover:text-[#00FFFF] transition-colors">
+                  Already enlisted? <span className="text-[#00FFFF]/70">Access Terminal →</span>
+                </Link>
+              </div>
+
+              {/* Submit */}
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="font-headline font-black text-3xl italic tracking-tighter bg-[#FF003C] disabled:opacity-50 disabled:cursor-not-allowed text-white px-12 py-6 slashed-button shiver shadow-[0_0_30px_rgba(255,0,60,0.4)] hover:shadow-[0_0_50px_rgba(255,0,60,0.6)] transition-all flex items-center gap-4"
+                >
+                  {loading ? 'ENLISTING...' : 'SIGN THE PROTOCOL'}
+                  <span className="material-symbols-outlined text-4xl">
+                    {loading ? 'progress_activity' : 'key'}
+                  </span>
+                </button>
+              </div>
+            </form>
           </section>
-
-          {/* Final Action */}
-          <div className="mt-4 flex justify-end">
-            <button className="font-headline font-black text-3xl italic tracking-tighter bg-[#FF003C] text-white px-12 py-6 slashed-button shiver shadow-[0_0_30px_rgba(255,0,60,0.4)] hover:shadow-[0_0_50px_rgba(255,0,60,0.6)] transition-all flex items-center gap-4">
-              SIGN THE PROTOCOL
-              <span className="material-symbols-outlined text-4xl">key</span>
-            </button>
-          </div>
         </div>
       </main>
 
