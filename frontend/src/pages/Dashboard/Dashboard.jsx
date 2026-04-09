@@ -4,86 +4,9 @@ import './Dashboard.css';
 export default function Dashboard() {
     return (
         <div className="dashboard-wrapper font-body selection:bg-primary-container selection:text-white">
-            {/* Top HUD (TopAppBar Shared Component) */}
-            <header className="fixed top-0 left-0 w-full flex items-center justify-between px-12 bg-zinc-950/80 backdrop-blur-md z-50 h-20 border-b-4 border-[#FF003C] skew-y-[-1deg] shadow-[0_0_30px_rgba(255,0,60,0.3)]">
-                <div className="flex items-center gap-8">
-                    <h1 className="text-3xl font-black text-[#FF003C] italic skew-x-[-12deg] font-headline uppercase tracking-tighter">
-                        KINETIC_BREACH_v1.0
-                    </h1>
-                    <nav className="hidden md:flex items-center gap-6">
-                        <span className="font-headline font-black italic tracking-tighter uppercase text-white underline decoration-[#FF003C] decoration-4 cursor-default">LVL 42</span>
-                        <span className="font-headline font-black italic tracking-tighter uppercase text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">XP: 88%</span>
-                        <span className="font-headline font-black italic tracking-tighter uppercase text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">SYSTEM_STABLE</span>
-                        <span className="font-headline font-black italic tracking-tighter uppercase text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">00:14:59</span>
-                    </nav>
-                </div>
-                <div className="flex items-center gap-6">
-                    <span className="material-symbols-outlined text-[#FF003C] text-2xl cursor-pointer hover:scale-125 transition-transform" data-icon="notifications_active">notifications_active</span>
-                    <span className="material-symbols-outlined text-[#FF003C] text-2xl cursor-pointer hover:scale-125 transition-transform" data-icon="settings_input_component">settings_input_component</span>
-                    <div className="w-10 h-10 bg-zinc-800 skew-x-[-10deg] border-2 border-[#FF003C] overflow-hidden">
-                        <img
-                            alt="User Hacker Avatar"
-                            className="w-full h-full object-cover"
-                            data-alt="Cyberpunk hacker avatar with neon red mask and high-tech visor, cinematic dark lighting with red rim light"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCU8vT3cRG3qY_1h2kYZFZlP4xohHJQ2ZVPT6AK8Y8B4Yf_bNIfwW__ap--bNSiAK_7uW87TGJDXprPbiPXDlCBQJTCd9olcx7kU3W2Hu5GjWEvvM95EbFVHprEf-Y_U64HV4b1sRKcnsptdFuKLCB5-cawWahZgDBUq8OOaZgUlEw6yYg6PQH0pt8Vt4syPae6CrJZ7u_RYLL6pXasTxEq7fMtYoLA7U3UgRg9_86qwOxHPtqHdMOLBP7xjzeEqrAsl6TD-f2tX1Qq"
-                        />
-                    </div>
-                </div>
-            </header>
-
-            {/* Side Navigation (SideNavBar Shared Component) */}
-            <aside className="fixed left-0 top-0 h-full w-72 bg-zinc-950 border-r-[12px] border-[#FF003C] shadow-[20px_0_60px_rgba(0,0,0,0.8)] origin-top-left -skew-x-2 z-40 hidden md:flex flex-col pt-32 gap-6">
-                <div className="px-8 mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-zinc-800 rotate-45 border-2 border-[#00FFFF] overflow-hidden">
-                            <img
-                                alt="Agent Profile"
-                                className="-rotate-45 scale-150"
-                                data-alt="Portrait of a futuristic special ops agent with cybernetic eye, dramatic shadows and neon blue lighting"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkYa08sVOlAGzQ6Gzby1PxLwT7GY1Rf-ExkJcSYkhrZ4WqOx6WGzGq1EzBvC-YC46xBvF08zebkEpv6g82gDSA4DNkAO0r6gaWeLQ4_BsLGc8A27f-5obhZrjrRCgGGTJCOdI8YqTOnc6YxAH5bOzx1sv6dW0GQ1XdeKuZKxJ9RfDOczDNgUB_eU2hXJUiZFrvj7A3MfMDnlykCQBzO8Fdy0BNEuJdsw36Eks_H1oRao4V8V2k05pdDXZcUtIThKyNgjl-VAtrf7Q3"
-                            />
-                        </div>
-                        <div>
-                            <p className="font-headline font-bold text-xl tracking-widest italic text-white uppercase leading-none">OPERATIVE_01</p>
-                            <p className="font-label text-xs text-[#00FFFF] tracking-widest">RANK: PHANTOM</p>
-                        </div>
-                    </div>
-                </div>
-                <nav className="flex flex-col gap-2">
-                    <a className="font-headline font-bold text-xl tracking-widest italic bg-[#FF003C] text-black -translate-x-4 skew-x-[-10deg] px-8 py-4 shadow-[10px_10px_0px_#00FFFF] flex items-center gap-4 transition-all" href="#!">
-                        <span className="material-symbols-outlined" data-icon="grid_view">grid_view</span>
-                        DASHBOARD
-                    </a>
-                    <a className="font-headline font-bold text-xl tracking-widest italic text-white hover:text-[#00FFFF] px-8 py-4 transition-transform hover:translate-x-2 flex items-center gap-4 hover:skew-x-[-12deg] hover:bg-zinc-800" href="#!">
-                        <span className="material-symbols-outlined" data-icon="ads_click">ads_click</span>
-                        MISSIONS
-                    </a>
-                    <a className="font-headline font-bold text-xl tracking-widest italic text-white hover:text-[#00FFFF] px-8 py-4 transition-transform hover:translate-x-2 flex items-center gap-4 hover:skew-x-[-12deg] hover:bg-zinc-800" href="#!">
-                        <span className="material-symbols-outlined" data-icon="query_stats">query_stats</span>
-                        PROGRESS
-                    </a>
-                    <a className="font-headline font-bold text-xl tracking-widest italic text-white hover:text-[#00FFFF] px-8 py-4 transition-transform hover:translate-x-2 flex items-center gap-4 hover:skew-x-[-12deg] hover:bg-zinc-800" href="#!">
-                        <span className="material-symbols-outlined" data-icon="account_circle">account_circle</span>
-                        PROFILE
-                    </a>
-                </nav>
-                <div className="mt-auto px-8 mb-12 flex flex-col gap-4">
-                    <button className="bg-[#00FFFF] text-black font-headline font-black italic py-3 skew-x-[-15deg] hover:bg-white transition-colors">
-                        INITIATE BREACH
-                    </button>
-                    <div className="flex flex-col gap-2 opacity-60">
-                        <a className="flex items-center gap-2 font-label text-sm hover:text-[#FF003C]" href="#!">
-                            <span className="material-symbols-outlined text-sm" data-icon="settings">settings</span> SETTINGS
-                        </a>
-                        <a className="flex items-center gap-2 font-label text-sm hover:text-[#FF003C]" href="#!">
-                            <span className="material-symbols-outlined text-sm" data-icon="power_settings_new">power_settings_new</span> LOGOUT
-                        </a>
-                    </div>
-                </div>
-            </aside>
 
             {/* Main Content Canvas */}
-            <main className="md:ml-72 pt-32 px-8 md:px-16 pb-20 overflow-x-hidden">
+            <main className="pt-8 pl-[288px] px-6 md:px-12 pb-16 overflow-x-hidden">
                 {/* Hero Progress Section */}
                 <section className="relative mb-20">
                     <div className="flex flex-col md:flex-row items-end gap-8">

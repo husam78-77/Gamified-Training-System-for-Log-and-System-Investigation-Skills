@@ -6,7 +6,6 @@ export const loginUser = async ({ email, password }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
     });
-
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Login failed');
     return data;
@@ -18,8 +17,18 @@ export const registerUser = async ({ username, email, password }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
     });
-
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Registration failed');
+    return data;
+};
+
+export const forgotPasswordRequest = async (email) => {
+    const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Request failed');
     return data;
 };

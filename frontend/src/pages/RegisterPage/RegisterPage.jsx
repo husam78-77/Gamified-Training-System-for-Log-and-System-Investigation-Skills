@@ -82,7 +82,7 @@ export default function OperativeEnlistment() {
         {/* Sidebar Info */}
         <div className="lg:col-span-4 flex flex-col justify-start gap-8">
           <div className="relative">
-            <h1 className="font-headline text-7xl font-black italic uppercase leading-none text-[#FF003C] -skew-x-6 drop-shadow-[0_0_20px_rgba(255,0,60,0.3)]">
+            <h1 className="font-headline text-5xl font-black italic uppercase leading-none text-[#FF003C] -skew-x-6 drop-shadow-[0_0_20px_rgba(255,0,60,0.3)]">
               OPERATIVE<br />ENLISTMENT
             </h1>
             <div className="mt-6 flex items-center gap-4 text-secondary">

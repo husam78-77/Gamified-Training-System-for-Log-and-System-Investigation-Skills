@@ -1,0 +1,45 @@
+/*Profile.css */
+
+.profile-wrapper {
+    background-color: #0A0A0A;
+    color: #e5e2e1;
+    overflow-x: hidden;
+    min-height: 100vh;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.slashed-primary {
+    clip-path: polygon(0 0, 100% 0, 95% 100%, 5% 100%);
+}
+
+.slashed-card {
+    clip-path: polygon(0 5%, 95% 0, 100% 95%, 5% 100%);
+}
+
+.diagonal-path {
+    background: linear-gradient(135deg, transparent 48%, #FF003C 49%, #FF003C 51%, transparent 52%);
+    background-size: 100px 100px;
+}
+
+.persona-tilt {
+    transform: skewX(-2deg) rotate(-1deg);
+}
+
+.persona-tilt-alt {
+    transform: skewX(2deg) rotate(1deg);
+}
+
+.glitch-text {
+    text-shadow: 2px 0 #FF003C, -2px 0 #00FFFF;
+}
+
+.slash-br {
+    clip-path: polygon(0 0, 100% 0, 100% 85%, 85% 100%, 0 100%);
+}
+
+.slash-tl {
+    clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%, 0 15%);
+}

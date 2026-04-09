@@ -10,6 +10,10 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import TeacherDashboard from './pages/TeacherDashboard';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AuthCallback from './pages/auth/callback/AuthCallback';
+import Layout from './components/layout/Layout';
+import Mission from './pages/Mission/MissionDashboard/MissionDashboard';
+import Sequence from './pages/Mission/MissionDashboard/MissionSequence';
+import Profile from './pages/Profile/Profile'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -29,17 +33,36 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />  {/* 👈 added */}
+            <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Dashboard />
+                <Layout>
+                  <Dashboard />
+                </Layout>
               </ProtectedRoute>
             } />
-            <Route path="/teacher-dashboard" element={
+
+            <Route path="/mission" element={
               <ProtectedRoute>
-                <TeacherDashboard />
+                <Layout>
+                  <Mission />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/sequence" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Sequence />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <Profile />
               </ProtectedRoute>
             } />
           </Routes>
