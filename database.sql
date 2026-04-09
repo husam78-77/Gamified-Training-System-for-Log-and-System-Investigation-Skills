@@ -7,7 +7,11 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role VARCHAR(20) DEFAULT 'student',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    temp_password_hash TEXT DEFAULT NULL,
+    temp_password_expires TIMESTAMP DEFAULT NULL,
+	level INT DEFAULT 1,
+	xp INT DEFAULT 0;
 );
 
 

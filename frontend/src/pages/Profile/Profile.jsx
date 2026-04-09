@@ -4,29 +4,6 @@ import './Profile.css';
 export default function OperativeProfile() {
     return (
         <div className="profile-wrapper font-body selection:bg-primary-container selection:text-white">
-            {/* TopAppBar */}
-            <header className="fixed top-0 left-0 w-full flex items-center justify-between px-12 bg-zinc-950/80 backdrop-blur-md text-[#FF003C] font-headline font-black italic tracking-tighter uppercase z-50 h-20 border-b-4 border-[#FF003C] skew-y-[-1deg] shadow-[0_0_30px_rgba(255,0,60,0.3)]">
-                <div className="text-3xl font-black text-[#FF003C] italic skew-x-[-12deg]">KINETIC_BREACH_v1.0</div>
-                <nav className="hidden md:flex items-center gap-8">
-                    <span className="text-white underline decoration-[#FF003C] decoration-4 cursor-default">LVL 42</span>
-                    <span className="text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">XP: 88%</span>
-                    <span className="text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">SYSTEM_STABLE</span>
-                    <span className="text-zinc-500 hover:text-[#FF003C] hover:scale-110 transition-all cursor-pointer">00:14:59</span>
-                </nav>
-                <div className="flex items-center gap-6">
-                    <span className="material-symbols-outlined text-2xl cursor-pointer hover:text-[#FF003C] transition-all">notifications_active</span>
-                    <span className="material-symbols-outlined text-2xl cursor-pointer hover:text-[#FF003C] transition-all">settings_input_component</span>
-                    <div className="w-10 h-10 bg-primary-container overflow-hidden skew-x-[-10deg] border-2 border-[#FF003C]">
-                        <img
-                            alt="User Hacker Avatar"
-                            className="w-full h-full object-cover"
-                            data-alt="Stylized cyberpunk hacker avatar with neon red accents and digital artifacts on a dark background"
-                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxlJkJhnJhY0eoy9HoVH588zpyHhfl9eP2FiW7HCljqqeiNfl9bP-upQFGak9VPYp7UrGfF_dJh1ZE6dW5letEG5CigaRuZSffuDJv1EwlFrG7wbKT7dmi3SmQm7zbZgN-5NNMoQX1S_bEKQTEXsd3uZrPeEl2WHpJHhmArLAIVyf3xXwg9hZ113KiP9twyKLHREaDdgmF82ksp_X4Z1_dCD7j7AglPgU8Qhbn8SV39vzJTTwdqwFU0iuCI1U4cpz9Ff1r3pySrxNh"
-                        />
-                    </div>
-                </div>
-            </header>
-
 
             {/* Main Content Canvas */}
             <main className="md:pl-0 pt-32 p-8 min-h-screen">
