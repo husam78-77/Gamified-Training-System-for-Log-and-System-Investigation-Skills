@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';                          // 👈 added useEffect
-import { useNavigate, Link, useSearchParams } from 'react-router-dom'; // 👈 added useSearchParams
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { registerUser } from '../../services/authService';
+import { motion } from 'framer-motion';
 import './Register.css';
 
 export default function OperativeEnlistment() {
@@ -14,11 +15,14 @@ export default function OperativeEnlistment() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // 👇 Prefill email if coming from Google OAuth
+  // The signature P5 snapping ease curve
+  const p5Ease = [0.85, 0, 0.15, 1];
+
+  // Prefill email if coming from Google OAuth
   useEffect(() => {
     const googleEmail = searchParams.get('email');
     if (googleEmail) setEmail(decodeURIComponent(googleEmail));
-  }, []);
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,7 +45,19 @@ export default function OperativeEnlistment() {
   };
 
   return (
-    <div className="enlistment-wrapper font-body selection:bg-primary-container selection:text-on-primary-container">
+    <div className="enlistment-wrapper font-body selection:bg-primary-container selection:text-on-primary-container relative overflow-hidden">
+
+      {/* ==========================================
+          THE SCREEN WIPE (Tears away Right-to-Left)
+          ========================================== */}
+      <motion.div
+        initial={{ x: "150%", skewX: "-25deg" }}     // Starts covering the screen from the right
+        animate={{ x: "-150%", skewX: "-25deg" }}    // Violently sweeps left to reveal the page
+        exit={{ x: "-10%", skewX: "-25deg" }}        // Sweeps back in to cover if they click "Login"
+        transition={{ duration: 0.6, ease: p5Ease }}
+        className="fixed inset-y-0 w-[150vw] bg-[#FF003C] z-[100] pointer-events-none border-l-[40px] border-[#EAEAEA]"
+        style={{ left: "-20vw", top: "-10vh", height: "120vh" }}
+      />
 
       {/* Background Scrolling "Breaches" */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden flex justify-around opacity-10">
@@ -78,7 +94,16 @@ export default function OperativeEnlistment() {
         </div>
       </header>
 
-      <main className="relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+      {/* ==========================================
+          MAIN CONTENT DROP-IN
+          ========================================== */}
+      <motion.main
+        initial={{ opacity: 0, scale: 0.95, x: -50, rotate: -4, filter: "grayscale(100%) contrast(1.5)" }}
+        animate={{ opacity: 1, scale: 1, x: 0, rotate: 0, filter: "grayscale(0%) contrast(1)" }}
+        exit={{ opacity: 0, scale: 1.05, x: 50, rotate: 4, filter: "grayscale(100%) brightness(0.5)" }}
+        transition={{ type: "spring", stiffness: 350, damping: 25, delay: 0.2 }}
+        className="relative z-10 pt-32 pb-20 px-6 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12"
+      >
         {/* Sidebar Info */}
         <div className="lg:col-span-4 flex flex-col justify-start gap-8">
           <div className="relative">
@@ -124,7 +149,6 @@ export default function OperativeEnlistment() {
               </span>
             </div>
 
-            {/* Error Message */}
             {error && (
               <div className="flex items-center gap-3 border border-[#FF003C]/50 bg-[#FF003C]/10 px-4 py-3">
                 <span className="material-symbols-outlined text-[#FF003C] text-sm">error</span>
@@ -132,7 +156,6 @@ export default function OperativeEnlistment() {
               </div>
             )}
 
-            {/* 👇 Google email prefill notice */}
             {searchParams.get('email') && (
               <div className="flex items-center gap-3 border border-[#00FFFF]/30 bg-[#00FFFF]/5 px-4 py-3">
                 <span className="material-symbols-outlined text-[#00FFFF] text-sm">info</span>
@@ -143,7 +166,6 @@ export default function OperativeEnlistment() {
             )}
 
             <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-              {/* Username */}
               <div className="flex flex-col gap-2">
                 <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">OPERATIVE_USERNAME</label>
                 <input
@@ -157,11 +179,9 @@ export default function OperativeEnlistment() {
                 <span className="font-label text-[10px] text-white/30 italic">Neural signature identifier for network access.</span>
               </div>
 
-              {/* Email */}
               <div className="flex flex-col gap-2">
                 <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">
                   ENCRYPTED_EMAIL
-                  {/* 👇 Show lock icon if prefilled from Google */}
                   {searchParams.get('email') && (
                     <span className="ml-2 text-[#00FFFF]/60 normal-case tracking-normal">
                       (via Google)
@@ -175,12 +195,10 @@ export default function OperativeEnlistment() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  // 👇 Lock the field if prefilled from Google
                   readOnly={!!searchParams.get('email')}
                 />
               </div>
 
-              {/* Password */}
               <div className="flex flex-col gap-2">
                 <label className="font-label text-xs text-secondary/60 tracking-tighter uppercase">ACCESS_PASSCODE</label>
                 <input
@@ -194,7 +212,6 @@ export default function OperativeEnlistment() {
                 <span className="font-label text-[10px] text-white/30 italic">Min 8 chars, 1 uppercase, 1 number.</span>
               </div>
 
-              {/* Checkbox */}
               <div className="flex items-start gap-4 mt-4">
                 <input
                   className="mt-1 w-5 h-5 bg-surface-container-lowest border-outline text-primary focus:ring-offset-background focus:ring-primary cursor-pointer"
@@ -208,7 +225,6 @@ export default function OperativeEnlistment() {
                 </label>
               </div>
 
-              {/* Already have account */}
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-white/10"></span>
                 <Link to="/login" className="font-label text-xs tracking-widest text-white/40 hover:text-[#00FFFF] transition-colors">
@@ -216,7 +232,6 @@ export default function OperativeEnlistment() {
                 </Link>
               </div>
 
-              {/* Submit */}
               <div className="mt-4 flex justify-end">
                 <button
                   type="submit"
@@ -232,7 +247,7 @@ export default function OperativeEnlistment() {
             </form>
           </section>
         </div>
-      </main>
+      </motion.main>
 
       {/* Footer */}
       <footer className="w-full py-12 px-8 flex flex-col items-center gap-4 bg-[#0A0A0A] relative z-20">

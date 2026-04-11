@@ -55,6 +55,45 @@ const clearTempPassword = async (userId) => {
     `;
     await pool.query(query, [userId]);
 };
+const getUserProfileData = async (userId) => {
+    const query = `
+        SELECT 
+            u.username, 
+            u.email, 
+            u.role, 
+            u.level, 
+            u.created_at,
+            (SELECT COUNT(*) FROM badges WHERE user_id = $1) AS badge_count,
+            (SELECT COALESCE(SUM(highest_score), 0) FROM user_progress WHERE user_id = $1) AS total_score
+        FROM users u
+        WHERE u.user_id = $1
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows[0] || null;
+};
+
+const findById = async (userId) => {
+    const query = `
+        SELECT user_id, username, email, password_hash,
+               temp_password_hash, temp_password_expires, role, created_at
+        FROM users
+        WHERE user_id = $1
+        LIMIT 1
+    `;
+    const result = await pool.query(query, [userId]);
+    return result.rows[0] || null;
+};
+
+const updatePassword = async (userId, newPasswordHash) => {
+    const query = `
+        UPDATE users
+        SET password_hash = $1,
+            temp_password_hash = NULL,
+            temp_password_expires = NULL
+        WHERE user_id = $2
+    `;
+    await pool.query(query, [newPasswordHash, userId]);
+};
 
 module.exports = {
     createUser,
@@ -62,4 +101,7 @@ module.exports = {
     findByEmail,
     saveTempPassword,
     clearTempPassword,
+    getUserProfileData,
+    findById,
+    updatePassword,
 };

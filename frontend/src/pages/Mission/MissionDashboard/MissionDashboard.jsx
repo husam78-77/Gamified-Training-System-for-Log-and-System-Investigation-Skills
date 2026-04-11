@@ -1,7 +1,10 @@
 import React from 'react';
 import './MissionDashboard.css';
+import { useNavigate } from 'react-router-dom';
 
 export default function InvestigationCategories() {
+    const navigate = useNavigate();
+
     return (
         <div className="categories-wrapper font-body selection:bg-primary-container selection:text-white">
 
@@ -29,11 +32,9 @@ export default function InvestigationCategories() {
 
                         {/* TYPE 1: BRUTE FORCE */}
                         <div className="group relative w-full lg:w-[55%] transition-all duration-500 hover:-translate-y-2">
-                            {/* Shadow Glow */}
                             <div className="absolute -inset-1 bg-gradient-to-r from-[#FF003C] to-transparent opacity-30 blur-xl group-hover:opacity-60 transition-opacity"></div>
                             <div className="relative bg-zinc-950 slashed-card-tr border-l-8 border-[#FF003C] p-1">
                                 <div className="bg-surface-container-low p-12 overflow-hidden relative">
-                                    {/* Background Accent */}
                                     <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF003C]/5 -skew-x-12 translate-x-1/2 -translate-y-1/2"></div>
 
                                     <div className="flex justify-between items-start mb-8">
@@ -56,13 +57,16 @@ export default function InvestigationCategories() {
                                         </div>
                                     </div>
 
-                                    <button className="relative w-full py-6 parallelogram bg-[#FF003C] text-on-primary-container font-headline font-black text-2xl italic tracking-widest uppercase overflow-hidden transition-all group-hover:scale-105 group-hover:shadow-[20px_20px_0px_rgba(255,0,60,0.2)]">
+                                    {/* Pushes parameter 'bruteforce' */}
+                                    <button
+                                        onClick={() => navigate('/sequence/bruteforce')}
+                                        className="relative w-full py-6 parallelogram bg-[#FF003C] text-on-primary-container font-headline font-black text-2xl italic tracking-widest uppercase overflow-hidden transition-all group-hover:scale-105 group-hover:shadow-[20px_20px_0px_rgba(255,0,60,0.2)]"
+                                    >
                                         <span className="relative z-10">SELECT PROTOCOL</span>
                                         <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity"></div>
                                     </button>
                                 </div>
                             </div>
-                            {/* Floating Data Shard */}
                             <div className="absolute -bottom-6 -right-6 bg-secondary text-black font-label font-bold px-4 py-2 text-sm skew-x-[-15deg] shadow-xl">
                                 DIFFICULTY: HIGH_IMPACT
                             </div>
@@ -70,11 +74,9 @@ export default function InvestigationCategories() {
 
                         {/* TYPE 2: SUSPICIOUS SCRIPT EXECUTION */}
                         <div className="group relative w-full lg:w-[45%] lg:mt-24 transition-all duration-500 hover:-translate-y-2">
-                            {/* Shadow Glow */}
                             <div className="absolute -inset-1 bg-gradient-to-r from-secondary to-transparent opacity-10 blur-xl group-hover:opacity-30 transition-opacity"></div>
                             <div className="relative bg-zinc-950 slashed-card-bl border-r-8 border-secondary p-1">
                                 <div className="bg-surface-container p-10 overflow-hidden relative">
-                                    {/* Decorative HUD Element */}
                                     <div className="absolute -top-10 -left-10 w-40 h-40 border border-white/5 rotate-45 pointer-events-none"></div>
 
                                     <div className="flex justify-between items-start mb-8">
@@ -100,49 +102,23 @@ export default function InvestigationCategories() {
                                         </ul>
                                     </div>
 
-                                    <button className="relative w-full py-5 border-4 border-secondary text-secondary font-headline font-black text-xl italic tracking-widest uppercase hover:bg-secondary hover:text-black transition-all">
+                                    {/* Pushes parameter 'script' */}
+                                    <button
+                                        onClick={() => navigate('/sequence/script')}
+                                        className="relative w-full py-5 border-4 border-secondary text-secondary font-headline font-black text-xl italic tracking-widest uppercase hover:bg-secondary hover:text-black transition-all"
+                                    >
                                         SELECT PROTOCOL
                                     </button>
                                 </div>
                             </div>
-                            {/* Floating Data Shard */}
                             <div className="absolute -top-6 -left-6 bg-zinc-900 border border-secondary text-secondary font-label font-bold px-4 py-2 text-sm skew-x-[15deg]">
                                 TYPE: MALWARE_TRIAGE
                             </div>
                         </div>
 
                     </div>
-
-                    {/* FOOTER STATUS */}
-                    <div className="mt-24 border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 opacity-50">
-                        <div className="font-label text-[10px] tracking-[0.3em] uppercase">
-                            ENVIRONMENT_READY // NODE_STATUS: <span className="text-[#00FF00]">ACTIVE</span>
-                        </div>
-                        <div className="flex items-center gap-8 w-full md:w-auto">
-                            <div className="flex-1 md:w-32 h-1 bg-surface-container-highest overflow-hidden">
-                                <div className="w-3/4 h-full bg-[#FF003C]"></div>
-                            </div>
-                            <span className="font-label text-[10px] uppercase whitespace-nowrap">MEMORY_ALLOCATION: 78%</span>
-                        </div>
-                    </div>
                 </div>
             </main>
-
-            {/* MOBILE NAVIGATION (HIDDEN ON DESKTOP) */}
-            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-zinc-950 border-t-4 border-[#FF003C] flex justify-around items-center h-16 z-50">
-                <button className="flex flex-col items-center gap-1 text-[#FF003C]">
-                    <span className="material-symbols-outlined">grid_view</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-white">
-                    <span className="material-symbols-outlined">ads_click</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-zinc-500">
-                    <span className="material-symbols-outlined">query_stats</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-zinc-500">
-                    <span className="material-symbols-outlined">account_circle</span>
-                </button>
-            </nav>
         </div>
     );
 }

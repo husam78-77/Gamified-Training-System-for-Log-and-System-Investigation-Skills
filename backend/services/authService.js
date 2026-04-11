@@ -69,4 +69,31 @@ const forgotPassword = async (email) => {
     return { notFound: false };
 };
 
-module.exports = { registerUser, loginUser, forgotPassword };
+const changePassword = async ({ userId, currentPassword, newPassword }) => {
+    const user = await userModel.findById(userId);
+    if (!user) return { notFound: true };
+
+    // 1. Check real password first
+    let isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+
+    // 2. If real password fails, check temp password
+    if (!isMatch) {
+        const hasTempPassword = user.temp_password_hash && user.temp_password_expires;
+        const tempNotExpired = hasTempPassword && new Date() < new Date(user.temp_password_expires);
+
+        if (!tempNotExpired) return { unauthorized: true };
+
+        isMatch = await bcrypt.compare(currentPassword, user.temp_password_hash);
+        if (!isMatch) return { unauthorized: true };
+    }
+
+    // 3. Hash the new password
+    const newPasswordHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    // 4. Update database (and clear temp password)
+    await userModel.updatePassword(userId, newPasswordHash);
+
+    return { success: true };
+};
+
+module.exports = { registerUser, loginUser, forgotPassword, changePassword };

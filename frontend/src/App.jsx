@@ -13,8 +13,8 @@ import AuthCallback from './pages/auth/callback/AuthCallback';
 import Layout from './components/layout/Layout';
 import Mission from './pages/Mission/MissionDashboard/MissionDashboard';
 import Sequence from './pages/Mission/MissionDashboard/MissionSequence';
-import Profile from './pages/Profile/Profile'
-
+import Profile from './pages/Profile/Profile';
+import Game from './pages/GamingEnvironment/GamingEnvironment';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
@@ -35,6 +35,8 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
+            <Route path="/game" element={<Game />} />
+
             {/* Protected routes */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
@@ -52,7 +54,8 @@ function App() {
               </ProtectedRoute>
             } />
 
-            <Route path="/sequence" element={
+            {/* dynamic parameter */}
+            <Route path="/sequence/:type" element={
               <ProtectedRoute>
                 <Layout>
                   <Sequence />
