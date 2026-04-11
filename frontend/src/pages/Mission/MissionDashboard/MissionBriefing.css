@@ -1,0 +1,26 @@
+/* MissionBriefing.css */
+
+.mission-briefing-wrapper {
+    background-color: #131313;
+    /* Mapped from surface */
+    color: #e5e2e1;
+    /* Mapped from on-background */
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.slashed-card {
+    clip-path: polygon(0% 0%, 95% 0%, 100% 10%, 100% 100%, 5% 100%, 0% 90%);
+}
+
+.btn-slashed {
+    clip-path: polygon(10% 0%, 100% 0%, 90% 100%, 0% 100%);
+}
+
+.text-glow-primary {
+    text-shadow: 0 0 15px rgba(255, 0, 60, 0.6);
+}

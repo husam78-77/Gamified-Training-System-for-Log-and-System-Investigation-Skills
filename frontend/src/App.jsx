@@ -14,6 +14,7 @@ import Layout from './components/layout/Layout';
 import Mission from './pages/Mission/MissionDashboard/MissionDashboard';
 import Sequence from './pages/Mission/MissionDashboard/MissionSequence';
 import Profile from './pages/Profile/Profile';
+import Briefing from './pages/Mission/MissionDashboard/MissionBriefing';
 import Game from './pages/GamingEnvironment/GamingEnvironment';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -59,6 +60,14 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Sequence />
+                </Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/briefing" element={
+              <ProtectedRoute>
+                <Layout>
+                  <Briefing />
                 </Layout>
               </ProtectedRoute>
             } />

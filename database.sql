@@ -195,3 +195,29 @@ CREATE TABLE badges (
     CONSTRAINT unique_user_badge
         UNIQUE (user_id, scenario_id, badge_name)
 );
+
+
+
+-- sessions table needs a mode column
+ALTER TABLE sessions ADD COLUMN mode VARCHAR(20) DEFAULT 'free';
+
+-- virtual_files table needs hidden/reveal columns
+ALTER TABLE virtual_files ADD COLUMN is_hidden BOOLEAN DEFAULT FALSE;
+ALTER TABLE virtual_files ADD COLUMN reveal_at_step INT DEFAULT NULL;
+
+-- objectives table (doesn't exist yet, needs to be created)
+CREATE TABLE objectives (
+    objective_id SERIAL PRIMARY KEY,
+    scenario_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    is_secret BOOLEAN DEFAULT FALSE,
+    trigger_step INT DEFAULT NULL,
+    xp_reward INT DEFAULT 0,
+    objective_order INT NOT NULL,
+    CONSTRAINT fk_objectives_scenario
+        FOREIGN KEY (scenario_id) REFERENCES scenarios(scenario_id)
+        ON DELETE CASCADE,
+    CONSTRAINT unique_objective_per_scenario
+        UNIQUE (scenario_id, objective_order)
+);
