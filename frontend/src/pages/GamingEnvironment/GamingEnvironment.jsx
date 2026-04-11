@@ -1,258 +1,557 @@
-import React from 'react';
+/**
+ * GamingEnvironment.jsx
+ * The core investigation engine. Assembles all hooks and components.
+ *
+ * Route: /game
+ * Receives state: { scenario_id, mode }
+ *
+ * Hook wiring:
+ *   useSession     → session lifecycle, timer, abandon/complete
+ *   useTerminal    → xterm.js, command execution, file system
+ *   useObjectives  → objective state, step progress tracking
+ *   useHint        → AI oracle, hint log, limit tracking
+ *
+ * Path: frontend/src/pages/GamingEnvironment/GamingEnvironment.jsx
+ */
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { fetchFullScenarioData } from '../../services/scenarioService';
+
+import { useSession } from '../../hooks/useSession';
+import { useTerminal } from '../../hooks/useTerminal';
+import { useObjectives } from '../../hooks/useObjectives';
+import { useHint } from '../../hooks/useHint';
+
+import TerminalPanel from '../../components/TerminalPanel';
+import ObjectivesPanel from '../../components/ObjectivesPanel';
+import HintPanel from '../../components/HintPanel';
+import TimerDisplay from '../../components/TimerDisplay';
+
 import './GamingEnvironment.css';
 
 export default function GamingEnvironment() {
+    const navigate = useNavigate();
+    const { scenario_id } = useParams();
+    const [searchParams] = useSearchParams();
+    const mode = searchParams.get('mode') || 'free';
+    const { token } = useAuth();
+
+    // ── Scenario data state (loaded once on mount) ────────────────────────
+    const [scenarioData, setScenarioData] = useState(null);
+    const [scenarioLoading, setScenarioLoading] = useState(true);
+    const [scenarioError, setScenarioError] = useState(null);
+
+    // ── Exit confirmation modal state (timed mode only) ───────────────────
+    const [showExitModal, setShowExitModal] = useState(false);
+
+    // ── Guard: invalid URL params → redirect ──────────────────────────────
+    useEffect(() => {
+        if (!scenario_id) {
+            navigate('/mission', { replace: true });
+        }
+    }, []);
+
+    // ── Load full scenario data ───────────────────────────────────────────
+    useEffect(() => {
+        const load = async () => {
+            setScenarioLoading(true);
+            setScenarioError(null);
+            try {
+                const data = await fetchFullScenarioData(scenario_id, token);
+                setScenarioData(data);
+            } catch (err) {
+                setScenarioError(err.message);
+            } finally {
+                setScenarioLoading(false);
+            }
+        };
+        load();
+    }, [scenario_id, token]);
+
+    // ── SESSION HOOK ──────────────────────────────────────────────────────
+    const session = useSession(scenario_id, mode, token);
+
+    // ── OBJECTIVES HOOK ───────────────────────────────────────────────────
+    const objectives = useObjectives(scenarioData?.objectives || []);
+
+    // ── Callbacks for useTerminal ─────────────────────────────────────────
+    const handleStepMatched = useCallback((matchedStep) => {
+        objectives.markStepProgress(matchedStep);
+    }, [objectives.markStepProgress]);
+
+    const handleObjectivesUpdated = useCallback((completedIds) => {
+        objectives.markObjectivesCompleted(completedIds);
+    }, [objectives.markObjectivesCompleted]);
+
+    const handleFilesRevealed = useCallback((newFiles) => {
+        // Files are already added to virtualFiles inside useTerminal
+        // This callback is for any additional side effects needed
+    }, []);
+
+    // ── TERMINAL HOOK ─────────────────────────────────────────────────────
+    const terminal = useTerminal({
+        sessionId: session.sessionId,
+        token,
+        initialFiles: scenarioData?.virtualFiles || [],
+        onStepMatched: handleStepMatched,
+        onFilesRevealed: handleFilesRevealed,
+        onObjectivesUpdated: handleObjectivesUpdated,
+    });
+
+    // ── HINT HOOK ─────────────────────────────────────────────────────────
+    const hint = useHint(session.sessionId, token);
+
+    // ── Auto-complete when all required objectives done ───────────────────
+    useEffect(() => {
+        if (objectives.allRequiredComplete && session.isActive) {
+            terminal.writeToTerminal(
+                '\x1b[32m[SYSTEM] All objectives complete. Mission ready to finalize.\x1b[0m'
+            );
+        }
+    }, [objectives.allRequiredComplete]);
+
+    // ── Session completed → navigate to results ───────────────────────────
+    useEffect(() => {
+        if (session.isCompleted && session.evaluation) {
+            // Brief delay so user sees the terminal complete message
+            const timer = setTimeout(() => {
+                navigate('/mission', {
+                    state: { evaluation: session.evaluation },
+                });
+            }, 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [session.isCompleted, session.evaluation]);
+
+    // ── Session abandoned → navigate away immediately ─────────────────────
+    useEffect(() => {
+        if (session.isAbandoned) {
+            navigate('/mission', { replace: true });
+        }
+    }, [session.isAbandoned]);
+
+    // ── Exit button handler ───────────────────────────────────────────────
+    const handleExitClick = () => {
+        if (mode === 'timed') {
+            setShowExitModal(true); // Show warning
+        } else {
+            // Free mode — just complete (saves partial progress)
+            session.complete();
+        }
+    };
+
+    const handleConfirmAbandon = async () => {
+        setShowExitModal(false);
+        await session.abandon();
+    };
+
+    // ── Build system logs from command history + events ───────────────────
+    const systemLogs = buildSystemLogs(terminal.virtualFiles, scenarioData?.scenario);
+
+    // ── Loading screen ────────────────────────────────────────────────────
+    if (scenarioLoading || session.isLoading && !session.sessionId) {
+        return <BootScreen />;
+    }
+
+    if (scenarioError) {
+        return <ErrorScreen error={scenarioError} onBack={() => navigate(-1)} />;
+    }
+
     return (
         <div className="gaming-env-wrapper font-body selection:bg-primary selection:text-white">
-            <div className="fixed inset-0 bg-noise z-50"></div>
+            <div className="fixed inset-0 bg-noise z-50 pointer-events-none"></div>
 
-            {/* HUD Top Right: Timer & Status */}
+            {/* ── HUD: Top Right — Timer ─────────────────────────────────── */}
             <div className="fixed top-8 right-8 z-40 flex flex-col items-end gap-2">
-                <div className="flex items-center gap-3">
-                    <div className="px-2 py-0.5 bg-primary text-black font-label text-[10px] font-black tracking-tighter pulse-soft">THREAT_DETECTED</div>
-                    <div className="px-2 py-0.5 border border-secondary text-secondary font-label text-[10px] font-bold">SYSTEM_ACTIVE</div>
-                </div>
-                <div className="flex flex-col items-end">
-                    <span className="font-label text-[10px] tracking-[0.2em] text-secondary/40 uppercase">Session Time Remaining</span>
-                    <div className="font-headline text-5xl tracking-tighter italic text-secondary cyan-glow">04:59:21</div>
-                </div>
+                <TimerDisplay
+                    formattedTime={session.formattedTime}
+                    timeRemaining={session.timeRemaining}
+                    mode={mode}
+                />
             </div>
 
-            {/* HUD Bottom Left: Exit */}
+            {/* ── HUD: Bottom Left — Exit ───────────────────────────────── */}
             <div className="fixed bottom-8 left-8 z-40">
-                <button className="group flex items-center gap-4 bg-surface-container-high/50 border border-white/5 px-8 py-3 skew-x-[-12deg] hover:bg-primary transition-all duration-300">
-                    <span className="material-symbols-outlined text-primary group-hover:text-black transition-colors" data-icon="logout">logout</span>
-                    <span className="font-label font-bold text-on-surface group-hover:text-black transition-colors tracking-widest">EXIT_SESSION</span>
+                <button
+                    onClick={handleExitClick}
+                    disabled={session.isLoading}
+                    className="group flex items-center gap-4 bg-surface-container-high/50 border border-white/5 px-8 py-3 skew-x-[-12deg] hover:bg-[#FF003C] transition-all duration-300 disabled:opacity-50"
+                >
+                    <span className="material-symbols-outlined text-[#FF003C] group-hover:text-black transition-colors">
+                        logout
+                    </span>
+                    <span className="font-label font-bold text-on-surface group-hover:text-black transition-colors tracking-widest">
+                        EXIT_SESSION
+                    </span>
                 </button>
             </div>
 
-            <main className="h-screen w-full flex p-6 gap-8 relative z-10">
+            {/* ── HUD: Bottom Right — Complete mission button ───────────── */}
+            {objectives.allRequiredComplete && session.isActive && (
+                <div className="fixed bottom-8 right-8 z-40">
+                    <button
+                        onClick={session.complete}
+                        className="group flex items-center gap-3 bg-green-500/20 border border-green-500/40 px-6 py-3 skew-x-[-12deg] hover:bg-green-500 transition-all duration-300 animate-pulse"
+                    >
+                        <span className="material-symbols-outlined text-green-400 group-hover:text-black transition-colors">
+                            check_circle
+                        </span>
+                        <span className="font-label font-bold text-green-400 group-hover:text-black transition-colors tracking-widest text-xs">
+                            FINALIZE_MISSION
+                        </span>
+                    </button>
+                </div>
+            )}
+
+            {/* ── MAIN LAYOUT ───────────────────────────────────────────── */}
+            <main className="h-screen w-full flex p-6 gap-6 relative z-10">
 
                 {/* LEFT PANEL */}
-                <aside className="w-[22%] flex flex-col gap-8">
-                    {/* SYSTEM_LOGS */}
+                <aside className="w-[22%] flex flex-col gap-6">
+
+                    {/* SYSTEM LOGS */}
                     <section className="flex-1 bg-surface-container-lowest/80 p-4 flex flex-col gap-4 overflow-hidden relative border-t border-l border-white/5">
                         <div className="flex justify-between items-center border-b border-outline-variant/10 pb-2">
-                            <h2 className="font-label text-xs font-bold tracking-widest text-primary flex items-center gap-2">
-                                <span className="material-symbols-outlined text-[14px]" data-icon="developer_board">developer_board</span>
+                            <h2 className="font-label text-xs font-bold tracking-widest text-[#FF003C] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-[14px]">developer_board</span>
                                 SYSTEM_LOGS
                             </h2>
-                            <span className="text-[9px] text-primary/60 font-label animate-pulse">LIVE_FEED</span>
+                            <span className="text-[9px] text-[#FF003C]/60 font-label animate-pulse">LIVE_FEED</span>
                         </div>
                         <div className="flex-1 font-label text-[10px] leading-relaxed overflow-y-auto space-y-3 opacity-90 custom-scrollbar">
-                            <div className="flex gap-2 text-secondary/40">
-                                <span>[14:22:01]</span>
-                                <span className="text-on-surface/80">Initializing socket connection...</span>
-                            </div>
-                            <div className="p-2 bg-primary/10 border-l-2 border-primary">
-                                <div className="flex gap-2 text-primary font-bold">
-                                    <span>[14:22:05]</span>
-                                    <span>CRITICAL: Unidentified intrusion detected</span>
-                                </div>
-                                <div className="text-[9px] mt-1 text-primary/70 ml-12">SOURCE_NODE: 0xBF3</div>
-                            </div>
-                            <div className="flex gap-2 text-secondary/40">
-                                <span>[14:22:08]</span>
-                                <span className="text-on-surface/80">Bypassing local firewall... <span className="text-secondary/80">OK</span></span>
-                            </div>
-                            <div className="flex gap-2 text-secondary/40">
-                                <span>[14:22:12]</span>
-                                <span className="text-on-surface/80">Injecting payload into /dev/sda1</span>
-                            </div>
-                            <div className="p-2 bg-primary/10 border-l-2 border-primary">
-                                <div className="flex gap-2 text-primary font-bold">
-                                    <span>[14:22:15]</span>
-                                    <span>CRITICAL: Handshake failed with root</span>
-                                </div>
-                            </div>
-                            <div className="flex gap-2 text-secondary/40">
-                                <span>[14:22:19]</span>
-                                <span className="text-on-surface/80">Rerouting through LONDON-04</span>
-                            </div>
+                            {systemLogs.map((log, i) => (
+                                <SystemLogEntry key={i} log={log} />
+                            ))}
                         </div>
                     </section>
 
-                    {/* FILE_SYSTEM */}
-                    <section className="h-2/5 bg-surface-container-low/50 p-4 border-l-2 border-secondary/20">
-                        <h2 className="font-label text-xs font-bold tracking-widest text-secondary mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[14px]" data-icon="folder_zip">folder_zip</span>
+                    {/* FILE SYSTEM */}
+                    <section className="h-2/5 bg-surface-container-low/50 p-4 border-l-2 border-[#00EBF7]/20">
+                        <h2 className="font-label text-xs font-bold tracking-widest text-[#00EBF7] mb-4 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-[14px]">folder_zip</span>
                             FILE_SYSTEM
                         </h2>
-                        <div className="font-label text-xs space-y-1 text-secondary/60">
-                            <div className="flex items-center gap-2 py-1.5 hover:bg-secondary/5 cursor-pointer transition-colors group">
-                                <span className="material-symbols-outlined text-sm text-secondary/40" data-icon="arrow_drop_down">arrow_drop_down</span>
-                                <span className="material-symbols-outlined text-base text-secondary" data-icon="terminal">terminal</span>
-                                <span className="text-on-surface group-hover:text-secondary">root</span>
-                            </div>
-                            <div className="ml-6 border-l border-white/5 pl-2">
-                                <div className="flex items-center gap-2 py-1.5 hover:bg-secondary/5 cursor-pointer transition-colors group">
-                                    <span className="material-symbols-outlined text-sm text-secondary/40" data-icon="arrow_right">arrow_right</span>
-                                    <span className="material-symbols-outlined text-base text-secondary/70" data-icon="folder">folder</span>
-                                    <span className="group-hover:text-secondary">system</span>
-                                </div>
-                                <div className="flex items-center gap-2 py-1.5 text-primary italic bg-primary/5 pl-2">
-                                    <span className="material-symbols-outlined text-base" data-icon="data_object">data_object</span>
-                                    <span className="font-bold">bin_override.sh</span>
-                                </div>
-                                <div className="flex items-center gap-2 py-1.5 hover:bg-secondary/5 cursor-pointer transition-colors group">
-                                    <span className="material-symbols-outlined text-sm text-secondary/40" data-icon="arrow_right">arrow_right</span>
-                                    <span className="material-symbols-outlined text-base text-secondary/70" data-icon="folder">folder</span>
-                                    <span className="group-hover:text-secondary">usr</span>
-                                </div>
-                            </div>
+                        <div className="font-label text-xs space-y-1 text-[#00EBF7]/60 overflow-y-auto max-h-full custom-scrollbar">
+                            <FileTree
+                                files={terminal.virtualFiles}
+                                currentPath={terminal.currentPath}
+                            />
                         </div>
                     </section>
                 </aside>
 
-                {/* CENTER (The Core) */}
-                <div className="flex-1 flex flex-col items-center justify-center gap-8">
+                {/* CENTER: Terminal */}
+                <div className="flex-1 flex flex-col gap-6">
                     <div className="w-full h-3/4 relative">
-                        {/* Terminal Glow and Frame */}
-                        <div className="absolute inset-0 bg-secondary/5 rounded-sm terminal-glow pointer-events-none"></div>
-                        <div className="absolute -top-1 -left-1 w-12 h-12 border-t-2 border-l-2 border-primary/60"></div>
-                        <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-2 border-r-2 border-primary/60"></div>
-
-                        <div className="w-full h-full bg-black/95 p-8 flex flex-col gap-4 overflow-hidden relative border border-white/5">
-                            <div className="flex justify-between items-center opacity-30 mb-6">
-                                <div className="flex gap-1.5">
-                                    <div className="w-2.5 h-1 bg-primary"></div>
-                                    <div className="w-2.5 h-1 bg-secondary"></div>
-                                    <div className="w-2.5 h-1 bg-on-surface"></div>
-                                </div>
-                                <span className="font-label text-[9px] tracking-[0.4em] uppercase">Hyperion-OS v4.2.0 // Node_Secure</span>
-                            </div>
-                            <div className="flex-1 font-label text-base md:text-lg text-secondary leading-relaxed overflow-hidden">
-                                <div className="mb-6 text-secondary/30 text-xs flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-xs" data-icon="history">history</span>
-                                    SESSION_START: Fri Oct 27 23:11:04 on ttys001
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-primary/60">root@hyperion:~$</span>
-                                    <span className="text-on-surface font-medium">access --bypass --protocol=X-99</span>
-                                </div>
-                                <div className="mt-4 text-primary bg-primary/5 p-3 border border-primary/20 flex items-center gap-3">
-                                    <span className="material-symbols-outlined text-base" data-icon="warning">warning</span>
-                                    <span>[SYSTEM WARNING] Unauthorized access protocol detected.</span>
-                                </div>
-                                <div className="mt-4 text-secondary/80 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-sm animate-spin" data-icon="sync">sync</span>
-                                    Initializing breach sequence...
-                                </div>
-                                <div className="mt-4 flex flex-wrap gap-3">
-                                    <span className="border border-secondary/30 px-3 py-1 text-[10px] bg-secondary/5">HASHING_CORE</span>
-                                    <span class="border border-secondary/30 px-3 py-1 text-[10px] bg-secondary/5">SALTING_VECTOR</span>
-                                    <span className="border border-primary/50 px-3 py-1 text-[10px] bg-primary/10 text-primary font-bold">ENCRYPTED_TUNNEL_OPEN</span>
-                                </div>
-                                <div className="mt-8 flex items-center gap-2">
-                                    <span className="text-primary/60">root@hyperion:~$</span>
-                                    <span className="terminal-cursor pl-2"></span>
-                                </div>
-                            </div>
-                        </div>
+                        <TerminalPanel
+                            terminalRef={terminal.terminalRef}
+                            currentPath={terminal.currentPath}
+                            isReady={terminal.isReady}
+                        />
                     </div>
 
-                    {/* Execute Button - Scaled down 30% */}
-                    <button className="relative group h-14 w-56 scale-90">
-                        <div className="absolute inset-0 bg-primary/90 skew-x-[-15deg] transition-all duration-300 group-hover:bg-primary group-active:scale-95 shadow-[0_0_15px_rgba(255,0,60,0.2)]"></div>
-                        <div className="absolute inset-0 flex items-center justify-center font-headline text-lg font-black italic tracking-tighter text-black">
-                            EXECUTE_OVERRIDE
+                    {/* Scenario title strip */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-surface-container-lowest/60 border border-white/5">
+                        <div className="flex items-center gap-4">
+                            <div className="w-2 h-2 bg-[#FF003C] animate-pulse"></div>
+                            <span className="font-label text-[10px] text-white/40 tracking-widest uppercase">
+                                {scenarioData?.scenario?.title || 'LOADING...'}
+                            </span>
                         </div>
-                        <div className="absolute -bottom-3 left-0 right-0 flex justify-center gap-4">
-                            <div className="h-0.5 w-12 bg-primary/40"></div>
-                            <div className="h-0.5 w-4 bg-secondary"></div>
+                        <div className="flex items-center gap-4">
+                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
+                                MODE: {mode?.toUpperCase()}
+                            </span>
+                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
+                                DIFF: {scenarioData?.scenario?.difficulty?.toUpperCase() || '—'}
+                            </span>
+                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
+                                STEPS: {objectives.completedCount}/{objectives.totalRequired}
+                            </span>
                         </div>
-                    </button>
+                    </div>
                 </div>
 
                 {/* RIGHT PANEL */}
-                <aside className="w-[22%] flex flex-col gap-10">
-                    {/* OPERATIVE_STATUS */}
-                    <section className="bg-surface-container-high/40 p-4 border-r-2 border-primary/60 skew-panel-right">
+                <aside className="w-[22%] flex flex-col gap-6">
+
+                    {/* Operative status */}
+                    <section className="bg-surface-container-high/40 p-4 border-r-2 border-[#FF003C]/60">
                         <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-label text-[10px] font-bold tracking-widest text-primary">OPERATIVE_STATUS</h2>
-                            <span className="material-symbols-outlined text-secondary text-base" data-icon="shield">shield</span>
+                            <h2 className="font-label text-[10px] font-bold tracking-widest text-[#FF003C]">
+                                OPERATIVE_STATUS
+                            </h2>
+                            <span className="material-symbols-outlined text-[#00EBF7] text-base">shield</span>
                         </div>
                         <div className="space-y-4">
+                            {/* Completion index */}
                             <div>
                                 <div className="flex justify-between text-[9px] font-label text-on-surface/40 mb-1">
-                                    <span>INTEGRITY_INDEX</span>
-                                    <span className="text-primary">84%</span>
+                                    <span>COMPLETION_INDEX</span>
+                                    <span className="text-[#FF003C]">{objectives.completionPercent}%</span>
                                 </div>
                                 <div className="h-1 bg-white/5 w-full">
-                                    <div className="h-full bg-primary w-[84%] relative">
+                                    <div
+                                        className="h-full bg-[#FF003C] transition-all duration-700 relative"
+                                        style={{ width: `${objectives.completionPercent}%` }}
+                                    >
                                         <div className="absolute top-0 right-0 h-full w-1 bg-white animate-pulse"></div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Session ID */}
                             <div className="flex justify-between items-center bg-black/20 p-2">
                                 <div className="font-label">
-                                    <div className="text-[9px] text-on-surface/40">DATA_VALUATION</div>
-                                    <div className="text-xl font-bold text-secondary tracking-tight">001,482,900</div>
+                                    <div className="text-[9px] text-on-surface/40">SESSION_ID</div>
+                                    <div className="text-xl font-bold text-[#00EBF7] tracking-tight">
+                                        {session.sessionId
+                                            ? String(session.sessionId).padStart(8, '0')
+                                            : '--------'
+                                        }
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    {/* AI_ORACLE - Redesigned */}
-                    <section className="flex-1 bg-surface-container-highest p-6 ai-hint-shape border-l-2 border-secondary/40 relative group overflow-hidden">
-                        <div className="absolute -top-2 -right-2 opacity-5 scale-150 rotate-12">
-                            <span className="material-symbols-outlined text-[120px] text-secondary" data-icon="neurology">neurology</span>
-                        </div>
-                        <div className="relative z-10">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="material-symbols-outlined text-secondary text-base" data-icon="smart_toy">smart_toy</span>
-                                <h2 className="font-label text-[10px] font-bold tracking-[0.2em] text-secondary/80">AI_ORACLE_ANALYSIS</h2>
-                            </div>
-                            <p className="font-body text-xs leading-relaxed text-on-surface/90 italic border-l border-secondary/20 pl-4 py-1">
-                                "The target mainframe uses a rotating encryption key based on the current server timestamp. Target the <span className="text-secondary font-bold underline decoration-secondary/30">bin_override</span> script in the root directory to exploit the race condition."
-                            </p>
-                            <div className="mt-6 flex items-center gap-2 opacity-30">
-                                <div className="h-0.5 w-8 bg-secondary"></div>
-                                <div className="text-[8px] font-label">READY_TO_ASSIST</div>
-                            </div>
-                        </div>
-                    </section>
+                    {/* AI HINT PANEL */}
+                    <HintPanel
+                        latestHint={hint.latestHint}
+                        hints={hint.hints}
+                        hintsRemaining={hint.hintsRemaining}
+                        limitReached={hint.limitReached}
+                        isLoading={hint.isLoading}
+                        error={hint.error}
+                        onRequestHint={hint.getHint}
+                    />
 
-                    {/* MISSION_OBJECTIVES */}
-                    <section className="bg-surface-container-low/30 p-5 border-l border-white/5">
-                        <h2 className="font-label text-[10px] font-bold tracking-[0.2em] text-on-surface/60 mb-6">MISSION_OBJECTIVES</h2>
-                        <ul className="space-y-4">
-                            <li className="flex items-start gap-4 text-secondary/30">
-                                <span className="material-symbols-outlined text-[18px] text-green-500/80" data-icon="check_circle" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                                <div className="flex flex-col">
-                                    <span className="font-label text-[10px] line-through">BREACH_OUTER_FIREWALL</span>
-                                    <span className="text-[8px] opacity-40">SUCCESSFUL_BYPASS</span>
-                                </div>
-                            </li>
-                            <li className="flex items-start gap-4 text-secondary">
-                                <span className="material-symbols-outlined text-[18px] animate-pulse" data-icon="radio_button_checked">radio_button_checked</span>
-                                <div className="flex flex-col">
-                                    <span className="font-label text-[10px] font-bold tracking-wider">BYPASS_ROOT_AUTHORITY</span>
-                                    <span className="text-[8px] text-secondary/60">ACTIVE_SEQUENCE</span>
-                                </div>
-                            </li>
-                            <li className="flex items-start gap-4 text-on-surface/30">
-                                <span className="material-symbols-outlined text-[18px]" data-icon="lock">lock</span>
-                                <div className="flex flex-col">
-                                    <span className="font-label text-[10px]">EXFILTRATE_ENCRYPTED_DB</span>
-                                    <span className="text-[8px]">PENDING_PRIORITY</span>
-                                </div>
-                            </li>
-                            <li className="flex items-start gap-4 text-on-surface/30">
-                                <span className="material-symbols-outlined text-[18px]" data-icon="lock">lock</span>
-                                <div className="flex flex-col">
-                                    <span className="font-label text-[10px]">ERASE_FOOTPRINTS</span>
-                                    <span className="text-[8px]">PENDING_PRIORITY</span>
-                                </div>
-                            </li>
-                        </ul>
-                    </section>
+                    {/* OBJECTIVES PANEL */}
+                    <ObjectivesPanel
+                        objectives={objectives.objectives}
+                        completedCount={objectives.completedCount}
+                        totalRequired={objectives.totalRequired}
+                        completionPercent={objectives.completionPercent}
+                        secretObjectives={objectives.secretObjectives}
+                    />
                 </aside>
-
             </main>
 
-            {/* Scanline Overlay */}
-            <div className="fixed inset-0 pointer-events-none z-[60] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.05)_50%),linear-gradient(90deg,rgba(255,0,0,0.01),rgba(0,255,0,0.005),rgba(0,0,255,0.01))] bg-[length:100%_4px,3px_100%] opacity-15"></div>
+            {/* ── SCANLINE OVERLAY ──────────────────────────────────────── */}
+            <div className="fixed inset-0 pointer-events-none z-[60] opacity-[0.06]"
+                style={{
+                    background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+                }}
+            ></div>
+
+            {/* ── EXIT WARNING MODAL (timed mode) ──────────────────────── */}
+            {showExitModal && (
+                <ExitModal
+                    onConfirm={handleConfirmAbandon}
+                    onCancel={() => setShowExitModal(false)}
+                />
+            )}
+
+            {/* ── COMPLETION OVERLAY ────────────────────────────────────── */}
+            {session.isCompleted && (
+                <CompletionOverlay evaluation={session.evaluation} />
+            )}
         </div>
     );
 }
+
+// =============================================================================
+// SUB-COMPONENTS
+// =============================================================================
+
+function SystemLogEntry({ log }) {
+    const isCritical = log.type === 'critical';
+    return (
+        <div className={isCritical ? 'p-2 bg-[#FF003C]/10 border-l-2 border-[#FF003C]' : 'flex gap-2 text-[#00EBF7]/40'}>
+            <div className={`flex gap-2 ${isCritical ? 'text-[#FF003C] font-bold' : ''}`}>
+                <span>[{log.time}]</span>
+                <span className={isCritical ? '' : 'text-on-surface/80'}>{log.message}</span>
+            </div>
+            {log.sub && (
+                <div className="text-[9px] mt-1 text-[#FF003C]/70 ml-12">{log.sub}</div>
+            )}
+        </div>
+    );
+}
+
+function FileTree({ files, currentPath }) {
+    if (!files || files.length === 0) {
+        return <div className="text-white/20 text-[10px] italic">No files accessible</div>;
+    }
+
+    // Build a simple flat tree from file paths
+    const roots = new Set();
+    const filesByDir = {};
+
+    files.forEach(f => {
+        const parts = f.file_path.split('/').filter(Boolean);
+        if (parts.length === 1) {
+            roots.add(parts[0]);
+        } else {
+            const dir = '/' + parts.slice(0, -1).join('/');
+            if (!filesByDir[dir]) filesByDir[dir] = [];
+            filesByDir[dir].push(f);
+            roots.add(parts[0]);
+        }
+    });
+
+    return (
+        <div className="space-y-1">
+            <div className="flex items-center gap-2 py-1">
+                <span className="material-symbols-outlined text-sm text-[#00EBF7]">terminal</span>
+                <span className="text-on-surface text-[11px]">root</span>
+            </div>
+            <div className="ml-4 border-l border-white/5 pl-2 space-y-1">
+                {files.map(f => {
+                    const isActive = f.file_path.startsWith(currentPath) && currentPath !== '/';
+                    return (
+                        <div
+                            key={f.virtual_file_id}
+                            className={`flex items-center gap-2 py-1 text-[10px] ${isActive
+                                    ? 'text-[#FF003C] italic'
+                                    : 'text-[#00EBF7]/50 hover:text-[#00EBF7]'
+                                }`}
+                        >
+                            <span className="material-symbols-outlined text-xs">
+                                {f.file_type === 'directory' ? 'folder' : 'draft'}
+                            </span>
+                            <span className="truncate">{f.file_name || f.file_path.split('/').pop()}</span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
+function ExitModal({ onConfirm, onCancel }) {
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
+            <div className="bg-surface-container-high border-l-8 border-[#FF003C] p-10 max-w-md w-full mx-4 relative">
+                <div className="absolute -top-3 -left-3 bg-[#FF003C] px-3 py-1 font-label text-[10px] font-black text-black tracking-widest">
+                    WARNING
+                </div>
+                <h2 className="font-headline text-3xl font-black italic text-[#FF003C] uppercase mb-4">
+                    ABORT_SESSION?
+                </h2>
+                <p className="font-body text-zinc-300 leading-relaxed mb-8">
+                    You are in <span className="text-[#FF003C] font-bold">TIMED MODE</span>. Exiting now will
+                    discard all progress and award no score or XP for this session.
+                </p>
+                <div className="flex gap-4">
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 bg-[#FF003C] text-black font-headline font-black italic py-4 text-lg uppercase tracking-widest hover:bg-white transition-colors"
+                    >
+                        ABANDON
+                    </button>
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 border-2 border-[#00EBF7] text-[#00EBF7] font-headline font-black italic py-4 text-lg uppercase tracking-widest hover:bg-[#00EBF7]/10 transition-colors"
+                    >
+                        CONTINUE
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function CompletionOverlay({ evaluation }) {
+    const score = evaluation?.evaluation?.totalWeightedScore ?? 0;
+    const xp = evaluation?.xpAwarded ?? 0;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
+            <div className="text-center space-y-6">
+                <div className="font-headline text-8xl font-black italic text-[#00EBF7] animate-pulse">
+                    MISSION_COMPLETE
+                </div>
+                <div className="font-headline text-6xl font-black text-white">
+                    {score}<span className="text-[#FF003C]">/100</span>
+                </div>
+                <div className="font-label text-[#00EBF7] text-lg tracking-widest">
+                    +{xp} XP AWARDED
+                </div>
+                <div className="font-label text-zinc-500 text-sm tracking-widest animate-pulse">
+                    Returning to mission hub...
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function BootScreen() {
+    return (
+        <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-6">
+            <div className="flex gap-1.5">
+                {[0, 1, 2, 3, 4].map(i => (
+                    <div
+                        key={i}
+                        className="w-1.5 h-8 bg-[#FF003C]"
+                        style={{
+                            animation: 'bootBar 0.8s ease-in-out infinite',
+                            animationDelay: `${i * 0.15}s`,
+                        }}
+                    ></div>
+                ))}
+            </div>
+            <span className="font-label text-[11px] text-white/20 tracking-[0.5em] uppercase">
+                Initializing investigation environment...
+            </span>
+            <style>{`
+                @keyframes bootBar {
+                    0%, 100% { transform: scaleY(0.3); opacity: 0.3; }
+                    50%       { transform: scaleY(1);   opacity: 1;   }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+function ErrorScreen({ error, onBack }) {
+    return (
+        <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-6 p-8">
+            <span className="material-symbols-outlined text-[#FF003C] text-6xl">error</span>
+            <div className="font-headline text-3xl font-black italic text-[#FF003C] uppercase">
+                SYSTEM_FAILURE
+            </div>
+            <p className="font-label text-zinc-500 text-sm tracking-widest text-center max-w-sm">
+                {error}
+            </p>
+            <button
+                onClick={onBack}
+                className="font-label text-xs text-zinc-400 hover:text-white underline tracking-widest uppercase"
+            >
+                ← Return to base
+            </button>
+        </div>
+    );
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+const buildSystemLogs = (files, scenario) => {
+    const now = new Date();
+    const fmt = (d) => d.toTimeString().slice(0, 8);
+
+    const logs = [
+        { time: fmt(new Date(now - 20000)), message: 'Initializing socket connection...', type: 'info' },
+        { time: fmt(new Date(now - 15000)), message: 'CRITICAL: Unauthorized access protocol detected', type: 'critical', sub: `SCENARIO: ${scenario?.title || 'UNKNOWN'}` },
+        { time: fmt(new Date(now - 10000)), message: 'Mounting virtual filesystem...', type: 'info' },
+        { time: fmt(new Date(now - 8000)), message: `File system loaded: ${files.length} objects`, type: 'info' },
+        { time: fmt(new Date(now - 3000)), message: 'CRITICAL: Awaiting investigator input', type: 'critical' },
+        { time: fmt(now), message: 'Secure shell active. Begin investigation.', type: 'info' },
+    ];
+
+    return logs;
+};

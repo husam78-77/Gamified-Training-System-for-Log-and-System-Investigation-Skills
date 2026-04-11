@@ -40,6 +40,7 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/terminal', terminalRoutes);
 app.use('/api/hints', hintRoutes);
 
+
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });

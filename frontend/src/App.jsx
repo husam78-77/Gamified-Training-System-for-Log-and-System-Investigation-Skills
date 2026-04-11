@@ -1,4 +1,5 @@
 import React from 'react';
+import '@xterm/xterm/css/xterm.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import LandingPage from './pages/LandingPage/LandingPage';
@@ -13,21 +14,23 @@ import AuthCallback from './pages/auth/callback/AuthCallback';
 import Layout from './components/layout/Layout';
 import Mission from './pages/Mission/MissionDashboard/MissionDashboard';
 import Sequence from './pages/Mission/MissionDashboard/MissionSequence';
-import Profile from './pages/Profile/Profile';
 import Briefing from './pages/Mission/MissionDashboard/MissionBriefing';
 import Game from './pages/GamingEnvironment/GamingEnvironment';
+import Profile from './pages/Profile/Profile';
+
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
+
   return (
     <AuthProvider>
       <Router>
         <div className="App">
           <Routes>
-            {/* Public routes */}
+            {/* ── Public routes ──────────────────────────── */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -36,47 +39,45 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            <Route path="/game" element={<Game />} />
-
-            {/* Protected routes */}
+            {/* ── Protected routes ───────────────────────── */}
             <Route path="/dashboard" element={
               <ProtectedRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
+                <Layout><Dashboard /></Layout>
               </ProtectedRoute>
             } />
 
             <Route path="/mission" element={
               <ProtectedRoute>
-                <Layout>
-                  <Mission />
-                </Layout>
+                <Layout><Mission /></Layout>
               </ProtectedRoute>
             } />
 
-            {/* dynamic parameter */}
+            {/* Type param: /sequence/bruteforce, /sequence/script, etc. */}
             <Route path="/sequence/:type" element={
               <ProtectedRoute>
-                <Layout>
-                  <Sequence />
-                </Layout>
+                <Layout><Sequence /></Layout>
               </ProtectedRoute>
             } />
 
-            <Route path="/briefing" element={
+            {/* Receives state: { scenario_id, mode, type } from Sequence */}
+            <Route path="/briefing/:scenario_id" element={
               <ProtectedRoute>
-                <Layout>
-                  <Briefing />
-                </Layout>
+
+                <Layout><Briefing /></Layout>
+              </ProtectedRoute>
+            } />
+
+            {/* Full screen — no Layout wrapper (game owns the full viewport) */}
+            {/* Receives state: { scenario_id, mode } from Briefing */}
+            <Route path="/game/:scenario_id" element={
+              <ProtectedRoute>
+                <Game />
               </ProtectedRoute>
             } />
 
             <Route path="/profile" element={
               <ProtectedRoute>
-                <Layout>
-                  <Profile />
-                </Layout>
+                <Layout><Profile /></Layout>
               </ProtectedRoute>
             } />
           </Routes>

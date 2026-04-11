@@ -6,18 +6,16 @@ import { useLocation } from "react-router-dom";
 export default function Layout({ children }) {
     const location = useLocation();
 
-    // The signature P5 snapping ease curve
     const p5Ease = [0.85, 0, 0.15, 1];
     const paperWhite = "#b3afb0";
 
-    // 🧠 Route Identifier
     const getPageType = (path) => {
         if (path.includes("mission")) return "mission";
         if (path.includes("sequence")) return "sequence";
         if (path.includes("profile")) return "profile";
         return "dashboard";
     };
-
+    console.log("LAYOUT PATH:", location.pathname);
     const pageType = getPageType(location.pathname);
 
     // 🎬 Dashboard (Clean & Snappy)
@@ -37,56 +35,48 @@ export default function Layout({ children }) {
         }
     };
 
-    // 🔴 Mission (Aggressive, Heavy Contrast)
+    // 🔴 Mission (Aggressive Transforms - OPTIMIZED FOR GPU)
     const missionVariants = {
         initial: {
             opacity: 0,
             scale: 1.05,
             rotate: 4,
             x: 60,
-            filter: "grayscale(100%) contrast(1.2)",
-            clipPath: "polygon(3% 2%, 98% 4%, 96% 98%, 2% 96%)"
+            // Removed filter and clipPath animations for performance
         },
         animate: {
             opacity: 1,
             scale: 1,
             rotate: 0,
             x: 0,
-            filter: "grayscale(0%) contrast(1)",
-            clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
-            transition: { type: "spring", stiffness: 350, damping: 25, delay: 0.25 }
+            transition: { type: "spring", stiffness: 350, damping: 25 }
         },
         exit: {
             opacity: 0,
             scale: 0.98,
             rotate: -2,
             x: -30,
-            filter: "grayscale(100%) brightness(0.5)",
-            clipPath: "polygon(2% 4%, 96% 2%, 100% 96%, 4% 100%)",
             transition: { duration: 0.3, ease: p5Ease }
         }
     };
 
-    // 🟣 Sequence (Digital Glitch / Tearing)
+    // 🟣 Sequence (Digital Glitch / Tearing - OPTIMIZED FOR GPU)
     const sequenceVariants = {
         initial: {
             opacity: 0,
             x: -20,
             skewX: "10deg",
-            filter: "brightness(2) contrast(1.5)"
         },
         animate: {
             opacity: 1,
             x: [0, -15, 10, -5, 0], // Sharp horizontal jumps
             skewX: "0deg",
-            filter: "brightness(1) contrast(1)",
             transition: { duration: 0.4, ease: "easeInOut" }
         },
         exit: {
             opacity: 0,
             x: 20,
             skewX: "-15deg",
-            filter: "brightness(2)",
             transition: { duration: 0.2 }
         }
     };
@@ -126,17 +116,17 @@ export default function Layout({ children }) {
             <div className="fixed inset-0 pointer-events-none z-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] mix-blend-overlay" />
 
             <main className="md:ml-72 pt-32 px-8 md:px-16 pb-20 relative">
-                <AnimatePresence mode="wait">
-                    <motion.div key={location.pathname} className="relative z-10">
+                <AnimatePresence mode="popLayout">
+                    <motion.div key={location.key} className="relative z-10">
 
                         {/* 🔪 Panels (Only trigger on Mission routes) */}
                         {pageType === "mission" && (
                             <>
                                 {/* Black Cover Panel */}
                                 <motion.div
-                                    initial={{ x: "-10%", skewX: "-25deg" }} // Starts covering the screen
-                                    animate={{ x: "-150%" }}                 // Sweeps left to reveal
-                                    exit={{ x: "-10%" }}                     // Sweeps back in to cover on exit
+                                    initial={{ x: "-10%", skewX: "-25deg" }}
+                                    animate={{ x: "-150%" }}
+                                    exit={{ x: "-10%" }}
                                     transition={{ duration: 0.5, ease: p5Ease }}
                                     className="fixed inset-y-0 w-[150vw] bg-[#050505] z-50 pointer-events-none"
                                     style={{ left: "-10vw", top: "-10vh", height: "120vh" }}
@@ -146,7 +136,7 @@ export default function Layout({ children }) {
                                     initial={{ x: "-10%", skewX: "-25deg" }}
                                     animate={{ x: "-150%" }}
                                     exit={{ x: "-10%" }}
-                                    transition={{ duration: 0.5, ease: p5Ease, delay: 0.08 }} // Slight delay for stagger
+                                    transition={{ duration: 0.5, ease: p5Ease, delay: 0.08 }}
                                     className="fixed inset-y-0 w-[150vw] bg-[#E01E26] z-40 pointer-events-none"
                                     style={{ left: "-10vw", top: "-10vh", height: "120vh" }}
                                 />
@@ -163,7 +153,9 @@ export default function Layout({ children }) {
                             style={{
                                 boxShadow: pageType === "mission"
                                     ? `10px 10px 0px #E01E26, 20px 20px 0px #050505`
-                                    : "none"
+                                    : "none",
+                                // Note: We use will-change to warn the browser that this element will be transformed
+                                willChange: "transform, opacity"
                             }}
                         >
                             <div
@@ -171,7 +163,9 @@ export default function Layout({ children }) {
                                 style={{
                                     backgroundColor: "#161616",
                                     color: paperWhite,
-                                    border: pageType === "mission" ? `2px solid ${paperWhite}40` : "none"
+                                    // Kept the jagged border, but made it static so it doesn't animate
+                                    border: pageType === "mission" ? `2px solid ${paperWhite}40` : "none",
+                                    clipPath: pageType === "mission" ? "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)" : "none"
                                 }}
                             >
                                 {/* 🔺 Jagged Corners (Only for Mission) */}
