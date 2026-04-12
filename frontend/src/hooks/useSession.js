@@ -67,7 +67,7 @@ export const useSession = (scenarioId, mode, token) => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [scenarioId, mode, token]);
+    }, []); // Intentionally empty — boot runs once on mount only
 
     // ── Timed mode countdown ──────────────────────────────────────────────
     useEffect(() => {

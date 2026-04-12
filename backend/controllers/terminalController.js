@@ -82,11 +82,12 @@ const executeCommand = async (req, res) => {
         const matchedHistory = await terminalModel.getMatchedCommands(sessionId);
         const completedStepOrders = matchedHistory.map(c => c.match_step_order);
 
-        // Evaluate the command
+        // Evaluate the command — pass current_path for relative path matching
         const { matched, step } = evaluationService.matchCommand(
             parsed,
             expectedSteps,
-            completedStepOrders
+            completedStepOrders,
+            current_path
         );
 
         // Save command to history

@@ -12,22 +12,32 @@ const { normalizeForEvaluation, normalizePath } = require('../utils/terminalPars
 
 /**
  * Match a single parsed command against the scenario's expected steps.
- * Returns which step was matched (if any), or null.
  *
- * Matching logic:
- *   - command must match exactly (e.g. "cat")
- *   - target path must match (normalized)
- *   - Steps already completed in this session are skipped
+ * Matching strategy (tries each in order, first match wins):
  *
- * @param {Object} parsed        - Output from terminalParser.parseCommand()
- * @param {Array}  expectedSteps - All expected_steps rows for the scenario
+ *   1. EXACT MATCH
+ *      "ls /logs" matches step { command: 'ls', target: '/logs' }
+ *
+ *   2. RELATIVE MATCH
+ *      Player is in /logs and types "ls" or "cat auth.log"
+ *      We resolve the target against current_path and check again.
+ *      e.g. current_path=/logs + target=null → resolved=/logs → matches "ls:/logs"
+ *      e.g. current_path=/logs + target=auth.log → resolved=/logs/auth.log → matches "cat:/logs/auth.log"
+ *
+ *   3. COMMAND-ONLY MATCH (no target in expected step)
+ *      Some steps only require the command itself (e.g. "whoami")
+ *
+ * @param {Object} parsed             - Output from terminalParser.parseCommand()
+ * @param {Array}  expectedSteps      - All expected_steps rows for the scenario
  * @param {Array}  completedStepOrders - step_order values already matched this session
+ * @param {string} currentPath        - Player's current directory in the virtual FS
  * @returns {{ matched: boolean, step: Object|null }}
  */
-const matchCommand = (parsed, expectedSteps, completedStepOrders = []) => {
+const matchCommand = (parsed, expectedSteps, completedStepOrders = [], currentPath = '/') => {
     if (!parsed.valid) return { matched: false, step: null };
 
     const normalizedInput = normalizeForEvaluation(parsed);
+    const normalizedCurrent = normalizePath(currentPath);
 
     for (const step of expectedSteps) {
         // Skip already-completed steps
@@ -35,7 +45,24 @@ const matchCommand = (parsed, expectedSteps, completedStepOrders = []) => {
 
         const normalizedExpected = buildExpectedKey(step);
 
+        // ── Strategy 1: Exact match ───────────────────────────────────────
         if (normalizedInput === normalizedExpected) {
+            return { matched: true, step };
+        }
+
+        // ── Strategy 2: Relative path match ──────────────────────────────
+        // Resolve what the player typed against their current directory
+        // and check if that matches the expected target
+        if (step.target_path) {
+            const resolvedInput = buildResolvedKey(parsed, normalizedCurrent);
+            if (resolvedInput && resolvedInput === normalizedExpected) {
+                return { matched: true, step };
+            }
+        }
+
+        // ── Strategy 3: Bare command match (no target required) ──────────
+        // e.g. "pwd", "whoami" — target doesn't matter
+        if (!step.target_path && parsed.command === step.command_expected?.toLowerCase()) {
             return { matched: true, step };
         }
     }
@@ -44,13 +71,44 @@ const matchCommand = (parsed, expectedSteps, completedStepOrders = []) => {
 };
 
 /**
- * Build a normalized key from an expected_step row to match against parsed input.
- * Format mirrors normalizeForEvaluation: "command:target"
+ * Build a normalized key from an expected_step row.
+ * Format: "command:target" or just "command" if no target.
  */
 const buildExpectedKey = (step) => {
     const command = step.command_expected?.toLowerCase().trim();
     const target = step.target_path ? normalizePath(step.target_path) : null;
     return target ? `${command}:${target}` : command;
+};
+
+/**
+ * Build a resolved key by combining the player's current path with
+ * their typed target, then forming "command:resolvedPath".
+ *
+ * Examples:
+ *   currentPath=/logs, cmd=ls, target=null  → "ls:/logs"
+ *   currentPath=/logs, cmd=cat, target=auth.log → "cat:/logs/auth.log"
+ *   currentPath=/etc,  cmd=cat, target=passwd   → "cat:/etc/passwd"
+ *   currentPath=/,     cmd=ls,  target=logs     → "ls:/logs"
+ */
+const buildResolvedKey = (parsed, currentPath) => {
+    const command = parsed.command;
+    const target = parsed.target;
+
+    let resolvedPath;
+
+    if (!target) {
+        // No target typed — the implicit target is the current directory
+        resolvedPath = currentPath;
+    } else if (target.startsWith('/')) {
+        // Absolute path — already resolved
+        resolvedPath = normalizePath(target);
+    } else {
+        // Relative path — join with current directory
+        const base = currentPath === '/' ? '' : currentPath;
+        resolvedPath = normalizePath(`${base}/${target}`);
+    }
+
+    return resolvedPath ? `${command}:${resolvedPath}` : command;
 };
 
 /**
@@ -62,29 +120,16 @@ const buildExpectedKey = (step) => {
  *    Based on weight_percent of each completed expected step.
  *    Each step has a weight_percent that sums to 100 across the scenario.
  *    Path score = sum of weight_percent for all matched steps / 2
- *    (divided by 2 because path is 50% of total)
  *
  * 2. COMMAND USAGE SCORE (30 pts)
  *    Efficiency metric: penalizes excess commands.
- *    Formula: max(0, 30 - penalty)
  *    Penalty: for every 3 extra commands beyond expected count, -5 pts.
  *
  * 3. CONCLUSION SCORE (20 pts)
  *    Did the user complete all non-secret objectives?
- *    Full 20 pts if all required objectives done, partial otherwise.
  *
  * 4. HINT PENALTY
  *    -5 pts per AI hint used (minimum total score: 0)
- *
- * @param {Object} params
- * @param {Array}  params.expectedSteps       - All expected steps for the scenario
- * @param {Array}  params.matchedCommands     - command_history rows where match_expected = TRUE
- * @param {number} params.totalCommandsCount  - Total commands entered in the session
- * @param {Array}  params.objectives          - All objectives for the scenario
- * @param {Array}  params.completedObjectiveIds - objective_ids the user completed
- * @param {number} params.hintsUsed           - Number of AI hints consumed
- *
- * @returns {{ commandUsageScore, pathScore, conclusionScore, totalWeightedScore, partialCredit }}
  */
 const calculateScore = ({
     expectedSteps,
@@ -129,7 +174,6 @@ const calculateScore = ({
     const raw = pathScore + commandUsageScore + conclusionScore;
     const totalWeightedScore = Math.max(0, raw - hintPenalty);
 
-    // Partial credit: did they complete SOME steps but not all?
     const partialCredit = matchedStepOrders.length > 0 && matchedStepOrders.length < expectedSteps.length;
 
     return {
@@ -143,19 +187,6 @@ const calculateScore = ({
 
 /**
  * Calculate XP reward based on score and scenario difficulty.
- *
- * XP tiers:
- *   easy:   base 500  XP
- *   medium: base 1250 XP
- *   hard:   base 5000 XP
- *
- * Modifier: score / 100 (so 80/100 score = 80% of base XP)
- * Bonus: +200 XP if no hints used
- *
- * @param {number} score       - Total weighted score (0–100)
- * @param {string} difficulty  - 'easy' | 'medium' | 'hard'
- * @param {number} hintsUsed   - Number of hints consumed
- * @returns {number} xpAwarded
  */
 const calculateXp = (score, difficulty, hintsUsed) => {
     const baseXp = {
@@ -172,13 +203,7 @@ const calculateXp = (score, difficulty, hintsUsed) => {
 };
 
 /**
- * Determine which objectives are now completed given the set of matched step orders.
- * An objective is complete when its trigger_step has been matched.
- * Objectives with trigger_step = NULL are never auto-completed (require manual trigger).
- *
- * @param {Array}  objectives           - All objective rows for the scenario
- * @param {Array}  matchedStepOrders    - step_order values matched so far
- * @returns {Array} completedObjectiveIds
+ * Determine which objectives are now completed given matched step orders.
  */
 const resolveCompletedObjectives = (objectives, matchedStepOrders) => {
     return objectives

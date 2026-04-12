@@ -48,6 +48,31 @@ export const useTerminal = ({
     const [virtualFiles, setVirtualFiles] = useState(initialFiles);
     const [isReady, setIsReady] = useState(false);
 
+    // ── Discovery system ──────────────────────────────────────────────────
+    // A Set of paths the player has seen. Starts with only root '/'.
+    // Never shrinks — once discovered, always visible for this session.
+    const [discoveredPaths, setDiscoveredPaths] = useState(() => new Set(['/']));
+
+    const normalizeFSPath = (p) => {
+        if (!p) return '/';
+        return p.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    };
+
+    const getParent = (p) => {
+        const parts = normalizeFSPath(p).split('/').filter(Boolean);
+        if (parts.length === 0) return '/';
+        parts.pop();
+        return '/' + parts.join('/') || '/';
+    };
+
+    const discoverPaths = (paths) => {
+        setDiscoveredPaths(prev => {
+            const next = new Set(prev);
+            paths.forEach(p => next.add(normalizeFSPath(p)));
+            return next;
+        });
+    };
+
     // ── Initialize xterm.js ───────────────────────────────────────────────
     useEffect(() => {
         if (!terminalRef.current || xtermRef.current) return;
@@ -179,9 +204,23 @@ export const useTerminal = ({
         term.write(key);
     }, []);
 
+    // ── Stable refs for values used inside submitCommand ────────────────
+    const sessionIdRef = useRef(null);
+    const tokenRef = useRef(null);
+    const currentPathRef = useRef('/');
+
+    // Keep refs in sync with state/props
+    useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+    useEffect(() => { tokenRef.current = token; }, [token]);
+    useEffect(() => { currentPathRef.current = currentPath; }, [currentPath]);
+
     // ── Submit command to backend ─────────────────────────────────────────
     const submitCommand = useCallback(async (cmd, term) => {
-        if (!sessionId || !token || isProcessing.current) return;
+        const sid = sessionIdRef.current;
+        const tok = tokenRef.current;
+        const path = currentPathRef.current;
+
+        if (!sid || !tok || isProcessing.current) return;
 
         isProcessing.current = true;
 
@@ -189,7 +228,7 @@ export const useTerminal = ({
         term.write('\x1b[90mprocessing...\x1b[0m');
 
         try {
-            const result = await executeCommand(sessionId, cmd, currentPath, token);
+            const result = await executeCommand(sid, cmd, path, tok);
 
             // Clear processing indicator
             term.write('\r\x1b[2K');
@@ -208,10 +247,13 @@ export const useTerminal = ({
                 lines.forEach(line => term.writeln('\r' + line));
             }
 
+            // ── Discovery triggers ────────────────────────────────────────
+            triggerDiscovery(cmd, path, result.output);
+
             // Handle cd — update current path
             if (cmd.startsWith('cd ')) {
                 const target = cmd.slice(3).trim();
-                handleCdPath(target, result.output);
+                handleCdPath(target, result.output, path);
             }
 
             // Step matched — notify parent
@@ -220,11 +262,17 @@ export const useTerminal = ({
                 onStepMatched?.(result.matchedStep);
             }
 
-            // Newly revealed files — add to virtual FS state
+            // Newly revealed files — add to virtual FS state + auto-discover them
             if (result.newlyRevealedFiles?.length > 0) {
                 setVirtualFiles(prev => [...prev, ...result.newlyRevealedFiles]);
                 writeRevealFeedback(term, result.newlyRevealedFiles);
                 onFilesRevealed?.(result.newlyRevealedFiles);
+                // Auto-discover revealed files so they appear in the panel immediately
+                const revealedPaths = result.newlyRevealedFiles.flatMap(f => [
+                    normalizeFSPath(f.file_path),
+                    getParent(normalizeFSPath(f.file_path)),
+                ]);
+                discoverPaths(revealedPaths);
             }
 
             // Objectives updated
@@ -239,23 +287,112 @@ export const useTerminal = ({
             isProcessing.current = false;
             term.write(PROMPT);
         }
-    }, [sessionId, token, currentPath, onStepMatched, onFilesRevealed, onObjectivesUpdated]);
+    }, []); // Uses refs internally — stable, never recreated
 
     // ── Path tracking for cd ──────────────────────────────────────────────
-    const handleCdPath = useCallback((target, output) => {
+    const handleCdPath = useCallback((target, output, currentPathValue) => {
         // If backend returned an error (e.g. "No such file"), don't update path
         if (output?.includes('No such file')) return;
 
-        setCurrentPath(prev => {
-            if (target === '..') {
-                const parts = prev.split('/').filter(Boolean);
-                parts.pop();
-                return '/' + parts.join('/');
-            }
-            if (target.startsWith('/')) return target;
-            return (prev === '/' ? '' : prev) + '/' + target;
-        });
+        const prev = currentPathValue || '/';
+        let newPath;
+        if (target === '..') {
+            const parts = prev.split('/').filter(Boolean);
+            parts.pop();
+            newPath = '/' + parts.join('/') || '/';
+        } else if (target.startsWith('/')) {
+            newPath = target;
+        } else {
+            newPath = (prev === '/' ? '' : prev) + '/' + target;
+        }
+        setCurrentPath(newPath);
+        currentPathRef.current = newPath;
     }, []);
+
+    // ── File system discovery ────────────────────────────────────────────
+    /**
+     * Called after every successful command.
+     * Determines which paths to mark as discovered based on what the
+     * player just did.
+     *
+     * Rules:
+     *   cd <target>     → discover the directory navigated into
+     *   ls              → discover all direct children of current dir
+     *   ls <path>       → discover the path + all its direct children
+     *   cat <file>      → discover the file + its parent directory
+     *   grep ... <file> → discover the file + its parent directory
+     *   find <path>     → discover the path + all descendant paths
+     */
+    const triggerDiscovery = (cmd, currentPathValue, output) => {
+        const tokens = cmd.trim().split(/\s+/);
+        const command = tokens[0]?.toLowerCase();
+        const arg = tokens.slice(1).find(t => !t.startsWith('-')); // first non-flag arg
+
+        // Resolve arg to absolute path
+        const resolve = (target) => {
+            if (!target) return currentPathValue || '/';
+            if (target.startsWith('/')) return normalizeFSPath(target);
+            const base = currentPathValue === '/' ? '' : currentPathValue;
+            return normalizeFSPath(`${base}/${target}`);
+        };
+
+        const toDiscover = [];
+
+        if (command === 'cd') {
+            // Discover the directory navigated into (don't reveal its children yet)
+            if (arg) {
+                const resolved = resolve(arg);
+                toDiscover.push(resolved);
+                // Also ensure parent is visible
+                toDiscover.push(getParent(resolved));
+            }
+        }
+
+        else if (command === 'ls') {
+            // Discover the listed directory + all its direct children from virtualFiles
+            const listedPath = resolve(arg || null);
+            toDiscover.push(listedPath);
+
+            // Find all files/dirs whose immediate parent is listedPath
+            const currentFiles = virtualFilesRef.current;
+            currentFiles.forEach(f => {
+                const filePath = normalizeFSPath(f.file_path);
+                const fileParent = getParent(filePath);
+                if (fileParent === listedPath) {
+                    toDiscover.push(filePath);
+                }
+            });
+        }
+
+        else if (command === 'cat' || command === 'grep') {
+            // Discover the file itself + its parent
+            const filePath = resolve(arg || null);
+            toDiscover.push(filePath);
+            toDiscover.push(getParent(filePath));
+        }
+
+        else if (command === 'find') {
+            // Discover everything under the path
+            const searchPath = resolve(arg || null);
+            const currentFiles = virtualFilesRef.current;
+            toDiscover.push(searchPath);
+            currentFiles.forEach(f => {
+                const filePath = normalizeFSPath(f.file_path);
+                if (filePath.startsWith(searchPath)) {
+                    toDiscover.push(filePath);
+                    toDiscover.push(getParent(filePath));
+                }
+            });
+        }
+
+        if (toDiscover.length > 0) {
+            discoverPaths(toDiscover);
+        }
+    };
+
+    // Stable ref to virtualFiles so triggerDiscovery can read current value
+    const virtualFilesRef = useRef(virtualFiles);
+    useEffect(() => { virtualFilesRef.current = virtualFiles; }, [virtualFiles]);
 
     // ── Write a subtle step-match notification to terminal ────────────────
     const writeStepMatchFeedback = (term, step) => {
@@ -277,9 +414,10 @@ export const useTerminal = ({
     }, []);
 
     return {
-        terminalRef,    // Attach to: <div ref={terminalRef} />
+        terminalRef,      // Attach to: <div ref={terminalRef} />
         currentPath,
         virtualFiles,
+        discoveredPaths,  // Set of paths the player has seen
         isReady,
         writeToTerminal,
     };

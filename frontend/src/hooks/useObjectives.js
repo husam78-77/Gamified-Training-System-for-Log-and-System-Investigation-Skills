@@ -10,7 +10,7 @@
  * - Expose data for ObjectivesPanel component
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 // Objective status values
 export const OBJECTIVE_STATUS = {
@@ -27,14 +27,19 @@ export const useObjectives = (initialObjectives = []) => {
     // Internal state: objectives with a `status` field added
     const [objectives, setObjectives] = useState([]);
 
-    // ── Initialize objectives from scenario data ──────────────────────────
+    // ── Track whether we've initialized already ─────────────────────────
+    const initializedRef = useRef(false);
+
+    // ── Initialize objectives from scenario data — only once ─────────────
     useEffect(() => {
-        if (initialObjectives.length === 0) return;
+        // Guard: only initialize once, and only when we have data
+        if (initializedRef.current || initialObjectives.length === 0) return;
+
+        initializedRef.current = true;
 
         const initialized = initialObjectives.map(obj => ({
             ...obj,
             status: OBJECTIVE_STATUS.INCOMPLETE,
-            // Secret objectives are hidden until revealed
             visible: !obj.is_secret,
         }));
 

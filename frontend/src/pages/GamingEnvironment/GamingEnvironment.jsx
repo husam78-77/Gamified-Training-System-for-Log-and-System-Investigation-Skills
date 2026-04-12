@@ -14,7 +14,7 @@
  * Path: frontend/src/pages/GamingEnvironment/GamingEnvironment.jsx
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchFullScenarioData } from '../../services/scenarioService';
@@ -38,6 +38,9 @@ export default function GamingEnvironment() {
     const mode = searchParams.get('mode') || 'free';
     const { token } = useAuth();
 
+    // ── Stabilize scenario_id as integer once — never changes ──────────────
+    const scenarioIdInt = parseInt(scenario_id, 10);
+
     // ── Scenario data state (loaded once on mount) ────────────────────────
     const [scenarioData, setScenarioData] = useState(null);
     const [scenarioLoading, setScenarioLoading] = useState(true);
@@ -48,18 +51,19 @@ export default function GamingEnvironment() {
 
     // ── Guard: invalid URL params → redirect ──────────────────────────────
     useEffect(() => {
-        if (!scenario_id) {
+        if (!scenarioIdInt || isNaN(scenarioIdInt)) {
             navigate('/mission', { replace: true });
         }
     }, []);
 
-    // ── Load full scenario data ───────────────────────────────────────────
+    // ── Load full scenario data — only once on mount ──────────────────────
     useEffect(() => {
+        if (!scenarioIdInt || !token) return;
         const load = async () => {
             setScenarioLoading(true);
             setScenarioError(null);
             try {
-                const data = await fetchFullScenarioData(scenario_id, token);
+                const data = await fetchFullScenarioData(scenarioIdInt, token);
                 setScenarioData(data);
             } catch (err) {
                 setScenarioError(err.message);
@@ -68,26 +72,46 @@ export default function GamingEnvironment() {
             }
         };
         load();
-    }, [scenario_id, token]);
+    }, []); // Empty deps — runs once, values are stable
 
     // ── SESSION HOOK ──────────────────────────────────────────────────────
-    const session = useSession(scenario_id, mode, token);
+    const session = useSession(scenarioIdInt, mode, token);
 
     // ── OBJECTIVES HOOK ───────────────────────────────────────────────────
     const objectives = useObjectives(scenarioData?.objectives || []);
 
-    // ── Callbacks for useTerminal ─────────────────────────────────────────
+    // ── Stable callback refs — never recreated, prevent render loops ────────
+    const objectivesRef = useRef(null);
+    objectivesRef.current = objectives;
+
     const handleStepMatched = useCallback((matchedStep) => {
-        objectives.markStepProgress(matchedStep);
-    }, [objectives.markStepProgress]);
+        objectivesRef.current?.markStepProgress(matchedStep);
+        // Push a live system log entry
+        const now = new Date();
+        const fmt = (d) => d.toTimeString().slice(0, 8);
+        setSystemLogs(prev => [...prev, {
+            time: fmt(now),
+            message: `STEP_COMPLETE: ${matchedStep.description}`,
+            type: 'critical',
+        }]);
+    }, []); // Empty deps — uses ref internally
 
     const handleObjectivesUpdated = useCallback((completedIds) => {
-        objectives.markObjectivesCompleted(completedIds);
-    }, [objectives.markObjectivesCompleted]);
+        objectivesRef.current?.markObjectivesCompleted(completedIds);
+    }, []); // Empty deps — uses ref internally
 
     const handleFilesRevealed = useCallback((newFiles) => {
-        // Files are already added to virtualFiles inside useTerminal
-        // This callback is for any additional side effects needed
+        // Files are added to virtualFiles inside useTerminal automatically
+        const now = new Date();
+        const fmt = (d) => d.toTimeString().slice(0, 8);
+        newFiles.forEach(f => {
+            setSystemLogs(prev => [...prev, {
+                time: fmt(now),
+                message: `FILE_UNLOCKED: ${f.file_path}`,
+                type: 'critical',
+                sub: 'New evidence accessible',
+            }]);
+        });
     }, []);
 
     // ── TERMINAL HOOK ─────────────────────────────────────────────────────
@@ -147,8 +171,15 @@ export default function GamingEnvironment() {
         await session.abandon();
     };
 
-    // ── Build system logs from command history + events ───────────────────
-    const systemLogs = buildSystemLogs(terminal.virtualFiles, scenarioData?.scenario);
+    // ── System logs state — updated live as steps are matched ───────────
+    const [systemLogs, setSystemLogs] = useState([]);
+
+    // Initialize system logs once scenario data loads
+    useEffect(() => {
+        if (!scenarioData?.scenario) return;
+        setSystemLogs(buildSystemLogs(terminal.virtualFiles, scenarioData.scenario));
+    }, [scenarioData?.scenario?.scenario_id]);
+
 
     // ── Loading screen ────────────────────────────────────────────────────
     if (scenarioLoading || session.isLoading && !session.sessionId) {
@@ -237,6 +268,7 @@ export default function GamingEnvironment() {
                             <FileTree
                                 files={terminal.virtualFiles}
                                 currentPath={terminal.currentPath}
+                                discoveredPaths={terminal.discoveredPaths}
                             />
                         </div>
                     </section>
@@ -381,55 +413,108 @@ function SystemLogEntry({ log }) {
     );
 }
 
-function FileTree({ files, currentPath }) {
-    if (!files || files.length === 0) {
-        return <div className="text-white/20 text-[10px] italic">No files accessible</div>;
-    }
+function FileTree({ files, currentPath, discoveredPaths }) {
+    const norm = (p) => (p || '/').replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    const getParent = (p) => {
+        const parts = norm(p).split('/').filter(Boolean);
+        if (parts.length === 0) return '/';
+        parts.pop();
+        return '/' + parts.join('/') || '/';
+    };
 
-    // Build a simple flat tree from file paths
-    const roots = new Set();
-    const filesByDir = {};
+    const discovered = discoveredPaths || new Set(['/']);
 
-    files.forEach(f => {
-        const parts = f.file_path.split('/').filter(Boolean);
-        if (parts.length === 1) {
-            roots.add(parts[0]);
-        } else {
-            const dir = '/' + parts.slice(0, -1).join('/');
-            if (!filesByDir[dir]) filesByDir[dir] = [];
-            filesByDir[dir].push(f);
-            roots.add(parts[0]);
+    // Collect all unique directory paths
+    const allDirs = new Set(['/']);
+    (files || []).forEach(f => {
+        if (!f.file_path) return;
+        const parts = norm(f.file_path).split('/').filter(Boolean);
+        for (let i = 1; i <= parts.length - 1; i++) {
+            allDirs.add('/' + parts.slice(0, i).join('/'));
+        }
+        if (f.file_type === 'directory') {
+            allDirs.add(norm(f.file_path));
         }
     });
 
+    // Build parent → children map
+    const tree = {};
+    allDirs.forEach(dir => {
+        if (dir === '/') return;
+        const parent = getParent(dir);
+        if (!tree[parent]) tree[parent] = { dirs: [], files: [] };
+        if (!tree[parent].dirs.includes(dir)) tree[parent].dirs.push(dir);
+    });
+    (files || []).forEach(f => {
+        if (!f.file_path || f.file_type === 'directory') return;
+        const parent = getParent(norm(f.file_path));
+        if (!tree[parent]) tree[parent] = { dirs: [], files: [] };
+        tree[parent].files.push(f);
+    });
+
+    const renderNode = (path, depth = 0) => {
+        if (!discovered.has(norm(path)) && path !== '/') return null;
+        const indent = depth * 12;
+        const name = path === '/' ? 'root' : path.split('/').filter(Boolean).pop();
+        const isCurrent = norm(path) === norm(currentPath);
+        const children = tree[path] || { dirs: [], files: [] };
+
+        return (
+            <div key={path}>
+                <div
+                    className={`flex items-center gap-1.5 py-0.5 text-[10px] ${isCurrent ? 'text-[#FF003C]' : 'text-[#00EBF7]/70'
+                        }`}
+                    style={{ paddingLeft: `${indent + 4}px` }}
+                >
+                    <span className="material-symbols-outlined text-[12px]"
+                        style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {isCurrent ? 'folder_open' : 'folder'}
+                    </span>
+                    <span className={isCurrent ? 'font-bold' : ''}>{name}</span>
+                    {isCurrent && (
+                        <span className="text-[#FF003C]/40 text-[8px] ml-1">← here</span>
+                    )}
+                </div>
+
+                <div style={{ marginLeft: `${indent + 10}px` }}
+                    className="border-l border-white/5">
+                    {children.dirs.map(d => renderNode(d, depth + 1))}
+                    {children.files.map(f => {
+                        const fp = norm(f.file_path);
+                        if (!discovered.has(fp)) return null;
+                        const fname = f.file_name || fp.split('/').pop();
+                        const isLog = f.file_type === 'log' || fname.endsWith('.log');
+                        const isScript = fname.endsWith('.sh') || fname.endsWith('.py');
+                        return (
+                            <div key={f.virtual_file_id}
+                                className={`flex items-center gap-1.5 py-0.5 text-[10px] pl-2 ${isLog ? 'text-yellow-400/60' :
+                                        isScript ? 'text-[#FF003C]/60' :
+                                            'text-[#00EBF7]/50'
+                                    }`}>
+                                <span className="material-symbols-outlined text-[11px]">
+                                    {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}
+                                </span>
+                                <span className="truncate">{fname}</span>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div className="space-y-1">
-            <div className="flex items-center gap-2 py-1">
-                <span className="material-symbols-outlined text-sm text-[#00EBF7]">terminal</span>
-                <span className="text-on-surface text-[11px]">root</span>
-            </div>
-            <div className="ml-4 border-l border-white/5 pl-2 space-y-1">
-                {files.map(f => {
-                    const isActive = f.file_path.startsWith(currentPath) && currentPath !== '/';
-                    return (
-                        <div
-                            key={f.virtual_file_id}
-                            className={`flex items-center gap-2 py-1 text-[10px] ${isActive
-                                    ? 'text-[#FF003C] italic'
-                                    : 'text-[#00EBF7]/50 hover:text-[#00EBF7]'
-                                }`}
-                        >
-                            <span className="material-symbols-outlined text-xs">
-                                {f.file_type === 'directory' ? 'folder' : 'draft'}
-                            </span>
-                            <span className="truncate">{f.file_name || f.file_path.split('/').pop()}</span>
-                        </div>
-                    );
-                })}
-            </div>
+        <div className="space-y-0.5">
+            {renderNode('/')}
+            {discovered.size <= 1 && (
+                <div className="text-white/15 text-[9px] italic mt-2 pl-2">
+                    Navigate to reveal the filesystem...
+                </div>
+            )}
         </div>
     );
 }
+
 
 function ExitModal({ onConfirm, onCancel }) {
     return (
