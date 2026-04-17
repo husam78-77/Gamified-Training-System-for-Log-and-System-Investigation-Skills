@@ -275,8 +275,8 @@ export default function GamingEnvironment() {
                 </aside>
 
                 {/* CENTER: Terminal */}
-                <div className="flex-1 flex flex-col gap-6">
-                    <div className="w-full h-3/4 relative">
+                <div className="flex-1 flex flex-col gap-3">
+                    <div className="w-full flex-1 relative min-h-0">
                         <TerminalPanel
                             terminalRef={terminal.terminalRef}
                             currentPath={terminal.currentPath}
@@ -285,7 +285,7 @@ export default function GamingEnvironment() {
                     </div>
 
                     {/* Scenario title strip */}
-                    <div className="flex items-center justify-between px-4 py-3 bg-surface-container-lowest/60 border border-white/5">
+                    <div className="flex items-center justify-between px-4 py-2 bg-surface-container-lowest/60 border border-white/5 flex-shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="w-2 h-2 bg-[#FF003C] animate-pulse"></div>
                             <span className="font-label text-[10px] text-white/40 tracking-widest uppercase">
@@ -488,8 +488,8 @@ function FileTree({ files, currentPath, discoveredPaths }) {
                         return (
                             <div key={f.virtual_file_id}
                                 className={`flex items-center gap-1.5 py-0.5 text-[10px] pl-2 ${isLog ? 'text-yellow-400/60' :
-                                        isScript ? 'text-[#FF003C]/60' :
-                                            'text-[#00EBF7]/50'
+                                    isScript ? 'text-[#FF003C]/60' :
+                                        'text-[#00EBF7]/50'
                                     }`}>
                                 <span className="material-symbols-outlined text-[11px]">
                                     {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}

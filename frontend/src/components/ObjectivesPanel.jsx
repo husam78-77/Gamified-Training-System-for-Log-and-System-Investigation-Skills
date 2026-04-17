@@ -1,13 +1,6 @@
 /**
  * ObjectivesPanel.jsx
  * Displays mission objectives with live status updates.
- *
- * Props:
- *   objectives          - array from useObjectives
- *   completedCount      - number
- *   totalRequired       - number
- *   completionPercent   - 0–100
- *   secretObjectives    - array of revealed secret objectives
  */
 
 import React from 'react';
@@ -25,50 +18,49 @@ export default function ObjectivesPanel({
 
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h2 className="font-label text-[10px] font-bold tracking-[0.2em] text-on-surface/60 uppercase">
-                    Mission_Objectives
+                <h2 className="font-label text-xs font-black tracking-[0.25em] text-white uppercase">
+                    MISSION_OBJECTIVES
                 </h2>
-                <span className="font-label text-[9px] text-[#00EBF7]/60 tracking-wider">
+                <span className="font-label text-[10px] font-bold text-[#00EBF7] tracking-wider bg-[#00EBF7]/10 px-2 py-0.5">
                     {completedCount}/{totalRequired}
                 </span>
             </div>
 
             {/* Completion progress bar */}
-            <div className="relative h-px bg-white/5 w-full overflow-hidden">
+            <div className="relative h-[2px] bg-white/10 w-full overflow-visible">
                 <div
                     className="absolute top-0 left-0 h-full bg-[#00EBF7] transition-all duration-700"
                     style={{ width: `${completionPercent}%` }}
                 ></div>
-                {/* Pulse dot at progress edge */}
                 {completionPercent > 0 && completionPercent < 100 && (
                     <div
-                        className="absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-[#00EBF7] rounded-full animate-pulse"
-                        style={{ left: `calc(${completionPercent}% - 3px)` }}
+                        className="absolute top-1/2 -translate-y-1/2 w-2 h-2 bg-[#00EBF7] rounded-full animate-pulse shadow-[0_0_6px_#00EBF7]"
+                        style={{ left: `calc(${completionPercent}% - 4px)` }}
                     ></div>
                 )}
             </div>
 
             {/* Objectives list */}
-            <ul className="space-y-4 flex-1">
+            <ul className="space-y-3 flex-1">
                 {objectives.length === 0 && (
-                    <li className="font-label text-[10px] text-white/20 italic">
+                    <li className="font-label text-xs text-white/30 italic">
                         Loading objectives...
                     </li>
                 )}
-
                 {objectives.map(obj => (
                     <ObjectiveItem key={obj.objective_id} objective={obj} />
                 ))}
             </ul>
 
-            {/* Secret objectives section — only shows when at least one is revealed */}
+            {/* Secret objectives — only when revealed */}
             {secretObjectives.length > 0 && (
-                <div className="border-t border-[#FF003C]/20 pt-4 mt-2">
+                <div className="border-t border-[#FF003C]/30 pt-4 mt-1">
                     <div className="flex items-center gap-2 mb-3">
-                        <span className="material-symbols-outlined text-[#FF003C] text-sm">
+                        <span className="material-symbols-outlined text-[#FF003C] text-sm"
+                            style={{ fontVariationSettings: "'FILL' 1" }}>
                             stars
                         </span>
-                        <span className="font-label text-[9px] text-[#FF003C]/60 tracking-[0.3em] uppercase">
+                        <span className="font-label text-[10px] font-black text-[#FF003C] tracking-[0.3em] uppercase">
                             Secret_Objectives
                         </span>
                     </div>
@@ -83,8 +75,6 @@ export default function ObjectivesPanel({
     );
 }
 
-// ── Single objective row ──────────────────────────────────────────────────
-
 function ObjectiveItem({ objective, isSecret = false }) {
     const { status, title, description } = objective;
 
@@ -93,51 +83,52 @@ function ObjectiveItem({ objective, isSecret = false }) {
     const isIncomplete = status === OBJECTIVE_STATUS.INCOMPLETE;
 
     return (
-        <li className={`flex items-start gap-3 transition-all duration-500 ${isCompleted ? 'opacity-50' :
+        <li className={`flex items-start gap-3 transition-all duration-500 ${isCompleted ? 'opacity-60' :
                 isInProgress ? 'opacity-100' :
-                    'opacity-40'
+                    'opacity-50'
             }`}>
+
             {/* Status icon */}
-            <div className="flex-shrink-0 mt-0.5">
+            <div className="flex-shrink-0 mt-[2px]">
                 {isCompleted && (
                     <span
-                        className="material-symbols-outlined text-[18px] text-green-500/80"
+                        className="material-symbols-outlined text-[16px] text-green-400"
                         style={{ fontVariationSettings: "'FILL' 1" }}
                     >
                         check_circle
                     </span>
                 )}
                 {isInProgress && (
-                    <span className="material-symbols-outlined text-[18px] text-[#00EBF7] animate-pulse">
+                    <span className="material-symbols-outlined text-[16px] text-[#00EBF7] animate-pulse">
                         radio_button_checked
                     </span>
                 )}
                 {isIncomplete && (
-                    <span className="material-symbols-outlined text-[18px] text-white/30">
+                    <span className="material-symbols-outlined text-[16px] text-white/25">
                         {isSecret ? 'lock' : 'radio_button_unchecked'}
                     </span>
                 )}
             </div>
 
             {/* Text */}
-            <div className="flex flex-col gap-0.5 min-w-0">
-                <span className={`font-label text-[10px] font-bold tracking-wider uppercase truncate ${isCompleted ? 'line-through text-white/30' :
+            <div className="flex flex-col gap-1 min-w-0">
+                <span className={`font-label text-[11px] font-black tracking-wider uppercase leading-tight ${isCompleted ? 'line-through text-white/30' :
                         isInProgress ? 'text-[#00EBF7]' :
-                            isSecret ? 'text-[#FF003C]/60' :
-                                'text-white/50'
+                            isSecret ? 'text-[#FF003C]/70' :
+                                'text-white/70'
                     }`}>
                     {title}
                 </span>
 
                 {description && (
-                    <span className="text-[8px] font-label text-white/20 leading-relaxed">
+                    <span className={`text-[10px] font-label leading-relaxed ${isCompleted ? 'text-white/20' : 'text-white/40'
+                        }`}>
                         {isCompleted ? 'OBJECTIVE_COMPLETE' : description}
                     </span>
                 )}
 
-                {/* XP badge */}
                 {isCompleted && objective.xp_reward > 0 && (
-                    <span className="text-[8px] font-label text-green-400/60 mt-0.5">
+                    <span className="text-[9px] font-label text-green-400/70 font-bold">
                         +{objective.xp_reward} XP
                     </span>
                 )}

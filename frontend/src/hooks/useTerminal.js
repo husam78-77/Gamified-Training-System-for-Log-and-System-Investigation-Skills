@@ -19,7 +19,11 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { executeCommand, fetchCommandHistory } from '../services/terminalService';
 
-const PROMPT = '\r\nroot@hyperion:~$ ';
+// Dynamic prompt — shows current path like a real shell
+const getPrompt = (path) => {
+    const display = path === '/' ? '~' : path;
+    return `\r\nroot@hyperion:${display}$ `;
+};
 
 /**
  * @param {object} params
@@ -111,7 +115,7 @@ export const useTerminal = ({
 
         // Print boot sequence
         printBootSequence(term);
-        term.write(PROMPT);
+        term.write(getPrompt('/'));
         setIsReady(true);
 
         // Handle key input
@@ -169,7 +173,7 @@ export const useTerminal = ({
             inputBuffer.current = '';
 
             if (cmd.length === 0) {
-                term.write(PROMPT);
+                term.write(getPrompt(currentPathRef.current));
                 return;
             }
 
@@ -191,7 +195,7 @@ export const useTerminal = ({
         if (domEvent.ctrlKey && domEvent.key === 'c') {
             inputBuffer.current = '';
             term.write('^C');
-            term.write(PROMPT);
+            term.write(getPrompt(currentPathRef.current));
             return;
         }
 
@@ -236,7 +240,7 @@ export const useTerminal = ({
             // Handle clear command
             if (result.output === '__CLEAR__') {
                 term.clear();
-                term.write(PROMPT);
+                term.write(getPrompt(currentPathRef.current));
                 isProcessing.current = false;
                 return;
             }
@@ -250,10 +254,11 @@ export const useTerminal = ({
             // ── Discovery triggers ────────────────────────────────────────
             triggerDiscovery(cmd, path, result.output);
 
-            // Handle cd — update current path
+            // Handle cd — update current path and refresh prompt
             if (cmd.startsWith('cd ')) {
                 const target = cmd.slice(3).trim();
                 handleCdPath(target, result.output, path);
+                // Note: prompt will reflect new path on next write (in finally block)
             }
 
             // Step matched — notify parent
@@ -285,7 +290,7 @@ export const useTerminal = ({
             term.writeln(`\r\x1b[31mERROR: ${err.message}\x1b[0m`);
         } finally {
             isProcessing.current = false;
-            term.write(PROMPT);
+            term.write(getPrompt(currentPathRef.current));
         }
     }, []); // Uses refs internally — stable, never recreated
 
