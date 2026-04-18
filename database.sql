@@ -222,6 +222,9 @@ CREATE TABLE objectives (
         UNIQUE (scenario_id, objective_order)
 );
 
+
+
+---------------
 -- =============================================================================
 -- TEST LEVEL: "The Front Door"
 -- Type:       bruteforce
@@ -536,3 +539,72 @@ ORDER BY objective_order;
 SELECT SUM(weight_percent) AS total_weight
 FROM expected_steps
 WHERE scenario_id = (SELECT scenario_id FROM scenarios WHERE title = 'The Front Door' ORDER BY created_at DESC LIMIT 1);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+----------------------------------
+-- =============================================================================
+-- MIGRATION: Add scenario_order for deterministic progression
+-- Run this ONCE against your database before deploying the new backend files.
+-- =============================================================================
+
+-- Step 1: Add the ordering column
+ALTER TABLE scenarios
+ADD COLUMN IF NOT EXISTS scenario_order INT;
+
+-- Step 2: Back-fill existing rows using created_at rank
+-- This assigns order 1, 2, 3... based on insertion order
+UPDATE scenarios
+SET scenario_order = sub.rn
+FROM (
+    SELECT scenario_id,
+           ROW_NUMBER() OVER (ORDER BY created_at ASC, scenario_id ASC) AS rn
+    FROM scenarios
+) sub
+WHERE scenarios.scenario_id = sub.scenario_id;
+
+-- Step 3: Make it NOT NULL and UNIQUE going forward
+ALTER TABLE scenarios
+ALTER COLUMN scenario_order SET NOT NULL;
+
+ALTER TABLE scenarios
+ADD CONSTRAINT unique_scenario_order UNIQUE (scenario_order);
+
+-- Step 4: Add index for fast ordering queries
+CREATE INDEX IF NOT EXISTS idx_scenarios_order
+ON scenarios(scenario_order ASC)
+WHERE is_active = TRUE;
+
+-- Step 5: Add unique constraint to sessions to prevent duplicate active sessions
+-- This is the database-level race condition fix
+-- Only one in_progress session per user+scenario allowed at a time
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sessions_one_active_per_user_scenario
+ON sessions(user_id, scenario_id)
+WHERE status = 'in_progress';
+
+-- Verify
+SELECT scenario_id, title, scenario_order, created_at
+FROM scenarios
+ORDER BY scenario_order ASC;

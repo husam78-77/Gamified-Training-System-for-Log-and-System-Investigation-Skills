@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchFullScenarioData } from '../../services/scenarioService';
 
@@ -33,49 +33,37 @@ import './GamingEnvironment.css';
 
 export default function GamingEnvironment() {
     const navigate = useNavigate();
-    const { scenario_id } = useParams();
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') || 'free';
     const { token } = useAuth();
 
-    // ── Stabilize scenario_id as integer once — never changes ──────────────
-    const scenarioIdInt = parseInt(scenario_id, 10);
-
-    // ── Scenario data state (loaded once on mount) ────────────────────────
+    // ── Scenario data state — populated when backend assigns a scenario ────
     const [scenarioData, setScenarioData] = useState(null);
     const [scenarioLoading, setScenarioLoading] = useState(true);
     const [scenarioError, setScenarioError] = useState(null);
+    const [assignedId, setAssignedId] = useState(null);
 
-    // ── Exit confirmation modal state (timed mode only) ───────────────────
+    // ── Exit confirmation modal ───────────────────────────────────────────
     const [showExitModal, setShowExitModal] = useState(false);
 
-    // ── Guard: invalid URL params → redirect ──────────────────────────────
-    useEffect(() => {
-        if (!scenarioIdInt || isNaN(scenarioIdInt)) {
-            navigate('/mission', { replace: true });
+    // ── Called by useSession when backend assigns a scenario ──────────────
+    // This is the ONLY way scenario_id enters the frontend — from the backend
+    const handleScenarioAssigned = useCallback(async (scenario) => {
+        setAssignedId(scenario.scenario_id);
+        setScenarioLoading(true);
+        setScenarioError(null);
+        try {
+            const data = await fetchFullScenarioData(scenario.scenario_id, token);
+            setScenarioData(data);
+        } catch (err) {
+            setScenarioError(err.message);
+        } finally {
+            setScenarioLoading(false);
         }
-    }, []);
+    }, [token]);
 
-    // ── Load full scenario data — only once on mount ──────────────────────
-    useEffect(() => {
-        if (!scenarioIdInt || !token) return;
-        const load = async () => {
-            setScenarioLoading(true);
-            setScenarioError(null);
-            try {
-                const data = await fetchFullScenarioData(scenarioIdInt, token);
-                setScenarioData(data);
-            } catch (err) {
-                setScenarioError(err.message);
-            } finally {
-                setScenarioLoading(false);
-            }
-        };
-        load();
-    }, []); // Empty deps — runs once, values are stable
-
-    // ── SESSION HOOK ──────────────────────────────────────────────────────
-    const session = useSession(scenarioIdInt, mode, token);
+    // ── SESSION HOOK — backend assigns scenario, fires handleScenarioAssigned
+    const session = useSession(mode, token, handleScenarioAssigned);
 
     // ── OBJECTIVES HOOK ───────────────────────────────────────────────────
     const objectives = useObjectives(scenarioData?.objectives || []);

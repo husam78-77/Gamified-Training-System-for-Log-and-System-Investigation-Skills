@@ -1,8 +1,10 @@
 /**
  * sessionService.js
  * All API calls related to session lifecycle.
- * Matches backend: /api/sessions
- * All requests are authenticated (Bearer token).
+ *
+ * KEY CHANGE: startSession no longer sends scenario_id.
+ * The backend determines which scenario to assign.
+ * The backend returns both the session AND the scenario in the response.
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -13,73 +15,99 @@ const authHeaders = (token) => ({
 });
 
 /**
- * Start or resume a session when entering GamingEnvironment.
- * If an in_progress session already exists for this user+scenario,
- * the backend returns that session (resume).
+ * Start or resume a session.
+ * Sends ONLY mode — backend assigns the correct scenario.
  *
- * @param {number} scenarioId
- * @param {string} mode - 'timed' | 'free'
+ * @param {string} mode   - 'timed' | 'free'
  * @param {string} token
- * @returns {{ session }} - session row
+ * @returns {{
+ *   session:  Object,    - session row
+ *   scenario: Object,    - scenario row (what the backend assigned)
+ *   resumed:  boolean    - true if an existing session was resumed
+ * }}
  */
-export const startSession = async (scenarioId, mode, token) => {
-    const response = await fetch(`${API_URL}/api/sessions/start`, {
+export const startSession = async (mode, token) => {
+    const res = await fetch(`${API_URL}/api/sessions/start`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ scenario_id: scenarioId, mode }),
+        body: JSON.stringify({ mode }),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to start session');
-    return data.data; // { session }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to start session');
+    return data.data; // { session, scenario, resumed }
+};
+
+/**
+ * Get the next scenario for this user without creating a session.
+ * Use this on the MissionSequence/Briefing pages to show what comes next.
+ *
+ * @param {string} token
+ * @returns {{ scenario: Object|null, allComplete: boolean }}
+ */
+export const getNextScenario = async (token) => {
+    const res = await fetch(`${API_URL}/api/sessions/next-scenario`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to get next scenario');
+    return data.data; // { scenario, allComplete }
 };
 
 /**
  * Fetch a session by ID.
- * Used to validate session state on page load.
  *
  * @param {number} sessionId
  * @param {string} token
  */
 export const getSession = async (sessionId, token) => {
-    const response = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
+    const res = await fetch(`${API_URL}/api/sessions/${sessionId}`, {
         headers: { Authorization: `Bearer ${token}` },
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to fetch session');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to fetch session');
     return data.data; // { session }
 };
 
 /**
- * Abandon a session — called on early exit in Timed Mode.
- * No score is saved. Session status → 'abandoned'.
+ * Abandon a session — timed mode early exit.
+ * No score saved, no progress recorded.
  *
  * @param {number} sessionId
  * @param {string} token
  */
 export const abandonSession = async (sessionId, token) => {
-    const response = await fetch(`${API_URL}/api/sessions/${sessionId}/abandon`, {
+    const res = await fetch(`${API_URL}/api/sessions/${sessionId}/abandon`, {
         method: 'POST',
         headers: authHeaders(token),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to abandon session');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to abandon session');
     return data.data; // { session }
 };
 
 /**
- * Complete a session — called when user ends the mission.
- * Triggers scoring, XP award, progress update, badge check.
+ * Complete a session.
+ * Returns evaluation, XP, and the NEXT scenario to play.
+ * Frontend should navigate to the next scenario using nextScenario from the response.
  *
  * @param {number} sessionId
  * @param {string} token
- * @returns {{ evaluation, session, xpAwarded, updatedUser, completedObjectiveIds }}
+ * @returns {{
+ *   evaluation:           Object,
+ *   session:              Object,
+ *   missionCompleted:     boolean,
+ *   xpAwarded:            number,
+ *   updatedUser:          Object,
+ *   completedObjectiveIds: number[],
+ *   nextScenario:         Object|null  ← use this for navigation
+ * }}
  */
 export const completeSession = async (sessionId, token) => {
-    const response = await fetch(`${API_URL}/api/sessions/${sessionId}/complete`, {
+    const res = await fetch(`${API_URL}/api/sessions/${sessionId}/complete`, {
         method: 'POST',
         headers: authHeaders(token),
     });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Failed to complete session');
-    return data.data; // { evaluation, session, xpAwarded, updatedUser, completedObjectiveIds }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to complete session');
+    return data.data;
 };

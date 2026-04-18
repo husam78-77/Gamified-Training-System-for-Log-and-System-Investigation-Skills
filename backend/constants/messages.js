@@ -22,6 +22,7 @@ module.exports = {
     SESSION_NOT_FOUND: 'Session not found',
     SESSION_ALREADY_CLOSED: 'Session is no longer active',
     INVALID_MODE: "Mode must be 'timed' or 'free'",
+    ALL_SCENARIOS_COMPLETE: 'All scenarios completed',
 
     // ── Terminal ──────────────────────────────────────────
     COMMAND_PROCESSED: 'Command processed',

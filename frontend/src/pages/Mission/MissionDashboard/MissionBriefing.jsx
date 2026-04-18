@@ -28,8 +28,7 @@ export default function MissionBriefing() {
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') || 'free';
     const type = searchParams.get('type') || '';
-    console.log('BRIEFING MOUNTED — scenario_id:', scenario_id, 'mode:', mode);
-    console.log('FULL URL:', window.location.href);
+
     const [scenario, setScenario] = useState(null);
     const [objectives, setObjectives] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -55,9 +54,10 @@ export default function MissionBriefing() {
         load();
     }, [scenario_id]);
 
-    // ── Navigate to GamingEnvironment — URL params, never location.state ──
+    // ── Navigate to GamingEnvironment — only mode param needed now ─────────
+    // Backend will assign the correct scenario on session start
     const handleStart = () => {
-        navigate(`/game/${scenario_id}?mode=${mode}`);
+        navigate(`/game?mode=${mode}`);
     };
 
     const diff = scenario?.difficulty?.toLowerCase() || 'easy';
@@ -108,7 +108,7 @@ export default function MissionBriefing() {
                                 TRANSMISSION_FAILURE: {error}
                             </p>
                             <button
-                                onClick={() => navigate(`/sequence/${type}`)}
+                                onClick={() => navigate(-1)}
                                 className="font-label text-xs text-zinc-400 hover:text-white underline"
                             >
                                 ← Return to sequence
@@ -216,7 +216,7 @@ export default function MissionBriefing() {
                                     className="btn-slashed w-full bg-[#FF003C] hover:bg-white text-black py-10 transition-all group relative overflow-hidden shadow-[0_0_50px_rgba(255,0,60,0.5)]"
                                 >
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
-                                    <span className="relative z-10 font-headline text-2xl font-black italic tracking-tighter uppercase flex items-center justify-center gap-0">
+                                    <span className="relative z-10 font-headline text-3xl font-black italic tracking-tighter uppercase flex items-center justify-center gap-4">
                                         START_INVESTIGATION
                                         <span className="material-symbols-outlined text-4xl">bolt</span>
                                     </span>

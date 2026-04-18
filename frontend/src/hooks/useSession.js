@@ -12,18 +12,20 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { startSession, abandonSession, completeSession } from '../services/sessionService';
+// NOTE: startSession now sends only mode — backend assigns scenario
 
 /**
- * @param {number} scenarioId  - From route state
- * @param {string} mode        - 'timed' | 'free'
- * @param {string} token       - JWT from useAuth()
+ * @param {string} mode            - 'timed' | 'free'
+ * @param {string} token           - JWT from useAuth()
+ * @param {Function} onScenarioAssigned - Called with scenario when backend assigns one
  */
-export const useSession = (scenarioId, mode, token) => {
+export const useSession = (mode, token, onScenarioAssigned) => {
     const [sessionId, setSessionId] = useState(null);
-    const [status, setStatus] = useState('idle'); // idle | loading | in_progress | completed | abandoned | error
+    const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
-    const [evaluation, setEvaluation] = useState(null);  // Set after completeSession
-    const [timeRemaining, setTimeRemaining] = useState(null); // Seconds, timed mode only
+    const [evaluation, setEvaluation] = useState(null);
+    const [timeRemaining, setTimeRemaining] = useState(null);
+    const [allComplete, setAllComplete] = useState(false); // User finished all scenarios
 
     // Timed mode: 15 minutes default, configurable via env
     const TIMED_DURATION_SECONDS = parseInt(import.meta.env.VITE_TIMED_DURATION || '900', 10);
@@ -33,22 +35,34 @@ export const useSession = (scenarioId, mode, token) => {
 
     // ── Boot: start or resume session on mount ────────────────────────────
     useEffect(() => {
-        if (!scenarioId || !mode || !token) return;
+        if (!mode || !token) return;
 
         const boot = async () => {
             setStatus('loading');
             setError(null);
             try {
-                const data = await startSession(scenarioId, mode, token);
-                const session = data.session;
+                // Backend assigns the scenario — we just send mode
+                const data = await startSession(mode, token);
 
+                if (data.allComplete) {
+                    // User has finished every scenario
+                    setAllComplete(true);
+                    setStatus('idle');
+                    return;
+                }
+
+                const session = data.session;
                 setSessionId(session.session_id);
                 sessionRef.current = session.session_id;
                 setStatus('in_progress');
 
+                // Notify parent of the scenario the backend assigned
+                if (data.scenario && onScenarioAssigned) {
+                    onScenarioAssigned(data.scenario);
+                }
+
                 // Start timer if timed mode
                 if (mode === 'timed') {
-                    // If resuming, calculate remaining time from start_time
                     const elapsed = Math.floor(
                         (Date.now() - new Date(session.start_time).getTime()) / 1000
                     );
@@ -63,7 +77,6 @@ export const useSession = (scenarioId, mode, token) => {
 
         boot();
 
-        // Cleanup timer on unmount
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
         };
@@ -140,6 +153,7 @@ export const useSession = (scenarioId, mode, token) => {
         evaluation,
         timeRemaining,
         formattedTime,
+        allComplete,
         isLoading: status === 'loading',
         isActive: status === 'in_progress',
         isCompleted: status === 'completed',

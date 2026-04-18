@@ -1,69 +1,165 @@
 /**
  * sessionController.js
- * Manages the lifecycle of a gameplay session.
+ * Manages the full lifecycle of a gameplay session.
  *
- * Routes served:
- *   POST   /api/sessions/start           → startSession
- *   GET    /api/sessions/:sessionId      → getSession
- *   POST   /api/sessions/:sessionId/abandon  → abandonSession
- *   POST   /api/sessions/:sessionId/complete → completeSession
+ * KEY DESIGN DECISIONS:
+ *
+ * 1. startSession NO LONGER trusts scenario_id from the frontend.
+ *    The backend determines which scenario the user should play via
+ *    progressionModel.getAuthorizedScenarioForUser().
+ *    The frontend sends only { mode } — the scenario is assigned server-side.
+ *
+ * 2. Race condition protection:
+ *    - DB-level unique partial index prevents two concurrent in_progress sessions
+ *      for the same user+scenario (see migration_add_scenario_order.sql)
+ *    - startSession handles the unique violation gracefully by resuming
+ *
+ * 3. completeSession now correctly determines completion:
+ *    - completed = true only if there ARE required objectives AND all are done
+ *    - completed = false if there are no objectives (safety guard)
+ *
+ * Routes:
+ *   POST /api/sessions/start                  → startSession
+ *   GET  /api/sessions/:sessionId             → getSession
+ *   POST /api/sessions/:sessionId/abandon     → abandonSession
+ *   POST /api/sessions/:sessionId/complete    → completeSession
+ *   GET  /api/sessions/next-scenario          → getNextScenario
  */
 
 const sessionModel = require('../models/sessionModel');
 const scenarioModel = require('../models/scenarioModel');
 const terminalModel = require('../models/terminalModel');
 const hintModel = require('../models/hintModel');
+const progressionModel = require('../models/progressionModel');
 const evaluationService = require('../services/evaluationService');
 const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// START SESSION
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * POST /api/sessions/start
- * Creates a new session when user enters GamingEnvironment.
- * Body: { scenario_id, mode }
+ * Body: { mode }
  *
- * If an in-progress session already exists for this user+scenario,
- * returns that session instead of creating a duplicate.
+ * The backend determines which scenario the user plays.
+ * The frontend does NOT send scenario_id here.
+ *
+ * Flow:
+ *  1. Validate mode
+ *  2. Check for existing in_progress session → resume it immediately
+ *  3. Determine next scenario via progressionModel
+ *  4. If no scenarios left → return 'all_complete' status
+ *  5. Create session — handle DB unique violation as a resume
+ *  6. Return session + scenario data needed to boot GamingEnvironment
  */
 const startSession = async (req, res) => {
     try {
         const userId = req.user.user_id;
-        const { scenario_id, mode } = req.body;
+        const { mode } = req.body;
 
-        if (!scenario_id || !mode) {
-            return response.error(res, 400, MESSAGES.INVALID_INPUT);
-        }
-
-        if (!['timed', 'free'].includes(mode)) {
+        // Validate mode
+        if (!mode || !['timed', 'free'].includes(mode)) {
             return response.error(res, 400, MESSAGES.INVALID_MODE);
         }
 
-        // Check scenario exists
-        const scenario = await scenarioModel.getScenarioById(scenario_id);
+        // ── Step 1: Check for existing in_progress session ────────────────
+        // This is the primary resume mechanism.
+        // Do this BEFORE calling getNextScenarioForUser to avoid extra queries.
+        const { resumeSession, scenario } = await progressionModel.getAuthorizedScenarioForUser(userId);
+
+        if (resumeSession) {
+            // Load scenario data for the resumed session
+            const resumeScenario = await scenarioModel.getScenarioById(resumeSession.scenario_id);
+            return response.success(res, 200, MESSAGES.SESSION_RESUMED, {
+                session: resumeSession,
+                scenario: resumeScenario,
+                resumed: true,
+            });
+        }
+
+        // ── Step 2: Check if user has completed all scenarios ─────────────
         if (!scenario) {
-            return response.error(res, 404, MESSAGES.SCENARIO_NOT_FOUND);
+            return response.success(res, 200, MESSAGES.ALL_SCENARIOS_COMPLETE, {
+                session: null,
+                allComplete: true,
+            });
         }
 
-        // Check for existing active session — resume it
-        const existing = await sessionModel.getActiveSession(userId, scenario_id);
-        if (existing) {
-            return response.success(res, 200, MESSAGES.SESSION_RESUMED, { session: existing });
+        // ── Step 3: Create new session ────────────────────────────────────
+        // Use a try/catch around the INSERT to handle the rare race condition
+        // where two requests slip through simultaneously.
+        // The DB unique partial index will reject the second INSERT.
+        let session;
+        try {
+            session = await sessionModel.createSession({
+                userId,
+                scenarioId: scenario.scenario_id,
+                mode,
+            });
+        } catch (dbErr) {
+            // Unique constraint violation (race condition) — another request
+            // just created this session. Fetch and return that session.
+            if (dbErr.code === '23505') {
+                const existing = await sessionModel.getActiveSession(userId, scenario.scenario_id);
+                if (existing) {
+                    return response.success(res, 200, MESSAGES.SESSION_RESUMED, {
+                        session: existing,
+                        scenario: scenario,
+                        resumed: true,
+                    });
+                }
+            }
+            throw dbErr; // Re-throw unexpected errors
         }
 
-        // Create new session
-        const session = await sessionModel.createSession({ userId, scenarioId: scenario_id, mode });
+        return response.success(res, 201, MESSAGES.SESSION_STARTED, {
+            session,
+            scenario,
+            resumed: false,
+        });
 
-        return response.success(res, 201, MESSAGES.SESSION_STARTED, { session });
     } catch (err) {
         console.error('startSession error:', err);
         return response.error(res, 500, MESSAGES.SERVER_ERROR);
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET NEXT SCENARIO (read-only, no session creation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/sessions/next-scenario
+ * Returns what the next scenario for this user would be — without creating
+ * a session. Used by the frontend to display the correct level card.
+ */
+const getNextScenario = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const scenario = await progressionModel.getNextScenarioForUser(userId);
+
+        if (!scenario) {
+            return response.success(res, 200, MESSAGES.ALL_SCENARIOS_COMPLETE, {
+                scenario: null,
+                allComplete: true,
+            });
+        }
+
+        return response.success(res, 200, 'Next scenario retrieved', { scenario });
+    } catch (err) {
+        console.error('getNextScenario error:', err);
+        return response.error(res, 500, MESSAGES.SERVER_ERROR);
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET SESSION
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * GET /api/sessions/:sessionId
- * Returns session data for a given sessionId.
- * Validates the session belongs to the requesting user.
  */
 const getSession = async (req, res) => {
     try {
@@ -75,7 +171,6 @@ const getSession = async (req, res) => {
         }
 
         const session = await sessionModel.getSessionById(sessionId, userId);
-
         if (!session) {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
@@ -87,18 +182,24 @@ const getSession = async (req, res) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ABANDON SESSION
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * POST /api/sessions/:sessionId/abandon
- * Called when user exits during Timed Mode.
- * Marks session as 'abandoned' — no score saved, no XP awarded.
+ * Timed mode early exit — no score, no progress.
  */
 const abandonSession = async (req, res) => {
     try {
         const userId = req.user.user_id;
         const sessionId = parseInt(req.params.sessionId, 10);
 
-        const session = await sessionModel.getSessionById(sessionId, userId);
+        if (isNaN(sessionId)) {
+            return response.error(res, 400, MESSAGES.INVALID_INPUT);
+        }
 
+        const session = await sessionModel.getSessionById(sessionId, userId);
         if (!session) {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
@@ -108,7 +209,6 @@ const abandonSession = async (req, res) => {
         }
 
         const abandoned = await sessionModel.abandonSession(sessionId);
-
         return response.success(res, 200, MESSAGES.SESSION_ABANDONED, { session: abandoned });
     } catch (err) {
         console.error('abandonSession error:', err);
@@ -116,19 +216,24 @@ const abandonSession = async (req, res) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPLETE SESSION
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * POST /api/sessions/:sessionId/complete
- * Called when user manually ends the mission or all objectives are done.
  *
  * Flow:
- *  1. Load session, scenario, commands, hints, objectives
- *  2. Run evaluation engine → calculate score
- *  3. Calculate XP
- *  4. Save evaluation result
- *  5. Close session with final score
- *  6. Upsert user_progress
- *  7. Award XP to user
- *  8. Return full evaluation summary
+ *  1. Validate session ownership + status
+ *  2. Load all evaluation data in parallel
+ *  3. Determine completion status correctly
+ *  4. Calculate score and XP
+ *  5. Save evaluation result
+ *  6. Close session
+ *  7. Upsert progress via progressionModel (single authority)
+ *  8. Award XP via progressionModel
+ *  9. Award badge if score threshold met
+ * 10. Return full summary + next scenario info
  */
 const completeSession = async (req, res) => {
     try {
@@ -140,7 +245,6 @@ const completeSession = async (req, res) => {
         }
 
         const session = await sessionModel.getSessionById(sessionId, userId);
-
         if (!session) {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
@@ -149,22 +253,32 @@ const completeSession = async (req, res) => {
             return response.error(res, 400, MESSAGES.SESSION_ALREADY_CLOSED);
         }
 
-        // Load all data needed for evaluation
-        const [expectedSteps, objectives, matchedCommands, totalCount, hintsUsed] = await Promise.all([
-            scenarioModel.getExpectedStepsByScenario(session.scenario_id),
-            scenarioModel.getObjectivesByScenario(session.scenario_id),
-            terminalModel.getMatchedCommands(sessionId),
-            terminalModel.countTotalCommands(sessionId),
-            hintModel.countHintsUsed(sessionId),
-        ]);
+        // ── Load all evaluation data in parallel ──────────────────────────
+        const [expectedSteps, objectives, matchedCommands, totalCount, hintsUsed, scenario] =
+            await Promise.all([
+                scenarioModel.getExpectedStepsByScenario(session.scenario_id),
+                scenarioModel.getObjectivesByScenario(session.scenario_id),
+                terminalModel.getMatchedCommands(sessionId),
+                terminalModel.countTotalCommands(sessionId),
+                hintModel.countHintsUsed(sessionId),
+                scenarioModel.getScenarioById(session.scenario_id),
+            ]);
 
-        const scenario = await scenarioModel.getScenarioById(session.scenario_id);
-
-        // Resolve which objectives are completed based on matched steps
+        // ── Determine completed objectives ────────────────────────────────
         const matchedStepOrders = matchedCommands.map(c => c.match_step_order);
-        const completedObjectiveIds = evaluationService.resolveCompletedObjectives(objectives, matchedStepOrders);
+        const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
+            objectives, matchedStepOrders
+        );
 
-        // Calculate score
+        // ── Determine completion status ───────────────────────────────────
+        // BUG FIX: previously 0 === 0 would mark complete when no objectives exist
+        const requiredObjectives = objectives.filter(o => !o.is_secret);
+        const missionCompleted = requiredObjectives.length > 0
+            && completedObjectiveIds.filter(id =>
+                requiredObjectives.some(o => o.objective_id === id)
+            ).length === requiredObjectives.length;
+
+        // ── Calculate score ───────────────────────────────────────────────
         const scoreResult = evaluationService.calculateScore({
             expectedSteps,
             matchedCommands,
@@ -174,37 +288,37 @@ const completeSession = async (req, res) => {
             hintsUsed,
         });
 
-        // Calculate XP
+        // ── Calculate XP ──────────────────────────────────────────────────
         const xpAwarded = evaluationService.calculateXp(
             scoreResult.totalWeightedScore,
             scenario.difficulty,
             hintsUsed
         );
 
-        // Save evaluation result
+        // ── Save evaluation result ────────────────────────────────────────
         await terminalModel.saveEvaluationResult({ sessionId, ...scoreResult });
 
-        // Close session
+        // ── Close session ─────────────────────────────────────────────────
         const closedSession = await sessionModel.closeSession({
             sessionId,
             finalScore: scoreResult.totalWeightedScore,
             status: 'completed',
         });
 
-        // Upsert progress
-        await hintModel.upsertUserProgress({
+        // ── Upsert progress (single authority: progressionModel) ──────────
+        await progressionModel.upsertUserProgress({
             userId,
             scenarioId: session.scenario_id,
             score: scoreResult.totalWeightedScore,
-            completed: completedObjectiveIds.length === objectives.filter(o => !o.is_secret).length,
+            completed: missionCompleted,
         });
 
-        // Award XP
-        const updatedUser = await hintModel.addXpToUser(userId, xpAwarded);
+        // ── Award XP ──────────────────────────────────────────────────────
+        const updatedUser = await progressionModel.addXpToUser(userId, xpAwarded);
 
-        // Award completion badge if score >= 60
+        // ── Award badge if score >= 60 ────────────────────────────────────
         if (scoreResult.totalWeightedScore >= 60) {
-            await hintModel.awardBadge({
+            await progressionModel.awardBadge({
                 userId,
                 scenarioId: session.scenario_id,
                 badgeName: `${scenario.title}_COMPLETE`,
@@ -212,13 +326,20 @@ const completeSession = async (req, res) => {
             });
         }
 
+        // ── Determine next scenario for the frontend ──────────────────────
+        // Frontend should use this — never compute it themselves
+        const nextScenario = await progressionModel.getNextScenarioForUser(userId);
+
         return response.success(res, 200, MESSAGES.SESSION_COMPLETED, {
             evaluation: scoreResult,
             session: closedSession,
+            missionCompleted,
             xpAwarded,
             updatedUser,
             completedObjectiveIds,
+            nextScenario,          // Frontend uses this to know what comes next
         });
+
     } catch (err) {
         console.error('completeSession error:', err);
         return response.error(res, 500, MESSAGES.SERVER_ERROR);
@@ -227,6 +348,7 @@ const completeSession = async (req, res) => {
 
 module.exports = {
     startSession,
+    getNextScenario,
     getSession,
     abandonSession,
     completeSession,

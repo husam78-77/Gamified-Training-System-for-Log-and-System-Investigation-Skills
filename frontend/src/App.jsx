@@ -24,7 +24,6 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function App() {
-
   return (
     <AuthProvider>
       <Router>
@@ -62,14 +61,13 @@ function App() {
             {/* Receives state: { scenario_id, mode, type } from Sequence */}
             <Route path="/briefing/:scenario_id" element={
               <ProtectedRoute>
-
                 <Layout><Briefing /></Layout>
               </ProtectedRoute>
             } />
 
             {/* Full screen — no Layout wrapper (game owns the full viewport) */}
             {/* Receives state: { scenario_id, mode } from Briefing */}
-            <Route path="/game/:scenario_id" element={
+            <Route path="/game" element={
               <ProtectedRoute>
                 <Game />
               </ProtectedRoute>
