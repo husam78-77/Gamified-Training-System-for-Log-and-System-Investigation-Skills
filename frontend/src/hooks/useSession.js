@@ -19,7 +19,7 @@ import { startSession, abandonSession, completeSession } from '../services/sessi
  * @param {string} token           - JWT from useAuth()
  * @param {Function} onScenarioAssigned - Called with scenario when backend assigns one
  */
-export const useSession = (mode, token, onScenarioAssigned) => {
+export const useSession = (mode, token, onScenarioAssigned, scenario_id) => {
     const [sessionId, setSessionId] = useState(null);
     const [status, setStatus] = useState('idle');
     const [error, setError] = useState(null);
@@ -42,7 +42,7 @@ export const useSession = (mode, token, onScenarioAssigned) => {
             setError(null);
             try {
                 // Backend assigns the scenario — we just send mode
-                const data = await startSession(mode, token);
+                const data = await startSession(mode, token, scenario_id);
 
                 if (data.allComplete) {
                     // User has finished every scenario

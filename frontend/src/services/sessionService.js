@@ -26,17 +26,18 @@ const authHeaders = (token) => ({
  *   resumed:  boolean    - true if an existing session was resumed
  * }}
  */
-export const startSession = async (mode, token) => {
+export const startSession = async (mode, token, scenario_id) => {
     const res = await fetch(`${API_URL}/api/sessions/start`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ mode }),
+        body: JSON.stringify({ mode, scenario_id }),
     });
+
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to start session');
+
     return data.data; // { session, scenario, resumed }
 };
-
 /**
  * Get the next scenario for this user without creating a session.
  * Use this on the MissionSequence/Briefing pages to show what comes next.

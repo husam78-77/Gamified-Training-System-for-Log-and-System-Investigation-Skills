@@ -57,7 +57,7 @@ export default function MissionBriefing() {
     // ── Navigate to GamingEnvironment — only mode param needed now ─────────
     // Backend will assign the correct scenario on session start
     const handleStart = () => {
-        navigate(`/game?mode=${mode}`);
+        navigate(`/game/${scenario_id}?mode=${mode}`);
     };
 
     const diff = scenario?.difficulty?.toLowerCase() || 'easy';

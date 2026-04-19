@@ -57,63 +57,71 @@ const MESSAGES = require('../constants/messages');
 const startSession = async (req, res) => {
     try {
         const userId = req.user.user_id;
-        const { mode } = req.body;
+        const { mode, scenario_id } = req.body;
 
-        // Validate mode
+        // ── Validate mode ────────────────────────────────────────────────
         if (!mode || !['timed', 'free'].includes(mode)) {
             return response.error(res, 400, MESSAGES.INVALID_MODE);
         }
 
-        // ── Step 1: Check for existing in_progress session ────────────────
-        // This is the primary resume mechanism.
-        // Do this BEFORE calling getNextScenarioForUser to avoid extra queries.
-        const { resumeSession, scenario } = await progressionModel.getAuthorizedScenarioForUser(userId);
+        // ── Validate scenario_id ─────────────────────────────────────────
+        if (!scenario_id) {
+            return response.error(res, 400, 'scenario_id is required');
+        }
 
-        if (resumeSession) {
-            // Load scenario data for the resumed session
-            const resumeScenario = await scenarioModel.getScenarioById(resumeSession.scenario_id);
+        // ── Step 1: Check if session already exists for this scenario ────
+        const existingSession = await sessionModel.getActiveSession(userId, scenario_id);
+
+        if (existingSession) {
+            const scenario = await scenarioModel.getScenarioById(scenario_id);
+
             return response.success(res, 200, MESSAGES.SESSION_RESUMED, {
-                session: resumeSession,
-                scenario: resumeScenario,
+                session: existingSession,
+                scenario,
                 resumed: true,
             });
         }
 
-        // ── Step 2: Check if user has completed all scenarios ─────────────
+        // ── Step 2: Validate scenario exists ─────────────────────────────
+        const scenario = await scenarioModel.getScenarioById(scenario_id);
+
         if (!scenario) {
-            return response.success(res, 200, MESSAGES.ALL_SCENARIOS_COMPLETE, {
-                session: null,
-                allComplete: true,
-            });
+            return response.error(res, 404, 'Scenario not found or inactive');
         }
 
-        // ── Step 3: Create new session ────────────────────────────────────
-        // Use a try/catch around the INSERT to handle the rare race condition
-        // where two requests slip through simultaneously.
-        // The DB unique partial index will reject the second INSERT.
+        // ── Step 3 : unlock ────────────────────────────
+        // لو عندك نظام progression خليه check فقط
+        /*
+        const allowed = await progressionModel.isScenarioUnlocked(userId, scenario_id);
+        if (!allowed) {
+            return response.error(res, 403, 'Scenario locked');
+        }
+        */
+
+        // ── Step 4: Create new session ───────────────────────────────────
         let session;
         try {
             session = await sessionModel.createSession({
                 userId,
-                scenarioId: scenario.scenario_id,
+                scenarioId: scenario_id,
                 mode,
             });
         } catch (dbErr) {
-            // Unique constraint violation (race condition) — another request
-            // just created this session. Fetch and return that session.
+            // Race condition protection
             if (dbErr.code === '23505') {
-                const existing = await sessionModel.getActiveSession(userId, scenario.scenario_id);
+                const existing = await sessionModel.getActiveSession(userId, scenario_id);
                 if (existing) {
                     return response.success(res, 200, MESSAGES.SESSION_RESUMED, {
                         session: existing,
-                        scenario: scenario,
+                        scenario,
                         resumed: true,
                     });
                 }
             }
-            throw dbErr; // Re-throw unexpected errors
+            throw dbErr;
         }
 
+        // ── Success ─────────────────────────────────────────────────────
         return response.success(res, 201, MESSAGES.SESSION_STARTED, {
             session,
             scenario,

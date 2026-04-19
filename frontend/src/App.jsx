@@ -67,7 +67,7 @@ function App() {
 
             {/* Full screen — no Layout wrapper (game owns the full viewport) */}
             {/* Receives state: { scenario_id, mode } from Briefing */}
-            <Route path="/game" element={
+            <Route path="/game/:scenario_id" element={
               <ProtectedRoute>
                 <Game />
               </ProtectedRoute>

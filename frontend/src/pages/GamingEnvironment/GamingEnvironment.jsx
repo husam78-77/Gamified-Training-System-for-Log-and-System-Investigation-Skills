@@ -18,6 +18,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchFullScenarioData } from '../../services/scenarioService';
+import { useParams } from 'react-router-dom';
 
 import { useSession } from '../../hooks/useSession';
 import { useTerminal } from '../../hooks/useTerminal';
@@ -36,7 +37,7 @@ export default function GamingEnvironment() {
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') || 'free';
     const { token } = useAuth();
-
+    const { scenario_id } = useParams();
     // ── Scenario data state — populated when backend assigns a scenario ────
     const [scenarioData, setScenarioData] = useState(null);
     const [scenarioLoading, setScenarioLoading] = useState(true);
@@ -63,8 +64,7 @@ export default function GamingEnvironment() {
     }, [token]);
 
     // ── SESSION HOOK — backend assigns scenario, fires handleScenarioAssigned
-    const session = useSession(mode, token, handleScenarioAssigned);
-
+    const session = useSession(mode, token, handleScenarioAssigned, scenario_id);
     // ── OBJECTIVES HOOK ───────────────────────────────────────────────────
     const objectives = useObjectives(scenarioData?.objectives || []);
 
