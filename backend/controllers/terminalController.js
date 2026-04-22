@@ -10,8 +10,10 @@
 const terminalModel = require('../models/terminalModel');
 const scenarioModel = require('../models/scenarioModel');
 const sessionModel = require('../models/sessionModel');
+const hintModel = require('../models/hintModel');
 const { parseCommand, buildErrorOutput } = require('../utils/terminalParser');
 const evaluationService = require('../services/evaluationService');
+const { evaluateAutoTrigger, generateAutoHint } = require('../services/autoTriggerService');
 const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
@@ -120,6 +122,55 @@ const executeCommand = async (req, res) => {
             );
         }
 
+        // ── Phase 5: Auto-trigger evaluation ────────────────────────────
+        // Runs after all command processing is complete.
+        // Does not block or alter the command result — purely additive.
+        // If this entire block throws, the command response is unaffected.
+        let autoHint = null;
+
+        try {
+            // Re-fetch history so the analyzer includes the command just saved
+            const freshHistory = await terminalModel.getCommandHistory(sessionId);
+
+            // updatedStepOrders reflects the current state including this command
+            const updatedStepOrders = matched
+                ? [...completedStepOrders, step.step_order]
+                : completedStepOrders;
+
+            const triggerResult = await evaluateAutoTrigger({
+                sessionId,
+                scenarioId: session.scenario_id,
+                commandHistory: freshHistory,
+                expectedSteps,
+                completedStepOrders: updatedStepOrders,
+                sessionStartTime: session.start_time,
+            });
+
+            if (triggerResult.shouldTrigger) {
+                const [previousHintRows, scenario] = await Promise.all([
+                    hintModel.getHintsBySession(sessionId),
+                    scenarioModel.getScenarioById(session.scenario_id),
+                ]);
+                const previousHints = previousHintRows.map(h => h.hint_returned);
+
+                autoHint = await generateAutoHint({
+                    sessionId,
+                    scenarioId: session.scenario_id,
+                    commandHistory: freshHistory,
+                    expectedSteps,
+                    completedStepOrders: updatedStepOrders,
+                    previousHints,
+                    scenarioTitle: scenario.title,
+                    missionBrief: scenario.mission_brief,
+                    sessionStartTime: session.start_time,
+                    triggerReason: triggerResult.reason,
+                });
+            }
+        } catch (autoTriggerErr) {
+            // Auto-trigger failure must NEVER affect the command response
+            console.error('[AutoTrigger] Evaluation error (suppressed):', autoTriggerErr.message);
+        }
+
         return response.success(res, 200, MESSAGES.COMMAND_PROCESSED, {
             output,
             matched,
@@ -129,6 +180,7 @@ const executeCommand = async (req, res) => {
             } : null,
             newlyRevealedFiles,
             completedObjectiveIds,
+            auto_hint: autoHint,  // null if no trigger fired, { hint, hintLevel } if triggered
         });
     } catch (err) {
         console.error('executeCommand error:', err);

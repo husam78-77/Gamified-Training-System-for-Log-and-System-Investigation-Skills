@@ -33,6 +33,7 @@ const getPrompt = (path) => {
  * @param {Function}      params.onStepMatched  - Callback(matchedStep) when a step is matched
  * @param {Function}      params.onFilesRevealed - Callback(newFiles) when hidden files are revealed
  * @param {Function}      params.onObjectivesUpdated - Callback(completedIds) on objective completion
+ * @param {Function}      params.onAutoHint     - Callback(autoHint) when backend pushes an auto-triggered hint
  */
 export const useTerminal = ({
     sessionId,
@@ -41,6 +42,7 @@ export const useTerminal = ({
     onStepMatched,
     onFilesRevealed,
     onObjectivesUpdated,
+    onAutoHint,          // Phase 5 — receives { hint, hintLevel } from execute response
 }) => {
     const terminalRef = useRef(null);  // DOM element ref (attach xterm here)
     const xtermRef = useRef(null);  // xterm Terminal instance
@@ -53,8 +55,6 @@ export const useTerminal = ({
     const [isReady, setIsReady] = useState(false);
 
     // ── Discovery system ──────────────────────────────────────────────────
-    // A Set of paths the player has seen. Starts with only root '/'.
-    // Never shrinks — once discovered, always visible for this session.
     const [discoveredPaths, setDiscoveredPaths] = useState(() => new Set(['/']));
 
     const normalizeFSPath = (p) => {
@@ -88,8 +88,8 @@ export const useTerminal = ({
             fontFamily: '"JetBrains Mono", "Fira Code", "Courier New", monospace',
             theme: {
                 background: '#050505',
-                foreground: '#00EBF7',   // --secondary (cyan)
-                cursor: '#FF003C',   // --primary (red)
+                foreground: '#00EBF7',
+                cursor: '#FF003C',
                 selectionBackground: '#FF003C44',
                 black: '#000000',
                 red: '#FF003C',
@@ -113,17 +113,14 @@ export const useTerminal = ({
         xtermRef.current = term;
         fitAddonRef.current = fitAddon;
 
-        // Print boot sequence
         printBootSequence(term);
         term.write(getPrompt('/'));
         setIsReady(true);
 
-        // Handle key input
         term.onKey(({ key, domEvent }) => {
             handleKeyInput(key, domEvent, term);
         });
 
-        // Fit on window resize
         const handleResize = () => fitAddon.fit();
         window.addEventListener('resize', handleResize);
 
@@ -141,7 +138,7 @@ export const useTerminal = ({
         }
     }, [initialFiles]);
 
-    // ── Restore command history on mount (page refresh recovery) ─────────
+    // ── Restore command history on mount ─────────────────────────────────
     useEffect(() => {
         if (!sessionId || !token || !isReady) return;
 
@@ -155,9 +152,7 @@ export const useTerminal = ({
                     });
                     xtermRef.current.write(PROMPT);
                 }
-            } catch (_) {
-                // Silently ignore restore errors — fresh terminal is fine
-            }
+            } catch (_) { }
         };
 
         restore();
@@ -167,31 +162,26 @@ export const useTerminal = ({
     const handleKeyInput = useCallback((key, domEvent, term) => {
         const code = domEvent.keyCode;
 
-        // Enter — submit command
         if (code === 13) {
             const cmd = inputBuffer.current.trim();
             inputBuffer.current = '';
-
             if (cmd.length === 0) {
                 term.write(getPrompt(currentPathRef.current));
                 return;
             }
-
-            term.writeln(''); // Newline after command
+            term.writeln('');
             submitCommand(cmd, term);
             return;
         }
 
-        // Backspace
         if (code === 8) {
             if (inputBuffer.current.length > 0) {
                 inputBuffer.current = inputBuffer.current.slice(0, -1);
-                term.write('\b \b'); // Erase character visually
+                term.write('\b \b');
             }
             return;
         }
 
-        // Ctrl+C — cancel current input
         if (domEvent.ctrlKey && domEvent.key === 'c') {
             inputBuffer.current = '';
             term.write('^C');
@@ -199,24 +189,23 @@ export const useTerminal = ({
             return;
         }
 
-        // Ignore non-printable keys
         if (domEvent.ctrlKey || domEvent.altKey || domEvent.metaKey) return;
         if (key.length !== 1) return;
 
-        // Printable character — append to buffer and echo
         inputBuffer.current += key;
         term.write(key);
     }, []);
 
-    // ── Stable refs for values used inside submitCommand ────────────────
+    // ── Stable refs ───────────────────────────────────────────────────────
     const sessionIdRef = useRef(null);
     const tokenRef = useRef(null);
     const currentPathRef = useRef('/');
+    const onAutoHintRef = useRef(null);  // Phase 5 — stable ref so submitCommand can call it
 
-    // Keep refs in sync with state/props
     useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
     useEffect(() => { tokenRef.current = token; }, [token]);
     useEffect(() => { currentPathRef.current = currentPath; }, [currentPath]);
+    useEffect(() => { onAutoHintRef.current = onAutoHint; }, [onAutoHint]); // Phase 5
 
     // ── Submit command to backend ─────────────────────────────────────────
     const submitCommand = useCallback(async (cmd, term) => {
@@ -227,17 +216,13 @@ export const useTerminal = ({
         if (!sid || !tok || isProcessing.current) return;
 
         isProcessing.current = true;
-
-        // Show processing indicator
         term.write('\x1b[90mprocessing...\x1b[0m');
 
         try {
             const result = await executeCommand(sid, cmd, path, tok);
 
-            // Clear processing indicator
             term.write('\r\x1b[2K');
 
-            // Handle clear command
             if (result.output === '__CLEAR__') {
                 term.clear();
                 term.write(getPrompt(currentPathRef.current));
@@ -245,34 +230,27 @@ export const useTerminal = ({
                 return;
             }
 
-            // Write output
             if (result.output) {
                 const lines = result.output.split('\r\n');
                 lines.forEach(line => term.writeln('\r' + line));
             }
 
-            // ── Discovery triggers ────────────────────────────────────────
             triggerDiscovery(cmd, path, result.output);
 
-            // Handle cd — update current path and refresh prompt
             if (cmd.startsWith('cd ')) {
                 const target = cmd.slice(3).trim();
                 handleCdPath(target, result.output, path);
-                // Note: prompt will reflect new path on next write (in finally block)
             }
 
-            // Step matched — notify parent
             if (result.matched && result.matchedStep) {
                 writeStepMatchFeedback(term, result.matchedStep);
                 onStepMatched?.(result.matchedStep);
             }
 
-            // Newly revealed files — add to virtual FS state + auto-discover them
             if (result.newlyRevealedFiles?.length > 0) {
                 setVirtualFiles(prev => [...prev, ...result.newlyRevealedFiles]);
                 writeRevealFeedback(term, result.newlyRevealedFiles);
                 onFilesRevealed?.(result.newlyRevealedFiles);
-                // Auto-discover revealed files so they appear in the panel immediately
                 const revealedPaths = result.newlyRevealedFiles.flatMap(f => [
                     normalizeFSPath(f.file_path),
                     getParent(normalizeFSPath(f.file_path)),
@@ -280,9 +258,17 @@ export const useTerminal = ({
                 discoverPaths(revealedPaths);
             }
 
-            // Objectives updated
             if (result.completedObjectiveIds?.length > 0) {
                 onObjectivesUpdated?.(result.completedObjectiveIds);
+            }
+
+            // ── Phase 5: Auto-triggered hint ─────────────────────────────
+            // Backend includes auto_hint in the execute response when a trigger
+            // condition fires. Pass it to the hint hook via the stable ref.
+            // This never throws — if auto_hint is null, nothing happens.
+            if (result.auto_hint && onAutoHintRef.current) {
+                onAutoHintRef.current(result.auto_hint);
+                writeAutoHintFeedback(term);
             }
 
         } catch (err) {
@@ -292,11 +278,10 @@ export const useTerminal = ({
             isProcessing.current = false;
             term.write(getPrompt(currentPathRef.current));
         }
-    }, []); // Uses refs internally — stable, never recreated
+    }, []);
 
     // ── Path tracking for cd ──────────────────────────────────────────────
     const handleCdPath = useCallback((target, output, currentPathValue) => {
-        // If backend returned an error (e.g. "No such file"), don't update path
         if (output?.includes('No such file')) return;
 
         const prev = currentPathValue || '/';
@@ -314,26 +299,12 @@ export const useTerminal = ({
         currentPathRef.current = newPath;
     }, []);
 
-    // ── File system discovery ────────────────────────────────────────────
-    /**
-     * Called after every successful command.
-     * Determines which paths to mark as discovered based on what the
-     * player just did.
-     *
-     * Rules:
-     *   cd <target>     → discover the directory navigated into
-     *   ls              → discover all direct children of current dir
-     *   ls <path>       → discover the path + all its direct children
-     *   cat <file>      → discover the file + its parent directory
-     *   grep ... <file> → discover the file + its parent directory
-     *   find <path>     → discover the path + all descendant paths
-     */
+    // ── File system discovery ─────────────────────────────────────────────
     const triggerDiscovery = (cmd, currentPathValue, output) => {
         const tokens = cmd.trim().split(/\s+/);
         const command = tokens[0]?.toLowerCase();
-        const arg = tokens.slice(1).find(t => !t.startsWith('-')); // first non-flag arg
+        const arg = tokens.slice(1).find(t => !t.startsWith('-'));
 
-        // Resolve arg to absolute path
         const resolve = (target) => {
             if (!target) return currentPathValue || '/';
             if (target.startsWith('/')) return normalizeFSPath(target);
@@ -344,40 +315,25 @@ export const useTerminal = ({
         const toDiscover = [];
 
         if (command === 'cd') {
-            // Discover the directory navigated into (don't reveal its children yet)
             if (arg) {
                 const resolved = resolve(arg);
                 toDiscover.push(resolved);
-                // Also ensure parent is visible
                 toDiscover.push(getParent(resolved));
             }
-        }
-
-        else if (command === 'ls') {
-            // Discover the listed directory + all its direct children from virtualFiles
+        } else if (command === 'ls') {
             const listedPath = resolve(arg || null);
             toDiscover.push(listedPath);
-
-            // Find all files/dirs whose immediate parent is listedPath
             const currentFiles = virtualFilesRef.current;
             currentFiles.forEach(f => {
                 const filePath = normalizeFSPath(f.file_path);
                 const fileParent = getParent(filePath);
-                if (fileParent === listedPath) {
-                    toDiscover.push(filePath);
-                }
+                if (fileParent === listedPath) toDiscover.push(filePath);
             });
-        }
-
-        else if (command === 'cat' || command === 'grep') {
-            // Discover the file itself + its parent
+        } else if (command === 'cat' || command === 'grep') {
             const filePath = resolve(arg || null);
             toDiscover.push(filePath);
             toDiscover.push(getParent(filePath));
-        }
-
-        else if (command === 'find') {
-            // Discover everything under the path
+        } else if (command === 'find') {
             const searchPath = resolve(arg || null);
             const currentFiles = virtualFilesRef.current;
             toDiscover.push(searchPath);
@@ -390,28 +346,28 @@ export const useTerminal = ({
             });
         }
 
-        if (toDiscover.length > 0) {
-            discoverPaths(toDiscover);
-        }
+        if (toDiscover.length > 0) discoverPaths(toDiscover);
     };
 
-    // Stable ref to virtualFiles so triggerDiscovery can read current value
     const virtualFilesRef = useRef(virtualFiles);
     useEffect(() => { virtualFilesRef.current = virtualFiles; }, [virtualFiles]);
 
-    // ── Write a subtle step-match notification to terminal ────────────────
+    // ── Terminal write helpers ────────────────────────────────────────────
     const writeStepMatchFeedback = (term, step) => {
         term.writeln(`\r\x1b[32m✓ ${step.description}\x1b[0m`);
     };
 
-    // ── Write file reveal notification ────────────────────────────────────
     const writeRevealFeedback = (term, files) => {
         files.forEach(f => {
             term.writeln(`\r\x1b[33m[SYSTEM] New file accessible: ${f.file_path}\x1b[0m`);
         });
     };
 
-    // ── Expose write() so parent can inject system messages ──────────────
+    // Phase 5: Visual indicator in terminal when ARIA auto-intervenes
+    const writeAutoHintFeedback = (term) => {
+        term.writeln('\r\x1b[35m[ARIA] Intelligence update available — check the ARIA panel.\x1b[0m');
+    };
+
     const writeToTerminal = useCallback((text) => {
         if (xtermRef.current) {
             xtermRef.current.writeln('\r' + text);
@@ -419,16 +375,16 @@ export const useTerminal = ({
     }, []);
 
     return {
-        terminalRef,      // Attach to: <div ref={terminalRef} />
+        terminalRef,
         currentPath,
         virtualFiles,
-        discoveredPaths,  // Set of paths the player has seen
+        discoveredPaths,
         isReady,
         writeToTerminal,
     };
 };
 
-// ── Boot sequence text ────────────────────────────────────────────────────
+// ── Boot sequence ─────────────────────────────────────────────────────────────
 
 const printBootSequence = (term) => {
     const lines = [

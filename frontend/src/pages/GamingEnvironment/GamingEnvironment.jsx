@@ -102,6 +102,11 @@ export default function GamingEnvironment() {
         });
     }, []);
 
+    // ── HINT HOOK ─────────────────────────────────────────────────────────
+    // Initialised BEFORE useTerminal so consumeAutoHint is available
+    // when we pass it down as onAutoHint below.
+    const hint = useHint(session.sessionId, token);
+
     // ── TERMINAL HOOK ─────────────────────────────────────────────────────
     const terminal = useTerminal({
         sessionId: session.sessionId,
@@ -110,10 +115,8 @@ export default function GamingEnvironment() {
         onStepMatched: handleStepMatched,
         onFilesRevealed: handleFilesRevealed,
         onObjectivesUpdated: handleObjectivesUpdated,
+        onAutoHint: hint.consumeAutoHint,   // Phase 5 — auto-triggered hints
     });
-
-    // ── HINT HOOK ─────────────────────────────────────────────────────────
-    const hint = useHint(session.sessionId, token);
 
     // ── Auto-complete when all required objectives done ───────────────────
     useEffect(() => {

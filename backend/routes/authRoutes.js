@@ -7,7 +7,7 @@ const { registerValidationRules, loginValidationRules, validate } = require('../
 
 router.post('/register', registerValidationRules, validate, register);
 router.post('/login', loginValidationRules, validate, login);
-router.post('/forgot-password', forgotPassword);   // 👈 added
+router.post('/forgot-password', forgotPassword);
 
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 router.get('/google/callback',
