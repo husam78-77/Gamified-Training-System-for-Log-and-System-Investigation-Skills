@@ -25,6 +25,18 @@ const getPrompt = (path) => {
     return `\r\nroot@hyperion:${display}$ `;
 };
 
+// Inline prompt (no leading newline) — used when replacing the current line
+const getPromptInline = (path) => {
+    const display = path === '/' ? '~' : path;
+    return `root@hyperion:${display}$ `;
+};
+
+// Must stay in sync with backend SUPPORTED_COMMANDS in terminalParser.js
+const SUPPORTED_COMMANDS = [
+    'ls', 'cat', 'grep', 'cd', 'pwd', 'find', 'whoami',
+    'clear', 'help', 'ps', 'locate', 'strings', 'history',
+];
+
 /**
  * @param {object} params
  * @param {number}        params.sessionId      - Active session ID
@@ -53,6 +65,15 @@ export const useTerminal = ({
     const [currentPath, setCurrentPath] = useState('/');
     const [virtualFiles, setVirtualFiles] = useState(initialFiles);
     const [isReady, setIsReady] = useState(false);
+
+    // ── Local command history (up/down navigation) ────────────────────────
+    const localHistory    = useRef([]);   // commands typed this session
+    const historyIndexRef = useRef(-1);   // -1 = not navigating; 0 = most recent
+    const savedInputRef   = useRef('');   // input saved before entering history mode
+
+    // Stable function refs so handleKeyInput (useCallback []) can call latest impl
+    const navigateHistoryFn = useRef(() => {});
+    const tabCompleteFn     = useRef(() => {});
 
     // ── Discovery system ──────────────────────────────────────────────────
     const [discoveredPaths, setDiscoveredPaths] = useState(() => new Set(['/']));
@@ -158,13 +179,119 @@ export const useTerminal = ({
         restore();
     }, [sessionId, token, isReady]);
 
+    // ── History navigation & TAB completion (assigned each render; only use refs) ──
+
+    navigateHistoryFn.current = (direction, term) => {
+        const hist = localHistory.current;
+        if (hist.length === 0) return;
+
+        if (direction === -1) {  // Up — older command
+            if (historyIndexRef.current === -1) {
+                savedInputRef.current = inputBuffer.current;
+            }
+            const next = historyIndexRef.current === -1 ? 0 : historyIndexRef.current + 1;
+            if (next >= hist.length) return;
+            historyIndexRef.current = next;
+        } else {                 // Down — newer command
+            if (historyIndexRef.current === -1) return;
+            historyIndexRef.current -= 1;
+        }
+
+        const cmd = historyIndexRef.current === -1
+            ? savedInputRef.current
+            : hist[hist.length - 1 - historyIndexRef.current];
+
+        term.write('\r\x1b[2K');
+        term.write(getPromptInline(currentPathRef.current));
+        term.write(cmd);
+        inputBuffer.current = cmd;
+    };
+
+    tabCompleteFn.current = (term) => {
+        const input   = inputBuffer.current;
+        const hasSpace = input.includes(' ');
+
+        // ── Complete command name ─────────────────────────────────────────
+        if (!hasSpace) {
+            const partial = input.toLowerCase();
+            if (!partial) return;
+            const matches = SUPPORTED_COMMANDS.filter(c => c.startsWith(partial));
+            if (matches.length === 0) return;
+            if (matches.length === 1) {
+                const addition = matches[0].slice(partial.length) + ' ';
+                term.write(addition);
+                inputBuffer.current = matches[0] + ' ';
+            } else {
+                term.write('\r\n\r' + matches.join('  ') + '\r\n');
+                term.write(getPromptInline(currentPathRef.current) + input);
+            }
+            return;
+        }
+
+        // ── Complete file / directory argument ────────────────────────────
+        const lastSpaceIdx = input.lastIndexOf(' ');
+        const partial      = input.slice(lastSpaceIdx + 1);
+        const prefix       = input.slice(0, lastSpaceIdx + 1);
+        const norm         = (p) => p.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+
+        let baseDir, baseName;
+        if (partial.includes('/')) {
+            const slashIdx = partial.lastIndexOf('/');
+            const dirPart  = partial.slice(0, slashIdx) || '/';
+            baseName = partial.slice(slashIdx + 1);
+            baseDir  = dirPart.startsWith('/')
+                ? norm(dirPart)
+                : norm((currentPathRef.current === '/' ? '' : currentPathRef.current) + '/' + dirPart);
+        } else {
+            baseDir  = currentPathRef.current || '/';
+            baseName = partial;
+        }
+
+        const files = virtualFilesRef.current;
+        const candidates = new Set();
+
+        files.forEach(f => {
+            const fp       = norm(f.file_path || '');
+            const lastSlash = fp.lastIndexOf('/');
+            const dir      = lastSlash === 0 ? '/' : fp.slice(0, lastSlash);
+            const name     = fp.slice(lastSlash + 1);
+
+            if (dir === baseDir && name.startsWith(baseName)) {
+                candidates.add(name);
+            }
+
+            // Sub-directory suggestions
+            if (fp.startsWith(baseDir === '/' ? '/' : baseDir + '/')) {
+                const remainder = fp.slice(baseDir === '/' ? 1 : baseDir.length + 1);
+                const firstSeg  = remainder.split('/')[0];
+                if (firstSeg && firstSeg.startsWith(baseName) && remainder.includes('/')) {
+                    candidates.add(firstSeg + '/');
+                }
+            }
+        });
+
+        const matches = Array.from(candidates).sort();
+        if (matches.length === 0) return;
+
+        if (matches.length === 1) {
+            const addition = matches[0].slice(baseName.length);
+            term.write(addition);
+            inputBuffer.current = prefix + partial + addition;
+        } else {
+            term.write('\r\n\r' + matches.join('  ') + '\r\n');
+            term.write(getPromptInline(currentPathRef.current) + input);
+        }
+    };
+
     // ── Key input handler ─────────────────────────────────────────────────
     const handleKeyInput = useCallback((key, domEvent, term) => {
         const code = domEvent.keyCode;
 
+        // Enter
         if (code === 13) {
             const cmd = inputBuffer.current.trim();
             inputBuffer.current = '';
+            historyIndexRef.current = -1;
             if (cmd.length === 0) {
                 term.write(getPrompt(currentPathRef.current));
                 return;
@@ -174,6 +301,7 @@ export const useTerminal = ({
             return;
         }
 
+        // Backspace
         if (code === 8) {
             if (inputBuffer.current.length > 0) {
                 inputBuffer.current = inputBuffer.current.slice(0, -1);
@@ -182,16 +310,38 @@ export const useTerminal = ({
             return;
         }
 
+        // Ctrl+C
         if (domEvent.ctrlKey && domEvent.key === 'c') {
             inputBuffer.current = '';
+            historyIndexRef.current = -1;
             term.write('^C');
             term.write(getPrompt(currentPathRef.current));
+            return;
+        }
+
+        // TAB — auto-complete command or file name
+        if (code === 9) {
+            tabCompleteFn.current(term);
+            return;
+        }
+
+        // Up arrow — navigate to older command
+        if (code === 38) {
+            navigateHistoryFn.current(-1, term);
+            return;
+        }
+
+        // Down arrow — navigate to newer command
+        if (code === 40) {
+            navigateHistoryFn.current(1, term);
             return;
         }
 
         if (domEvent.ctrlKey || domEvent.altKey || domEvent.metaKey) return;
         if (key.length !== 1) return;
 
+        // Regular character — exit history navigation mode
+        historyIndexRef.current = -1;
         inputBuffer.current += key;
         term.write(key);
     }, []);
@@ -214,6 +364,9 @@ export const useTerminal = ({
         const path = currentPathRef.current;
 
         if (!sid || !tok || isProcessing.current) return;
+
+        // Track in local history for up/down navigation
+        localHistory.current.push(cmd);
 
         isProcessing.current = true;
         term.write('\x1b[90mprocessing...\x1b[0m');

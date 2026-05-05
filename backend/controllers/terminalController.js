@@ -92,6 +92,12 @@ const executeCommand = async (req, res) => {
             current_path
         );
 
+        // Fetch history BEFORE saving so the 'history' command shows only prior commands
+        let commandHistoryForOutput = [];
+        if (parsed.command === 'history') {
+            commandHistoryForOutput = await terminalModel.getCommandHistory(sessionId);
+        }
+
         // Save command to history
         await terminalModel.saveCommand({
             sessionId,
@@ -101,7 +107,7 @@ const executeCommand = async (req, res) => {
         });
 
         // Build terminal output from the virtual filesystem
-        const output = buildTerminalOutput(parsed, virtualFiles, current_path);
+        const output = buildTerminalOutput(parsed, virtualFiles, current_path, commandHistoryForOutput);
 
         // If matched: check for file reveals and objective completions
         let newlyRevealedFiles = [];
@@ -230,7 +236,7 @@ const getHistory = async (req, res) => {
  * @param {string} currentPath  - User's current directory
  * @returns {string} Terminal output to display
  */
-const buildTerminalOutput = (parsed, virtualFiles, currentPath) => {
+const buildTerminalOutput = (parsed, virtualFiles, currentPath, commandHistory = []) => {
     const { command, target } = parsed;
 
     switch (command) {
@@ -247,17 +253,27 @@ const buildTerminalOutput = (parsed, virtualFiles, currentPath) => {
             return 'root';
 
         case 'cd':
-            // cd output is empty (path change is handled on frontend state)
             return '';
 
         case 'grep':
             return handleGrep(parsed, virtualFiles, currentPath);
 
         case 'find':
-            return handleFind(target || currentPath, virtualFiles);
+            return handleFind(parsed, virtualFiles, currentPath);
+
+        case 'ps':
+            return handlePs(parsed);
+
+        case 'locate':
+            return handleLocate(parsed, virtualFiles);
+
+        case 'strings':
+            return handleStrings(parsed, virtualFiles, currentPath);
+
+        case 'history':
+            return handleHistory(commandHistory);
 
         case 'clear':
-            // Signal to frontend to clear terminal
             return '__CLEAR__';
 
         case 'help':
@@ -321,54 +337,232 @@ const handleCat = (target, virtualFiles, currentPath) => {
 };
 
 const handleGrep = (parsed, virtualFiles, currentPath) => {
-    const { positional } = parsed;
+    const { positional, flags } = parsed;
 
     if (positional.length < 2) {
-        return 'Usage: grep [pattern] [file]';
+        return 'Usage: grep [options] [pattern] [file|path]\r\nOptions: -r recursive  -i case-insensitive  -n line numbers  -v invert';
     }
 
     const pattern = positional[0];
-    const targetPath = resolvePath(positional[positional.length - 1], currentPath);
+    const targetArg = positional[positional.length - 1];
+    const targetPath = resolvePath(targetArg, currentPath);
+
+    const caseInsensitive = flags.some(f => f.includes('i'));
+    const showLineNums   = flags.some(f => f.includes('n'));
+    const invertMatch    = flags.some(f => f.includes('v'));
+    const recursive      = flags.some(f => f.includes('r') || f.includes('R'));
+
+    const hits = (line) => {
+        const hay    = caseInsensitive ? line.toLowerCase() : line;
+        const needle = caseInsensitive ? pattern.toLowerCase() : pattern;
+        const match  = hay.includes(needle);
+        return invertMatch ? !match : match;
+    };
+
+    const fmt = (line, idx, filePath, showFile) =>
+        `${showFile ? filePath + ':' : ''}${showLineNums ? (idx + 1) + ':' : ''}${line}`;
+
+    if (recursive) {
+        const normalizedTarget = normalizePath(targetPath);
+        const filesToSearch = virtualFiles.filter(f =>
+            normalizePath(f.file_path).startsWith(normalizedTarget)
+        );
+        if (filesToSearch.length === 0) {
+            return `grep: ${targetArg}: No such file or directory`;
+        }
+        const results = [];
+        filesToSearch.forEach(file => {
+            (file.content || '').split('\n').forEach((line, idx) => {
+                if (hits(line)) results.push(fmt(line, idx, file.file_path, true));
+            });
+        });
+        return results.length > 0 ? results.join('\r\n') : `(no matches for '${pattern}')`;
+    }
 
     const file = virtualFiles.find(f =>
         normalizePath(f.file_path) === normalizePath(targetPath)
     );
+    if (!file) return `grep: ${targetArg}: No such file or directory`;
 
-    if (!file) return `grep: ${positional[positional.length - 1]}: No such file or directory`;
-
-    const lines = (file.content || '').split('\n');
-    const matches = lines.filter(line =>
-        line.toLowerCase().includes(pattern.toLowerCase())
-    );
-
-    return matches.length > 0
-        ? matches.join('\r\n')
-        : `(no matches for '${pattern}')`;
+    const results = [];
+    (file.content || '').split('\n').forEach((line, idx) => {
+        if (hits(line)) results.push(fmt(line, idx, file.file_path, false));
+    });
+    return results.length > 0 ? results.join('\r\n') : `(no matches for '${pattern}')`;
 };
 
-const handleFind = (path, virtualFiles) => {
-    const normalizedPath = normalizePath(path);
-    const found = virtualFiles.filter(f =>
-        normalizePath(f.file_path).startsWith(normalizedPath)
-    );
+// Simple wildcard matcher: supports * as multi-char wildcard
+const matchesWildcard = (name, pattern) => {
+    if (!pattern || !name) return false;
+    if (!pattern.includes('*')) return name.toLowerCase().includes(pattern.toLowerCase());
+    const parts = pattern.toLowerCase().split('*');
+    let pos = 0;
+    const lower = name.toLowerCase();
+    for (const part of parts) {
+        if (!part) continue;
+        const found = lower.indexOf(part, pos);
+        if (found === -1) return false;
+        pos = found + part.length;
+    }
+    return true;
+};
 
-    if (found.length === 0) return `find: '${path}': No such file or directory`;
+const handleFind = (parsed, virtualFiles, currentPath) => {
+    const { positional, args } = parsed;
+
+    // First positional is the search root; fall back to currentPath
+    const rawPath = positional.length > 0 ? positional[0] : currentPath;
+    const searchPath = resolvePath(rawPath, currentPath);
+    const normalizedRoot = normalizePath(searchPath);
+
+    // Extract -name filter
+    const nameIdx = args.indexOf('-name');
+    const nameFilter = nameIdx !== -1 && args[nameIdx + 1] ? args[nameIdx + 1] : null;
+
+    // Extract -type filter ('f' = files, 'd' = directories)
+    const typeIdx = args.indexOf('-type');
+    const typeFilter = typeIdx !== -1 && args[typeIdx + 1] ? args[typeIdx + 1] : null;
+
+    const rootExists = normalizedRoot === '/' || virtualFiles.some(f => {
+        const fp = normalizePath(f.file_path);
+        return fp === normalizedRoot || fp.startsWith(normalizedRoot + '/');
+    });
+
+    if (!rootExists) return `find: '${rawPath}': No such file or directory`;
+
+    // Enumerate directories from virtual file paths
+    if (typeFilter === 'd') {
+        const dirs = new Set([normalizedRoot]);
+        virtualFiles.forEach(f => {
+            const fp = normalizePath(f.file_path);
+            if (fp.startsWith(normalizedRoot === '/' ? '/' : normalizedRoot + '/')) {
+                const parts = fp.split('/').filter(Boolean);
+                for (let i = 1; i < parts.length; i++) {
+                    dirs.add('/' + parts.slice(0, i).join('/'));
+                }
+            }
+        });
+        let results = Array.from(dirs).sort();
+        if (nameFilter) {
+            results = results.filter(d => matchesWildcard(d.split('/').pop() || '/', nameFilter));
+        }
+        return results.join('\r\n') || '(no directories found)';
+    }
+
+    // Find files
+    let found = virtualFiles.filter(f => {
+        const fp = normalizePath(f.file_path);
+        return fp === normalizedRoot || fp.startsWith(normalizedRoot === '/' ? '/' : normalizedRoot + '/');
+    });
+
+    if (nameFilter) {
+        found = found.filter(f => {
+            const name = f.file_name || f.file_path.split('/').pop();
+            return matchesWildcard(name, nameFilter);
+        });
+    }
+
+    if (found.length === 0) {
+        return nameFilter
+            ? `(no files matching '${nameFilter}' found under ${rawPath})`
+            : `find: '${rawPath}': No such file or directory`;
+    }
 
     return found.map(f => f.file_path).join('\r\n');
 };
 
+// ── New command handlers ──────────────────────────────────────────────────────
+
+const handlePs = (parsed) => {
+    const fullStyle =
+        parsed.positional.some(p => /^-?aux?$/.test(p)) ||
+        parsed.flags.some(f => /[auxef]/.test(f));
+
+    if (fullStyle) {
+        return [
+            'USER       PID  %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND',
+            'root         1   0.0  0.1   4236  1024 ?        Ss   08:00   0:01 /sbin/init',
+            'root       412   0.0  0.2   6012  2048 ?        Ss   08:00   0:00 /usr/sbin/sshd',
+            'www-data   891   0.1  0.5  18356  5120 ?        Ss   08:01   0:03 /usr/sbin/apache2',
+            'root      1024   0.0  0.1   2988   724 ?        Ss   08:00   0:00 /usr/sbin/crond',
+            'root      1337   0.0  0.1   3712   756 pts/0    Ss   09:15   0:00 -bash',
+            'root      2048   0.2  1.2  45320 12288 ?        Sl   09:16   0:12 python3 /opt/scripts/monitor.py',
+            'root      3127   0.4  0.6   8192  6144 ?        S    09:45   0:05 /bin/sh /tmp/.update.sh',
+            'root      4200   0.0  0.0   2784   512 pts/0    R+   10:23   0:00 ps aux',
+        ].join('\r\n');
+    }
+
+    return [
+        '  PID TTY          TIME CMD',
+        '    1 ?        00:00:01 init',
+        '  412 ?        00:00:00 sshd',
+        '  891 ?        00:00:03 apache2',
+        ' 1024 ?        00:00:00 crond',
+        ' 1337 pts/0    00:00:00 bash',
+        ' 2048 ?        00:00:12 python3',
+        ' 3127 ?        00:00:05 sh',
+        ' 4200 pts/0    00:00:00 ps',
+    ].join('\r\n');
+};
+
+const handleLocate = (parsed, virtualFiles) => {
+    const searchTerm = parsed.positional[0] || parsed.target;
+    if (!searchTerm) return 'Usage: locate [filename]';
+
+    const lower = searchTerm.toLowerCase();
+    const matches = virtualFiles.filter(f => {
+        const name = (f.file_name || f.file_path.split('/').pop()).toLowerCase();
+        return name.includes(lower) || f.file_path.toLowerCase().includes(lower);
+    });
+
+    if (matches.length === 0) return `locate: no results found for '${searchTerm}'`;
+    return matches.map(f => f.file_path).join('\r\n');
+};
+
+const handleStrings = (parsed, virtualFiles, currentPath) => {
+    const target = parsed.target;
+    if (!target) return 'Usage: strings [file]';
+
+    const resolvedPath = resolvePath(target, currentPath);
+    const file = virtualFiles.find(f =>
+        normalizePath(f.file_path) === normalizePath(resolvedPath)
+    );
+
+    if (!file) return `strings: ${target}: No such file or directory`;
+
+    const content = file.content || '';
+    // Extract sequences of printable ASCII characters of length >= 4
+    const extracted = content.match(/[ -~\t]{4,}/g) || [];
+    if (extracted.length === 0) return '(no printable strings found)';
+
+    return [...new Set(extracted)].join('\r\n');
+};
+
+const handleHistory = (commandHistory) => {
+    if (!commandHistory || commandHistory.length === 0) return '(no command history)';
+    return commandHistory
+        .map((entry, i) => `  ${String(i + 1).padStart(4)}  ${entry.command_entered}`)
+        .join('\r\n');
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const buildHelp = () => {
     return [
         'Available commands:',
-        '  ls [path]          List directory contents',
-        '  cat [file]         Display file contents',
-        '  grep [str] [file]  Search file for string',
-        '  cd [path]          Change directory',
-        '  pwd                Print working directory',
-        '  find [path]        Find files under path',
-        '  whoami             Print current user',
-        '  clear              Clear terminal',
-        '  help               Show this message',
+        '  ls [path]                    List directory contents',
+        '  cat [file]                   Display file contents',
+        '  grep [-r|-i|-n|-v] [p] [f]  Search file/directory for pattern',
+        '  find [path] [-name p]        Find files under path',
+        '  locate [name]                Locate files by name across filesystem',
+        '  ps [aux]                     Show running processes',
+        '  strings [file]               Extract printable strings from file',
+        '  history                      Show command history for this session',
+        '  cd [path]                    Change directory',
+        '  pwd                          Print working directory',
+        '  whoami                       Print current user',
+        '  clear                        Clear terminal',
+        '  help                         Show this message',
     ].join('\r\n');
 };
 
