@@ -1,7 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Landing.css';
 
 export default function KineticBreach() {
+  const navigate = useNavigate();
   return (
     <div className="kinetic-wrapper font-body selection:bg-[#FF003C] selection:text-white">
       {/* TopAppBar */}
@@ -18,8 +20,8 @@ export default function KineticBreach() {
         </div>
 
         <div className="flex gap-4">
-          <button className="font-headline font-black uppercase tracking-tighter text-white/60 hover:text-white px-4 py-2">LOGIN</button>
-          <button className="font-headline font-black uppercase tracking-tighter bg-[#FF003C] text-white px-6 py-2 skew-x-[-12deg] hover:translate-x-1 transition-transform">JOIN</button>
+          <button onClick={() => navigate('/login')} className="font-headline font-black uppercase tracking-tighter text-white/60 hover:text-white px-4 py-2 transition-colors">LOGIN</button>
+          <button onClick={() => navigate('/register')} className="font-headline font-black uppercase tracking-tighter bg-[#FF003C] text-white px-6 py-2 skew-x-[-12deg] hover:translate-x-1 transition-transform">JOIN</button>
         </div>
       </nav>
 
@@ -51,7 +53,7 @@ export default function KineticBreach() {
               </p>
 
               <div className="flex-grow flex justify-end">
-                <button className="group relative px-12 py-6 bg-[#FF003C] text-white font-headline font-black text-3xl italic uppercase skew-x-[-12deg] hover:translate-x-4 transition-all duration-300">
+                <button onClick={() => navigate('/register')} className="group relative px-12 py-6 bg-[#FF003C] text-white font-headline font-black text-3xl italic uppercase skew-x-[-12deg] hover:translate-x-4 transition-all duration-300">
                   <span className="relative z-10 group-hover:drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]">INITIALIZE BREACH</span>
                   <div className="absolute inset-0 bg-[#00FFFF] opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </button>
@@ -170,8 +172,8 @@ export default function KineticBreach() {
         <div className="relative z-10 flex flex-col items-center text-center px-8">
           <h2 className="font-headline font-black text-6xl md:text-9xl uppercase italic tracking-tighter text-white drop-shadow-2xl">READY TO BREACH?</h2>
           <div className="mt-12 flex gap-8">
-            <button className="bg-black text-white px-12 py-5 font-headline font-black text-2xl skew-x-[-12deg] hover:bg-white hover:text-black transition-colors duration-300">SYSTEM LOGIN</button>
-            <button className="bg-[#00FFFF] text-black px-12 py-5 font-headline font-black text-2xl skew-x-[-12deg] hover:translate-y-[-4px] transition-transform shadow-[0_0_30px_rgba(0,255,255,0.4)]">ENLIST NOW</button>
+            <button onClick={() => navigate('/login')} className="bg-black text-white px-12 py-5 font-headline font-black text-2xl skew-x-[-12deg] hover:bg-white hover:text-black transition-colors duration-300 border border-white/20">SYSTEM LOGIN</button>
+            <button onClick={() => navigate('/register')} className="bg-[#00FFFF] text-black px-12 py-5 font-headline font-black text-2xl skew-x-[-12deg] hover:translate-y-[-4px] transition-transform shadow-[0_0_30px_rgba(0,255,255,0.4)]">ENLIST NOW</button>
           </div>
         </div>
       </section>
