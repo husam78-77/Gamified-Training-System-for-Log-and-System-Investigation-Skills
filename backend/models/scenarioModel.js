@@ -74,7 +74,9 @@ const getScenariosByType = async (type) => {
 };
 
 /**
- * Get all virtual files for a scenario.
+ * Get all virtual files for a scenario, including discovery-system columns.
+ * evidence_tags and reveal_at_discovery_key power the new discovery-based
+ * file revelation system; metadata provides realistic file attributes.
  */
 const getVirtualFilesByScenario = async (scenarioId) => {
     const result = await pool.query(
@@ -86,7 +88,10 @@ const getVirtualFilesByScenario = async (scenarioId) => {
              content,
              file_type,
              is_hidden,
-             reveal_at_step
+             reveal_at_step,
+             evidence_tags,
+             reveal_at_discovery_key,
+             metadata
          FROM virtual_files
          WHERE scenario_id = $1
          ORDER BY file_path ASC`,

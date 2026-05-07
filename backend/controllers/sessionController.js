@@ -26,14 +26,15 @@
  *   GET  /api/sessions/next-scenario          → getNextScenario
  */
 
-const sessionModel = require('../models/sessionModel');
-const scenarioModel = require('../models/scenarioModel');
-const terminalModel = require('../models/terminalModel');
-const hintModel = require('../models/hintModel');
-const progressionModel = require('../models/progressionModel');
+const sessionModel   = require('../models/sessionModel');
+const scenarioModel  = require('../models/scenarioModel');
+const terminalModel  = require('../models/terminalModel');
+const hintModel      = require('../models/hintModel');
+const discoveryModel = require('../models/discoveryModel');
+const progressionModel  = require('../models/progressionModel');
 const evaluationService = require('../services/evaluationService');
-const response = require('../utils/responseHelper');
-const MESSAGES = require('../constants/messages');
+const response  = require('../utils/responseHelper');
+const MESSAGES  = require('../constants/messages');
 
 // ─────────────────────────────────────────────────────────────────────────────
 // START SESSION
@@ -262,7 +263,7 @@ const completeSession = async (req, res) => {
         }
 
         // ── Load all evaluation data in parallel ──────────────────────────
-        const [expectedSteps, objectives, matchedCommands, totalCount, hintsUsed, scenario] =
+        const [expectedSteps, objectives, matchedCommands, totalCount, hintsUsed, scenario, discoveries] =
             await Promise.all([
                 scenarioModel.getExpectedStepsByScenario(session.scenario_id),
                 scenarioModel.getObjectivesByScenario(session.scenario_id),
@@ -270,21 +271,36 @@ const completeSession = async (req, res) => {
                 terminalModel.countTotalCommands(sessionId),
                 hintModel.countHintsUsed(sessionId),
                 scenarioModel.getScenarioById(session.scenario_id),
+                discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
             ]);
 
+        // Load completed discovery IDs for discovery-aware scoring
+        const completedDiscoveryIds = await discoveryModel.getSessionDiscoveryIds(sessionId);
+
         // ── Determine completed objectives ────────────────────────────────
+        // matchedStepOrders includes both direct and discovery-credited steps
         const matchedStepOrders = matchedCommands.map(c => c.match_step_order);
         const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
             objectives, matchedStepOrders
         );
 
         // ── Determine completion status ───────────────────────────────────
-        // BUG FIX: previously 0 === 0 would mark complete when no objectives exist
+        // For discovery scenarios: mission is complete when all critical discoveries
+        // are found AND all required objectives are done.
+        // For legacy scenarios (no discoveries): same logic as before.
         const requiredObjectives = objectives.filter(o => !o.is_secret);
-        const missionCompleted = requiredObjectives.length > 0
+        const allRequiredObjectivesDone = requiredObjectives.length > 0
             && completedObjectiveIds.filter(id =>
                 requiredObjectives.some(o => o.objective_id === id)
             ).length === requiredObjectives.length;
+
+        const criticalDiscoveries = discoveries.filter(d => d.is_critical);
+        const allCriticalDiscoveriesDone = criticalDiscoveries.length === 0
+            || criticalDiscoveries.every(d => completedDiscoveryIds.includes(d.discovery_id));
+
+        const missionCompleted = discoveries.length > 0
+            ? allCriticalDiscoveriesDone && allRequiredObjectivesDone
+            : allRequiredObjectivesDone;
 
         // ── Calculate score ───────────────────────────────────────────────
         const scoreResult = evaluationService.calculateScore({
@@ -294,6 +310,8 @@ const completeSession = async (req, res) => {
             objectives,
             completedObjectiveIds,
             hintsUsed,
+            discoveries,
+            completedDiscoveryIds,
         });
 
         // ── Calculate XP ──────────────────────────────────────────────────
@@ -338,6 +356,16 @@ const completeSession = async (req, res) => {
         // Frontend should use this — never compute it themselves
         const nextScenario = await progressionModel.getNextScenarioForUser(userId);
 
+        // Build discovery summary for the frontend result screen
+        const sessionDiscoverySummary = discoveries.map(d => ({
+            discovery_key: d.discovery_key,
+            title:         d.title,
+            evidence_tags: d.evidence_tags,
+            is_critical:   d.is_critical,
+            weight_percent: d.weight_percent,
+            unlocked:      completedDiscoveryIds.includes(d.discovery_id),
+        }));
+
         return response.success(res, 200, MESSAGES.SESSION_COMPLETED, {
             evaluation: scoreResult,
             session: closedSession,
@@ -345,7 +373,8 @@ const completeSession = async (req, res) => {
             xpAwarded,
             updatedUser,
             completedObjectiveIds,
-            nextScenario,          // Frontend uses this to know what comes next
+            nextScenario,
+            discoveries: sessionDiscoverySummary,  // Full evidence map for result screen
         });
 
     } catch (err) {

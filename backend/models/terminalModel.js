@@ -1,16 +1,19 @@
 const pool = require('../config/db');
 
 /**
- * Save a command entered by the user in the terminal
- * match_expected and match_step_order are set by the evaluation engine
+ * Save a command entered by the user in the terminal.
+ * match_type distinguishes how the step credit was earned:
+ *   'direct'    = matched via exact/relative/bare step logic
+ *   'discovery' = a discovery trigger fired and credited maps_to_step_order
+ *   null        = unmatched command
  */
-const saveCommand = async ({ sessionId, commandEntered, matchExpected, matchStepOrder }) => {
+const saveCommand = async ({ sessionId, commandEntered, matchExpected, matchStepOrder, matchType = null }) => {
     const result = await pool.query(
-        `INSERT INTO command_history 
-            (session_id, command_entered, match_expected, match_step_order, timestamp)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        `INSERT INTO command_history
+            (session_id, command_entered, match_expected, match_step_order, match_type, timestamp)
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)
          RETURNING *`,
-        [sessionId, commandEntered, matchExpected ?? false, matchStepOrder ?? null]
+        [sessionId, commandEntered, matchExpected ?? false, matchStepOrder ?? null, matchType]
     );
     return result.rows[0];
 };

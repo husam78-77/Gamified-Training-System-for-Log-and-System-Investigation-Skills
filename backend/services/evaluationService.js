@@ -3,12 +3,21 @@
  * Core evaluation engine.
  *
  * Responsibilities:
- * 1. Match a single parsed command against all expected steps
- * 2. Calculate per-session scores on completion
- * 3. Determine objective completion based on step progress
+ * 1. Match a single parsed command against all expected steps (legacy system)
+ * 2. Calculate per-session scores with discovery-aware path scoring
+ * 3. Determine objective completion based on step/discovery progress
+ *
+ * Discovery-aware scoring:
+ *   When a session has discoveries defined (scenario_discoveries rows), the
+ *   PATH SCORE is calculated from critical discovery weights rather than
+ *   step weights. This gives a more meaningful score — "how much of the
+ *   evidence did you find?" — regardless of which commands were used.
+ *   All other score components (command usage, conclusion, hint penalty) are
+ *   unchanged.
  */
 
 const { normalizeForEvaluation, normalizePath } = require('../utils/terminalParser');
+const { calculateDiscoveryPathScore } = require('./discoveryService');
 
 /**
  * Match a single parsed command against the scenario's expected steps.
@@ -21,11 +30,9 @@ const { normalizeForEvaluation, normalizePath } = require('../utils/terminalPars
  *   2. RELATIVE MATCH
  *      Player is in /logs and types "ls" or "cat auth.log"
  *      We resolve the target against current_path and check again.
- *      e.g. current_path=/logs + target=null → resolved=/logs → matches "ls:/logs"
- *      e.g. current_path=/logs + target=auth.log → resolved=/logs/auth.log → matches "cat:/logs/auth.log"
  *
  *   3. COMMAND-ONLY MATCH (no target in expected step)
- *      Some steps only require the command itself (e.g. "whoami")
+ *      e.g. "pwd", "whoami" — target doesn't matter
  *
  * @param {Object} parsed             - Output from terminalParser.parseCommand()
  * @param {Array}  expectedSteps      - All expected_steps rows for the scenario
@@ -36,23 +43,20 @@ const { normalizeForEvaluation, normalizePath } = require('../utils/terminalPars
 const matchCommand = (parsed, expectedSteps, completedStepOrders = [], currentPath = '/') => {
     if (!parsed.valid) return { matched: false, step: null };
 
-    const normalizedInput = normalizeForEvaluation(parsed);
+    const normalizedInput   = normalizeForEvaluation(parsed);
     const normalizedCurrent = normalizePath(currentPath);
 
     for (const step of expectedSteps) {
-        // Skip already-completed steps
         if (completedStepOrders.includes(step.step_order)) continue;
 
         const normalizedExpected = buildExpectedKey(step);
 
-        // ── Strategy 1: Exact match ───────────────────────────────────────
+        // Strategy 1: Exact match
         if (normalizedInput === normalizedExpected) {
             return { matched: true, step };
         }
 
-        // ── Strategy 2: Relative path match ──────────────────────────────
-        // Resolve what the player typed against their current directory
-        // and check if that matches the expected target
+        // Strategy 2: Relative path match
         if (step.target_path) {
             const resolvedInput = buildResolvedKey(parsed, normalizedCurrent);
             if (resolvedInput && resolvedInput === normalizedExpected) {
@@ -60,8 +64,7 @@ const matchCommand = (parsed, expectedSteps, completedStepOrders = [], currentPa
             }
         }
 
-        // ── Strategy 3: Bare command match (no target required) ──────────
-        // e.g. "pwd", "whoami" — target doesn't matter
+        // Strategy 3: Bare command match (no target required)
         if (!step.target_path && parsed.command === step.command_expected?.toLowerCase()) {
             return { matched: true, step };
         }
@@ -76,34 +79,25 @@ const matchCommand = (parsed, expectedSteps, completedStepOrders = [], currentPa
  */
 const buildExpectedKey = (step) => {
     const command = step.command_expected?.toLowerCase().trim();
-    const target = step.target_path ? normalizePath(step.target_path) : null;
+    const target  = step.target_path ? normalizePath(step.target_path) : null;
     return target ? `${command}:${target}` : command;
 };
 
 /**
  * Build a resolved key by combining the player's current path with
  * their typed target, then forming "command:resolvedPath".
- *
- * Examples:
- *   currentPath=/logs, cmd=ls, target=null  → "ls:/logs"
- *   currentPath=/logs, cmd=cat, target=auth.log → "cat:/logs/auth.log"
- *   currentPath=/etc,  cmd=cat, target=passwd   → "cat:/etc/passwd"
- *   currentPath=/,     cmd=ls,  target=logs     → "ls:/logs"
  */
 const buildResolvedKey = (parsed, currentPath) => {
     const command = parsed.command;
-    const target = parsed.target;
+    const target  = parsed.target;
 
     let resolvedPath;
 
     if (!target) {
-        // No target typed — the implicit target is the current directory
         resolvedPath = currentPath;
     } else if (target.startsWith('/')) {
-        // Absolute path — already resolved
         resolvedPath = normalizePath(target);
     } else {
-        // Relative path — join with current directory
         const base = currentPath === '/' ? '' : currentPath;
         resolvedPath = normalizePath(`${base}/${target}`);
     }
@@ -117,19 +111,30 @@ const buildResolvedKey = (parsed, currentPath) => {
  * Scoring breakdown (total = 100 points):
  *
  * 1. PATH SCORE (50 pts)
- *    Based on weight_percent of each completed expected step.
- *    Each step has a weight_percent that sums to 100 across the scenario.
- *    Path score = sum of weight_percent for all matched steps / 2
+ *    — If the scenario has discoveries: uses critical discovery weights.
+ *      Each critical discovery's weight_percent contributes proportionally.
+ *    — Otherwise: falls back to step weight_percent sums (legacy behavior).
  *
  * 2. COMMAND USAGE SCORE (30 pts)
  *    Efficiency metric: penalizes excess commands.
- *    Penalty: for every 3 extra commands beyond expected count, -5 pts.
+ *    Reference count = discoveries count (if available) else expected steps count.
+ *    Penalty: for every 3 extra commands beyond reference count, -5 pts.
  *
  * 3. CONCLUSION SCORE (20 pts)
  *    Did the user complete all non-secret objectives?
  *
  * 4. HINT PENALTY
  *    -5 pts per AI hint used (minimum total score: 0)
+ *
+ * @param {Object} params
+ * @param {Array}  params.expectedSteps
+ * @param {Array}  params.matchedCommands
+ * @param {number} params.totalCommandsCount
+ * @param {Array}  params.objectives
+ * @param {number[]} params.completedObjectiveIds
+ * @param {number} params.hintsUsed
+ * @param {Array}  [params.discoveries]           - scenario_discoveries (optional)
+ * @param {number[]} [params.completedDiscoveryIds] - session discovery IDs (optional)
  */
 const calculateScore = ({
     expectedSteps,
@@ -138,28 +143,39 @@ const calculateScore = ({
     objectives,
     completedObjectiveIds,
     hintsUsed,
+    discoveries = [],
+    completedDiscoveryIds = [],
 }) => {
+    const hasDiscoveries = discoveries && discoveries.length > 0;
+
     // --- PATH SCORE (50 pts max) ---
-    const totalWeight = expectedSteps.reduce((sum, s) => sum + (s.weight_percent || 0), 0);
-    const matchedStepOrders = matchedCommands.map(c => c.match_step_order);
-
-    const earnedWeight = expectedSteps
-        .filter(s => matchedStepOrders.includes(s.step_order))
-        .reduce((sum, s) => sum + (s.weight_percent || 0), 0);
-
-    const pathScore = totalWeight > 0
-        ? Math.round((earnedWeight / totalWeight) * 50)
-        : 0;
+    let pathScore;
+    if (hasDiscoveries) {
+        // Discovery-based: how much evidence did the player find?
+        pathScore = calculateDiscoveryPathScore(discoveries, completedDiscoveryIds);
+    } else {
+        // Legacy step-based: what fraction of step weights did the player earn?
+        const totalWeight = expectedSteps.reduce((sum, s) => sum + (s.weight_percent || 0), 0);
+        const matchedStepOrders = matchedCommands.map(c => c.match_step_order);
+        const earnedWeight = expectedSteps
+            .filter(s => matchedStepOrders.includes(s.step_order))
+            .reduce((sum, s) => sum + (s.weight_percent || 0), 0);
+        pathScore = totalWeight > 0 ? Math.round((earnedWeight / totalWeight) * 50) : 0;
+    }
 
     // --- COMMAND USAGE SCORE (30 pts max) ---
-    const expectedCount = expectedSteps.length;
-    const extraCommands = Math.max(0, totalCommandsCount - expectedCount);
-    const penalty = Math.floor(extraCommands / 3) * 5;
-    const commandUsageScore = Math.max(0, 30 - penalty);
+    // Reference count: discoveries (new) or expected steps (legacy)
+    const referenceCount = hasDiscoveries
+        ? discoveries.filter(d => d.is_critical).length
+        : expectedSteps.length;
+
+    const extraCommands     = Math.max(0, totalCommandsCount - referenceCount);
+    const commandPenalty    = Math.floor(extraCommands / 3) * 5;
+    const commandUsageScore = Math.max(0, 30 - commandPenalty);
 
     // --- CONCLUSION SCORE (20 pts max) ---
     const requiredObjectives = objectives.filter(o => !o.is_secret);
-    const completedRequired = requiredObjectives.filter(o =>
+    const completedRequired  = requiredObjectives.filter(o =>
         completedObjectiveIds.includes(o.objective_id)
     );
 
@@ -171,10 +187,13 @@ const calculateScore = ({
     const hintPenalty = hintsUsed * 5;
 
     // --- TOTAL ---
-    const raw = pathScore + commandUsageScore + conclusionScore;
+    const raw                = pathScore + commandUsageScore + conclusionScore;
     const totalWeightedScore = Math.max(0, raw - hintPenalty);
 
-    const partialCredit = matchedStepOrders.length > 0 && matchedStepOrders.length < expectedSteps.length;
+    const matchedStepOrders = matchedCommands.map(c => c.match_step_order);
+    const partialCredit = hasDiscoveries
+        ? (completedDiscoveryIds.length > 0 && completedDiscoveryIds.length < discoveries.filter(d => d.is_critical).length)
+        : (matchedStepOrders.length > 0 && matchedStepOrders.length < expectedSteps.length);
 
     return {
         commandUsageScore,
@@ -190,13 +209,13 @@ const calculateScore = ({
  */
 const calculateXp = (score, difficulty, hintsUsed) => {
     const baseXp = {
-        easy: 500,
+        easy:   500,
         medium: 1250,
-        hard: 5000,
+        hard:   5000,
     };
 
-    const base = baseXp[difficulty?.toLowerCase()] || 500;
-    const modifier = score / 100;
+    const base       = baseXp[difficulty?.toLowerCase()] || 500;
+    const modifier   = score / 100;
     const noHintBonus = hintsUsed === 0 ? 200 : 0;
 
     return Math.round(base * modifier) + noHintBonus;
@@ -204,6 +223,8 @@ const calculateXp = (score, difficulty, hintsUsed) => {
 
 /**
  * Determine which objectives are now completed given matched step orders.
+ * Works for both direct matches and discovery-credited steps since both
+ * produce command_history records with match_step_order set.
  */
 const resolveCompletedObjectives = (objectives, matchedStepOrders) => {
     return objectives
