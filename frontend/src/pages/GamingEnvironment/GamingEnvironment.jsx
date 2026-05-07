@@ -47,6 +47,13 @@ export default function GamingEnvironment() {
     // ── Exit confirmation modal ───────────────────────────────────────────
     const [showExitModal, setShowExitModal] = useState(false);
 
+    // ── Discovery tracking ────────────────────────────────────────────────
+    const [discoveries, setDiscoveries] = useState([]);
+    const [newlyRevealedFilePaths, setNewlyRevealedFilePaths] = useState(new Set());
+
+    // ── Terminal micro-interaction ────────────────────────────────────────
+    const [hasNewDiscovery, setHasNewDiscovery] = useState(false);
+
     // ── Called by useSession when backend assigns a scenario ──────────────
     // This is the ONLY way scenario_id enters the frontend — from the backend
     const handleScenarioAssigned = useCallback(async (scenario) => {
@@ -74,7 +81,6 @@ export default function GamingEnvironment() {
 
     const handleStepMatched = useCallback((matchedStep) => {
         objectivesRef.current?.markStepProgress(matchedStep);
-        // Push a live system log entry
         const now = new Date();
         const fmt = (d) => d.toTimeString().slice(0, 8);
         setSystemLogs(prev => [...prev, {
@@ -82,16 +88,22 @@ export default function GamingEnvironment() {
             message: `STEP_COMPLETE: ${matchedStep.description}`,
             type: 'critical',
         }]);
-    }, []); // Empty deps — uses ref internally
+    }, []);
 
     const handleObjectivesUpdated = useCallback((completedIds) => {
         objectivesRef.current?.markObjectivesCompleted(completedIds);
     }, []); // Empty deps — uses ref internally
 
     const handleFilesRevealed = useCallback((newFiles) => {
-        // Files are added to virtualFiles inside useTerminal automatically
         const now = new Date();
         const fmt = (d) => d.toTimeString().slice(0, 8);
+        const paths = newFiles.map(f => f.file_path);
+        // Track for CSS reveal animation
+        setNewlyRevealedFilePaths(prev => {
+            const next = new Set(prev);
+            paths.forEach(p => next.add(p));
+            return next;
+        });
         newFiles.forEach(f => {
             setSystemLogs(prev => [...prev, {
                 time: fmt(now),
@@ -100,6 +112,47 @@ export default function GamingEnvironment() {
                 sub: 'New evidence accessible',
             }]);
         });
+        // Clear highlight after animation finishes
+        setTimeout(() => {
+            setNewlyRevealedFilePaths(prev => {
+                const next = new Set(prev);
+                paths.forEach(p => next.delete(p));
+                return next;
+            });
+        }, 2000);
+    }, []);
+
+    const handleDiscovery = useCallback((newDiscoveries) => {
+        const now = new Date();
+        const fmt = (d) => d.toTimeString().slice(0, 8);
+        setDiscoveries(prev => [
+            ...prev,
+            ...newDiscoveries.map(d => ({ ...d, at: fmt(now) })),
+        ]);
+        setSystemLogs(prev => {
+            const entries = newDiscoveries.flatMap(d => {
+                const sev = d.severity_level || (d.is_critical ? 'confirmation' : 'awareness');
+                const logs = [{
+                    time:     fmt(now),
+                    message:  `DISCOVERY: ${d.title}`,
+                    type:     'discovery',
+                    severity: sev,
+                    sub:      d.description ? d.description.slice(0, 70) : null,
+                }];
+                // ARIA correlation feedback surfaced for high-severity findings only
+                if (sev === 'analysis' || (sev === 'confirmation' && d.is_critical)) {
+                    logs.push({
+                        time:    fmt(now),
+                        message: '[ARIA] Correlation confidence increasing...',
+                        type:    'aria',
+                    });
+                }
+                return logs;
+            });
+            return [...prev, ...entries];
+        });
+        setHasNewDiscovery(true);
+        setTimeout(() => setHasNewDiscovery(false), 1500);
     }, []);
 
     // ── HINT HOOK ─────────────────────────────────────────────────────────
@@ -115,7 +168,8 @@ export default function GamingEnvironment() {
         onStepMatched: handleStepMatched,
         onFilesRevealed: handleFilesRevealed,
         onObjectivesUpdated: handleObjectivesUpdated,
-        onAutoHint: hint.consumeAutoHint,   // Phase 5 — auto-triggered hints
+        onAutoHint: hint.consumeAutoHint,
+        onDiscovery: handleDiscovery,
     });
 
     // ── Auto-complete when all required objectives done ───────────────────
@@ -228,10 +282,10 @@ export default function GamingEnvironment() {
             )}
 
             {/* ── MAIN LAYOUT ───────────────────────────────────────────── */}
-            <main className="h-screen w-full flex p-6 gap-6 relative z-10">
+            <main className="h-screen w-full flex p-4 gap-4 relative z-10">
 
                 {/* LEFT PANEL */}
-                <aside className="w-[22%] flex flex-col gap-6">
+                <aside className="w-[19%] flex flex-col gap-4">
 
                     {/* SYSTEM LOGS */}
                     <section className="flex-1 bg-surface-container-lowest/80 p-4 flex flex-col gap-4 overflow-hidden relative border-t border-l border-white/5">
@@ -260,18 +314,21 @@ export default function GamingEnvironment() {
                                 files={terminal.virtualFiles}
                                 currentPath={terminal.currentPath}
                                 discoveredPaths={terminal.discoveredPaths}
+                                newlyRevealedFilePaths={newlyRevealedFilePaths}
                             />
                         </div>
                     </section>
                 </aside>
 
                 {/* CENTER: Terminal */}
-                <div className="flex-1 flex flex-col gap-3">
+                <div className="flex-1 flex flex-col gap-2">
                     <div className="w-full flex-1 relative min-h-0">
                         <TerminalPanel
                             terminalRef={terminal.terminalRef}
                             currentPath={terminal.currentPath}
                             isReady={terminal.isReady}
+                            isProcessing={terminal.isProcessingState}
+                            hasNewDiscovery={hasNewDiscovery}
                         />
                     </div>
 
@@ -298,7 +355,7 @@ export default function GamingEnvironment() {
                 </div>
 
                 {/* RIGHT PANEL */}
-                <aside className="w-[22%] flex flex-col gap-6">
+                <aside className="w-[19%] flex flex-col gap-4">
 
                     {/* Operative status */}
                     <section className="bg-surface-container-high/40 p-4 border-r-2 border-[#FF003C]/60">
@@ -389,28 +446,62 @@ export default function GamingEnvironment() {
 // SUB-COMPONENTS
 // =============================================================================
 
+// Severity → visual treatment for discovery log entries
+const DISCOVERY_SEVERITY_STYLE = {
+    awareness:    { wrapper: 'p-2 bg-[#00EBF7]/05 border-l border-[#00EBF7]/40 log-discovery', text: 'text-[#00EBF7]/60' },
+    inspection:   { wrapper: 'p-2 bg-[#00EBF7]/08 border-l-2 border-[#00EBF7]/60 log-discovery', text: 'text-[#00EBF7]/80' },
+    confirmation: { wrapper: 'p-2 bg-[#00EBF7]/10 border-l-2 border-[#00EBF7] log-discovery',   text: 'text-[#00EBF7] font-bold' },
+    analysis:     { wrapper: 'p-2 bg-[#00EBF7]/15 border-l-4 border-[#00EBF7] log-discovery',   text: 'text-[#00EBF7] font-bold' },
+};
+
 function SystemLogEntry({ log }) {
-    const isCritical = log.type === 'critical';
+    const isCritical  = log.type === 'critical';
+    const isDiscovery = log.type === 'discovery';
+    const isAria      = log.type === 'aria';
+
+    if (isDiscovery) {
+        const sev = log.severity || 'confirmation';
+        const style = DISCOVERY_SEVERITY_STYLE[sev] || DISCOVERY_SEVERITY_STYLE.confirmation;
+        return (
+            <div className={style.wrapper}>
+                <div className={`flex gap-2 text-[10px] ${style.text}`}>
+                    <span className="shrink-0">[{log.time}]</span>
+                    <span>{log.message}</span>
+                </div>
+                {log.sub && (
+                    <div className="text-[9px] mt-1 ml-2 text-[#00EBF7]/60">{log.sub}</div>
+                )}
+            </div>
+        );
+    }
+
     return (
-        <div className={isCritical ? 'p-2 bg-[#FF003C]/10 border-l-2 border-[#FF003C]' : 'flex gap-2 text-[#00EBF7]/40'}>
-            <div className={`flex gap-2 ${isCritical ? 'text-[#FF003C] font-bold' : ''}`}>
-                <span>[{log.time}]</span>
+        <div className={
+            isCritical ? 'p-2 bg-[#FF003C]/10 border-l-2 border-[#FF003C]' :
+            isAria     ? 'flex gap-2 text-[#00EBF7]/30 italic' :
+                         'flex gap-2 text-[#00EBF7]/40'
+        }>
+            <div className={`flex gap-2 text-[10px] ${isCritical ? 'text-[#FF003C] font-bold' : ''}`}>
+                <span className="shrink-0">[{log.time}]</span>
                 <span className={isCritical ? '' : 'text-on-surface/80'}>{log.message}</span>
             </div>
             {log.sub && (
-                <div className="text-[9px] mt-1 text-[#FF003C]/70 ml-12">{log.sub}</div>
+                <div className="text-[9px] mt-1 ml-2 text-[#FF003C]/70">{log.sub}</div>
             )}
         </div>
     );
 }
 
-function FileTree({ files, currentPath, discoveredPaths }) {
-    const norm = (p) => (p || '/').replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths }) {
+    const norm = (p) => {
+        if (!p) return '/';
+        return p.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
+    };
     const getParent = (p) => {
-        const parts = norm(p).split('/').filter(Boolean);
-        if (parts.length === 0) return '/';
-        parts.pop();
-        return '/' + parts.join('/') || '/';
+        const n = norm(p);
+        if (n === '/') return '/';
+        const idx = n.lastIndexOf('/');
+        return idx === 0 ? '/' : n.slice(0, idx);
     };
 
     const discovered = discoveredPaths || new Set(['/']);
@@ -473,19 +564,30 @@ function FileTree({ files, currentPath, discoveredPaths }) {
                     {children.files.map(f => {
                         const fp = norm(f.file_path);
                         if (!discovered.has(fp)) return null;
-                        const fname = f.file_name || fp.split('/').pop();
-                        const isLog = f.file_type === 'log' || fname.endsWith('.log');
-                        const isScript = fname.endsWith('.sh') || fname.endsWith('.py');
+                        const fname       = f.file_name || fp.split('/').pop();
+                        const isLog       = f.file_type === 'log' || fname.endsWith('.log');
+                        const isScript    = fname.endsWith('.sh') || fname.endsWith('.py');
+                        const isRevealed  = newlyRevealedFilePaths?.has(f.file_path);
+                        const isMalicious = f.evidence_tags?.some(t => ['malicious', 'malware'].includes(t));
+                        const topTag      = f.evidence_tags?.[0];
                         return (
                             <div key={f.virtual_file_id}
-                                className={`flex items-center gap-1.5 py-0.5 text-[10px] pl-2 ${isLog ? 'text-yellow-400/60' :
-                                    isScript ? 'text-[#FF003C]/60' :
-                                        'text-[#00EBF7]/50'
-                                    }`}>
+                                className={`flex items-center gap-1.5 py-0.5 text-[10px] pl-2 ${
+                                    isRevealed  ? 'file-revealed' :
+                                    isMalicious ? 'text-[#FF003C]/70' :
+                                    isLog       ? 'text-yellow-400/60' :
+                                    isScript    ? 'text-[#FF003C]/60' :
+                                                  'text-[#00EBF7]/50'
+                                }`}>
                                 <span className="material-symbols-outlined text-[11px]">
                                     {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}
                                 </span>
                                 <span className="truncate">{fname}</span>
+                                {topTag && (
+                                    <span className={`evidence-tag ${isMalicious ? 'evidence-tag-malicious' : ''}`}>
+                                        {topTag}
+                                    </span>
+                                )}
                             </div>
                         );
                     })}

@@ -33,6 +33,7 @@ const getDiscoveriesWithTriggers = async (scenarioId) => {
              sd.is_critical,
              sd.maps_to_step_order,
              sd.reveal_hint,
+             sd.severity_level,
              COALESCE(
                  json_agg(
                      json_build_object(

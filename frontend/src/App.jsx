@@ -8,7 +8,6 @@ import RegisterPage from './pages/RegisterPage/RegisterPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import Dashboard from './pages/Dashboard/Dashboard';
-import TeacherDashboard from './pages/TeacherDashboard';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import AuthCallback from './pages/auth/callback/AuthCallback';
 import Layout from './components/layout/Layout';

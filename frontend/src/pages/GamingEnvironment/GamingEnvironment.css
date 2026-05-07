@@ -56,13 +56,74 @@
 }
 
 @keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: .7;
-    }
+    0%, 100% { opacity: 1; }
+    50%       { opacity: .7; }
 }
+
+/* Terminal border micro-interactions */
+.terminal-processing-pulse {
+    box-shadow: 0 0 0 1px rgba(255, 0, 60, 0.4);
+    animation: termProcessing 0.8s ease-in-out infinite;
+}
+
+.terminal-discovery-glow {
+    box-shadow: 0 0 24px rgba(0, 235, 247, 0.35), 0 0 60px rgba(0, 235, 247, 0.1), inset 0 0 2px rgba(0, 235, 247, 0.3);
+    animation: termDiscovery 1.2s ease-out forwards;
+}
+
+@keyframes termProcessing {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(255, 0, 60, 0.2); }
+    50%       { box-shadow: 0 0 12px rgba(255, 0, 60, 0.6); }
+}
+
+@keyframes termDiscovery {
+    0%   { box-shadow: 0 0 40px rgba(0, 235, 247, 0.7), inset 0 0 4px rgba(0, 235, 247, 0.5); }
+    100% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.05), inset 0 0 2px rgba(255, 0, 60, 0.2); }
+}
+
+/* File reveal animation — applied when a hidden file is unlocked */
+@keyframes fileReveal {
+    0%   { opacity: 0; transform: translateX(-8px); background: rgba(0, 235, 247, 0.15); }
+    40%  { opacity: 1; transform: translateX(0);    background: rgba(0, 235, 247, 0.08); }
+    100% { background: transparent; }
+}
+
+.file-revealed {
+    animation: fileReveal 1.4s ease-out forwards;
+}
+
+/* Discovery log entry */
+@keyframes discoverySlideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.log-discovery {
+    animation: discoverySlideIn 0.3s ease-out forwards;
+}
+
+/* Evidence tag badge */
+.evidence-tag {
+    display: inline-block;
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: 2px;
+    background: rgba(0, 235, 247, 0.1);
+    border: 1px solid rgba(0, 235, 247, 0.2);
+    color: rgba(0, 235, 247, 0.7);
+    margin-left: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+}
+
+.evidence-tag-malicious {
+    background: rgba(255, 0, 60, 0.1);
+    border-color: rgba(255, 0, 60, 0.3);
+    color: rgba(255, 80, 80, 0.8);
+}
+
+/* Custom scrollbar — slim, themed */
+.custom-scrollbar::-webkit-scrollbar        { width: 3px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: rgba(0, 235, 247, 0.2); border-radius: 2px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(0, 235, 247, 0.4); }

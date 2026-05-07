@@ -4,16 +4,24 @@
  * The actual terminal logic lives in useTerminal — this is purely the container.
  *
  * Props:
- *   terminalRef   - ref from useTerminal, attach to the inner div
- *   currentPath   - string, shown in the header bar
- *   isReady       - bool, shows loading state before xterm mounts
+ *   terminalRef      - ref from useTerminal, attach to the inner div
+ *   currentPath      - string, shown in the header bar
+ *   isReady          - bool, shows loading state before xterm mounts
+ *   isProcessing     - bool, pulses border while awaiting API response
+ *   hasNewDiscovery  - bool, triggers brief cyan glow on new discovery
  */
 
 import React from 'react';
 
-export default function TerminalPanel({ terminalRef, currentPath, isReady }) {
+export default function TerminalPanel({ terminalRef, currentPath, isReady, isProcessing, hasNewDiscovery }) {
+    const borderClass = hasNewDiscovery
+        ? 'terminal-discovery-glow'
+        : isProcessing
+            ? 'terminal-processing-pulse'
+            : 'terminal-glow';
+
     return (
-        <div className="w-full h-full flex flex-col relative">
+        <div className={`w-full h-full flex flex-col relative ${borderClass}`}>
 
             {/* Terminal chrome bar */}
             <div className="flex items-center justify-between px-4 py-2 bg-black/80 border-b border-white/5 flex-shrink-0">

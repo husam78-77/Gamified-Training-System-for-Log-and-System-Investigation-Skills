@@ -289,12 +289,13 @@ const executeCommand = async (req, res) => {
             newlyRevealedFiles,
             completedObjectiveIds,
             newDiscoveries: newDiscoveries.map(d => ({
-                discovery_key: d.discovery_key,
-                title:         d.title,
-                description:   d.description,
-                evidence_tags: d.evidence_tags,
-                is_critical:   d.is_critical,
-                reveal_hint:   d.reveal_hint,
+                discovery_key:  d.discovery_key,
+                title:          d.title,
+                description:    d.description,
+                evidence_tags:  d.evidence_tags,
+                is_critical:    d.is_critical,
+                reveal_hint:    d.reveal_hint,
+                severity_level: d.severity_level || null,
             })),
             auto_hint: autoHint,
         });
@@ -352,11 +353,11 @@ const buildTerminalOutput = (parsed, virtualFiles, currentPath, commandHistory =
     const { command, target } = parsed;
 
     switch (command) {
-        case 'ls':      return handleLs(target || currentPath, virtualFiles);
+        case 'ls':      return handleLs(resolvePath(target, currentPath), virtualFiles);
         case 'cat':     return handleCat(target, virtualFiles, currentPath);
         case 'pwd':     return currentPath;
         case 'whoami':  return 'root';
-        case 'cd':      return '';
+        case 'cd':      return handleCd(target, virtualFiles, currentPath);
         case 'grep':    return handleGrep(parsed, virtualFiles, currentPath);
         case 'find':    return handleFind(parsed, virtualFiles, currentPath);
         case 'ps':      return handlePs(parsed);
@@ -371,38 +372,83 @@ const buildTerminalOutput = (parsed, virtualFiles, currentPath, commandHistory =
 
 const handleLs = (path, virtualFiles) => {
     const normalizedPath = normalizePath(path);
+    // Correct prefix for root vs non-root — avoids the '//' bug
+    const prefix = normalizedPath === '/' ? '/' : normalizedPath + '/';
 
-    const items = virtualFiles.filter(f => {
-        const filePath = normalizePath(f.file_path);
-        const parent = getParentPath(filePath);
-        return parent === normalizedPath;
-    });
-
-    if (items.length === 0) {
-        const dirExists = virtualFiles.some(f =>
-            normalizePath(f.file_path).startsWith(normalizedPath + '/')
-        );
-        if (!dirExists && normalizedPath !== '/') {
-            return `ls: cannot access '${path}': No such file or directory`;
-        }
-    }
-
+    // Step 1: collect immediate subdirectory names (stored WITHOUT trailing slash)
     const subdirs = new Set();
     virtualFiles.forEach(f => {
-        const filePath = normalizePath(f.file_path);
-        if (filePath.startsWith(normalizedPath + '/')) {
-            const remainder = filePath.slice(normalizedPath.length + 1);
-            const firstSegment = remainder.split('/')[0];
+        const fp = normalizePath(f.file_path);
+        if (fp.startsWith(prefix) && fp.length > prefix.length) {
+            const remainder = normalizedPath === '/'
+                ? fp.slice(1)
+                : fp.slice(prefix.length);
             if (remainder.includes('/')) {
-                subdirs.add(firstSegment + '/');
+                subdirs.add(remainder.split('/')[0]);
             }
         }
     });
 
-    const fileNames = items.map(f => f.file_name || f.file_path.split('/').pop());
-    const dirNames  = Array.from(subdirs);
+    // Step 2: collect direct file children — skip anything already captured as a subdir
+    const fileNames = [];
+    const seenFiles = new Set();
+    virtualFiles.forEach(f => {
+        const fp = normalizePath(f.file_path);
+        if (getParentPath(fp) === normalizedPath) {
+            const name = f.file_name || fp.split('/').pop();
+            if (!subdirs.has(name) && !seenFiles.has(name)) {
+                seenFiles.add(name);
+                fileNames.push(name);
+            }
+        }
+    });
 
-    return [...dirNames, ...fileNames].join('  ') || '(empty directory)';
+    if (subdirs.size === 0 && fileNames.length === 0) {
+        const dirExists = normalizedPath === '/' ||
+            virtualFiles.some(f => normalizePath(f.file_path).startsWith(prefix));
+        if (!dirExists) {
+            return `ls: cannot access '${path}': No such file or directory`;
+        }
+        return '(empty directory)';
+    }
+
+    return [
+        ...Array.from(subdirs).sort().map(d => d + '/'),
+        ...fileNames.sort(),
+    ].join('  ');
+};
+
+const handleCd = (target, virtualFiles, currentPath) => {
+    if (!target) return '';
+
+    const resolvedPath   = resolvePath(target, currentPath);
+    const normalizedPath = normalizePath(resolvedPath);
+
+    // Look up the explicit entry stored at exactly this path
+    const entry = virtualFiles.find(f =>
+        normalizePath(f.file_path) === normalizedPath
+    );
+
+    // [DEBUG] Remove after validation confirms correct behavior
+    console.log(`[cd] input="${target}" resolved="${normalizedPath}" entry=${
+        entry ? `"${entry.file_path}" type=${entry.file_type}` : 'none'
+    }`);
+
+    if (entry) {
+        // Explicit entry found — accept only if it is a directory
+        return entry.file_type === 'directory'
+            ? ''
+            : `bash: cd: ${target}: Not a directory`;
+    }
+
+    // No explicit entry — accept if files live beneath this path (inferred directory)
+    const prefix      = normalizedPath === '/' ? '/' : normalizedPath + '/';
+    const hasChildren = normalizedPath === '/' ||
+        virtualFiles.some(f => normalizePath(f.file_path).startsWith(prefix));
+
+    return hasChildren
+        ? ''
+        : `bash: cd: ${target}: No such file or directory`;
 };
 
 const handleCat = (target, virtualFiles, currentPath) => {
@@ -639,20 +685,43 @@ const buildHelp = () => {
 };
 
 // Path utilities
+
 const normalizePath = (path) => {
     if (!path) return '/';
     return path.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
 };
 
-const getParentPath = (filePath) => {
-    const parts = filePath.split('/');
-    parts.pop();
-    return parts.join('/') || '/';
+// Resolve . and .. segments in an already-absolute path
+const resolveAbsPath = (absPath) => {
+    const parts = absPath.split('/').filter(p => p !== '');
+    const out = [];
+    for (const part of parts) {
+        if (part === '.') continue;
+        if (part === '..') { out.pop(); }
+        else out.push(part);
+    }
+    return '/' + out.join('/') || '/';
 };
 
+const getParentPath = (filePath) => {
+    const n = normalizePath(filePath);
+    if (n === '/') return '/';
+    const idx = n.lastIndexOf('/');
+    return idx === 0 ? '/' : n.slice(0, idx);
+};
+
+// Resolves relative, absolute, .., ., and ~/ paths
 const resolvePath = (target, currentPath) => {
-    if (target.startsWith('/')) return target;
-    return normalizePath(currentPath + '/' + target);
+    if (!target) return normalizePath(currentPath);
+    // ~ expands to root in this simulated environment
+    const expanded = target === '~' ? '/'
+        : target.startsWith('~/') ? '/' + target.slice(2)
+        : target;
+    if (expanded.startsWith('/')) {
+        return resolveAbsPath(normalizePath(expanded));
+    }
+    const base = currentPath === '/' ? '' : currentPath;
+    return resolveAbsPath(normalizePath(base + '/' + expanded));
 };
 
 module.exports = {

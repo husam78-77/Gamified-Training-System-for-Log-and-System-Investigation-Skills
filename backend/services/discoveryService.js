@@ -24,6 +24,19 @@
 
 const { normalizePath } = require('../utils/terminalParser');
 
+// Resolve . and .. segments in an absolute path string.
+// Same algorithm as terminalController.resolvePath — kept local to avoid circular deps.
+const resolveAbsPath = (absPath) => {
+    const parts = absPath.split('/').filter(p => p !== '');
+    const out = [];
+    for (const part of parts) {
+        if (part === '.') continue;
+        if (part === '..') { out.pop(); }
+        else out.push(part);
+    }
+    return '/' + out.join('/') || '/';
+};
+
 // =============================================================================
 // MAIN ENTRY POINT
 // =============================================================================
@@ -123,12 +136,20 @@ const resolveCommandTarget = (parsed, currentPath) => {
     // No target typed: implicit target is the current directory
     if (!target) return normalizePath(currentPath);
 
-    // Absolute path: already fully qualified
-    if (target.startsWith('/')) return normalizePath(target);
+    // ~ expands to root in this simulated environment
+    if (target === '~') return '/';
+    if (target.startsWith('~/')) {
+        return normalizePath(resolveAbsPath('/' + target.slice(2)));
+    }
 
-    // Relative path: resolve against current directory
+    // Absolute path: resolve . and .. segments
+    if (target.startsWith('/')) {
+        return normalizePath(resolveAbsPath(target));
+    }
+
+    // Relative path: resolve against current directory (handles .., ., chained segments)
     const base = currentPath === '/' ? '' : currentPath;
-    return normalizePath(`${base}/${target}`);
+    return normalizePath(resolveAbsPath(base + '/' + target));
 };
 
 /**

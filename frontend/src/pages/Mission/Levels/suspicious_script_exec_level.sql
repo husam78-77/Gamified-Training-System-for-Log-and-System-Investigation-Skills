@@ -246,9 +246,9 @@ backup:x:34:34:backup:/var/backups:/usr/sbin/nologin',
 ),
 
 -- ── /home/sysadmin/.bash_history ───────────────────────────────────────────
--- HIDDEN — revealed when the cron scheduler discovery fires.
--- Shows the admin recently investigated cron and noticed something odd,
--- then stopped — giving the player a narrative clue.
+-- HIDDEN — revealed when the player reads the malicious cron entry.
+-- Shows the admin also read the updater file and noticed something suspicious —
+-- narrative context that only makes sense AFTER the player has read the same file.
 (
     (SELECT scenario_id FROM s),
     '.bash_history',
@@ -259,7 +259,7 @@ ls -la /tmp/.cache
 echo "what is this?"
 exit',
     'text',
-    TRUE, NULL, 'CRON_SCHEDULER_ACCESSED',
+    TRUE, NULL, 'MALICIOUS_CRON_ENTRY_READ',
     ARRAY['user_activity', 'forensic_artifact'],
     '{"permissions": "-rw-------", "owner": "sysadmin", "modified": "2024-04-19T03:30:00Z"}'::jsonb
 ),
@@ -501,10 +501,11 @@ WITH s AS (
 
 INSERT INTO scenario_discoveries
     (scenario_id, discovery_key, title, description, evidence_tags,
-     weight_percent, discovery_order, is_critical, maps_to_step_order, reveal_hint)
+     weight_percent, discovery_order, is_critical, maps_to_step_order, reveal_hint, severity_level)
 VALUES
 
--- ── Discovery 1: CRON_SCHEDULER_ACCESSED (critical, 15 pts) ────────────────
+-- ── Discovery 1: CRON_SCHEDULER_ACCESSED (awareness, 15 pts) ──────────────
+-- Fires when the player browses the scheduler directory — no file reveals.
 (
     (SELECT scenario_id FROM s),
     'CRON_SCHEDULER_ACCESSED',
@@ -512,10 +513,13 @@ VALUES
     'The player accessed the scheduled task configuration, revealing automated jobs running on this host.',
     ARRAY['persistence', 'scheduler', 'cron'],
     15, 1, TRUE, 1,
-    'Scheduled task configuration accessed. Two entries visible — one is not what it appears to be.'
+    'Scheduled task configuration accessed. Two entries visible — one is not what it appears to be.',
+    'awareness'
 ),
 
--- ── Discovery 2: MALICIOUS_CRON_ENTRY_READ (critical, 20 pts) ─────────────
+-- ── Discovery 2: MALICIOUS_CRON_ENTRY_READ (confirmation, 20 pts) ─────────
+-- Fires when the player reads the actual cron file content.
+-- Reveals /home/sysadmin/.bash_history (the admin also read this file).
 (
     (SELECT scenario_id FROM s),
     'MALICIOUS_CRON_ENTRY_READ',
@@ -523,10 +527,13 @@ VALUES
     'The player read the content of the suspicious cron job, revealing the script path and execution schedule.',
     ARRAY['persistence', 'cron', 'scheduled_task', 'malicious'],
     20, 2, TRUE, 2,
-    'Cron entry decoded. A script path in /tmp is scheduled to run as root at a specific hour. That path is significant.'
+    'Cron entry decoded. A script path in /tmp is scheduled to run as root at a specific hour. That path is significant.',
+    'confirmation'
 ),
 
--- ── Discovery 3: EXECUTION_TRACED_IN_SYSLOG (critical, 20 pts) ────────────
+-- ── Discovery 3: EXECUTION_TRACED_IN_SYSLOG (confirmation, 20 pts) ────────
+-- Fires when the player reads syslog.
+-- Reveals /var/log/net.log (the outbound connection record).
 (
     (SELECT scenario_id FROM s),
     'EXECUTION_TRACED_IN_SYSLOG',
@@ -534,10 +541,13 @@ VALUES
     'The player found evidence of the script running in system logs, including the outbound network connection it initiated.',
     ARRAY['execution_trace', 'log_analysis', 'network_activity'],
     20, 3, TRUE, 3,
-    'Execution event confirmed in system log. An outbound connection record was logged seconds after the cron job fired.'
+    'Execution event confirmed in system log. An outbound connection record was logged seconds after the cron job fired.',
+    'confirmation'
 ),
 
--- ── Discovery 4: PAYLOAD_LOCATION_IDENTIFIED (critical, 25 pts) ───────────
+-- ── Discovery 4: PAYLOAD_LOCATION_IDENTIFIED (inspection, 25 pts) ─────────
+-- Fires when the player actively explores /tmp (find /tmp or ls /tmp/.cache).
+-- Reveals the hidden payload scripts.
 (
     (SELECT scenario_id FROM s),
     'PAYLOAD_LOCATION_IDENTIFIED',
@@ -545,10 +555,11 @@ VALUES
     'The player found the hidden .cache directory in /tmp containing the payload script and file manifest.',
     ARRAY['malware', 'file_system', 'persistence'],
     25, 4, TRUE, 4,
-    'Hidden directory identified under /tmp. Contents include the execution script and a list of staged files.'
+    'Hidden directory identified under /tmp. Contents include the execution script and a list of staged files.',
+    'inspection'
 ),
 
--- ── Discovery 5: SCRIPT_CONTENT_ANALYZED (critical, 20 pts) ───────────────
+-- ── Discovery 5: SCRIPT_CONTENT_ANALYZED (analysis, 20 pts) ───────────────
 (
     (SELECT scenario_id FROM s),
     'SCRIPT_CONTENT_ANALYZED',
@@ -556,10 +567,11 @@ VALUES
     'The player read the malicious script content, revealing the collection targets, staging logic, and C2 endpoint.',
     ARRAY['malware', 'bash_script', 'exfiltration', 'c2'],
     20, 5, TRUE, 5,
-    'Script content decoded. Collection targets, archive staging, and the curl-based exfiltration channel are all visible.'
+    'Script content decoded. Collection targets, archive staging, and the curl-based exfiltration channel are all visible.',
+    'analysis'
 ),
 
--- ── Discovery 6: EXFIL_CONFIRMED_VIA_NETLOG (bonus/secret) ─────────────────
+-- ── Discovery 6: EXFIL_CONFIRMED_VIA_NETLOG (analysis, bonus/secret) ───────
 (
     (SELECT scenario_id FROM s),
     'EXFIL_CONFIRMED_VIA_NETLOG',
@@ -567,10 +579,11 @@ VALUES
     '[CLASSIFIED] The player cross-referenced the network log, confirming the TLS session details and bytes transferred to the C2 host.',
     ARRAY['network_forensics', 'c2', 'exfiltration', 'tls'],
     0, 6, FALSE, 6,
-    'Network record confirms the connection. TLS handshake SNI, certificate chain, and 48221 bytes of outbound data are logged.'
+    'Network record confirms the connection. TLS handshake SNI, certificate chain, and 48221 bytes of outbound data are logged.',
+    'analysis'
 ),
 
--- ── Discovery 7: PROCESS_ACTIVITY_EXAMINED (bonus) ─────────────────────────
+-- ── Discovery 7: PROCESS_ACTIVITY_EXAMINED (awareness, bonus) ─────────────
 (
     (SELECT scenario_id FROM s),
     'PROCESS_ACTIVITY_EXAMINED',
@@ -578,7 +591,8 @@ VALUES
     'The player inspected the process table — a suspicious shell process in /tmp is visible, corroborating the execution timeline.',
     ARRAY['process_activity', 'runtime_forensics'],
     0, 7, FALSE, NULL,
-    'Process table accessed. A shell process with a /tmp path was active at the time of the incident.'
+    'Process table accessed. A shell process with a /tmp path was active at the time of the incident.',
+    'awareness'
 );
 
 
@@ -588,6 +602,24 @@ VALUES
 -- Each discovery can be unlocked by ANY of its listed triggers.
 -- trigger_command + target_pattern + match_type = the matching rule.
 -- name_filter_pattern is only used for `find -name` style matching.
+--
+-- Design rules:
+--   AWARENESS triggers  — directory-level navigation (ls /etc/cron.d, locate)
+--   INSPECTION triggers — scoped filesystem exploration (find /tmp, ls /tmp/.cache)
+--   CONFIRMATION triggers — reading specific file content (cat, strings, exact grep)
+--   ANALYSIS triggers   — deep content extraction from payload/evidence files
+--
+-- Removed (too broad):
+--   - ls /etc       → just browsing; doesn't constitute cron awareness
+--   - find /etc     → full /etc scan ≠ targeted scheduler discovery
+--   - grep /etc prefix  → any grep under /etc (incl. /etc/passwd) would fire
+--   - ls /tmp       → seeing sync.pid is not the same as locating the cache
+--   - ls /var/log   → directory listing ≠ syslog execution trace
+--   - find /var/log → enumerating logs ≠ confirmed execution trace
+--   - grep /var/log prefix  → any grep in log dir would fire syslog trace
+--   - locate updater in MALICIOUS_CRON_ENTRY_READ (kept in CRON_SCHEDULER_ACCESSED)
+--   - find /tmp prefix  → over-broad; exact /tmp is sufficient
+--   - grep /tmp/.cache prefix  → changed to exact to avoid false matches
 -- =============================================================================
 
 WITH d AS (
@@ -603,195 +635,135 @@ INSERT INTO discovery_triggers
 VALUES
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: CRON_SCHEDULER_ACCESSED
--- Triggered by any technique that lands the player in or inspects /etc/cron.d
+-- AWARENESS: CRON_SCHEDULER_ACCESSED
+-- Fired when the player lands on or searches for the scheduler directory.
+-- No hidden-file reveals attached to this discovery.
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- ls /etc/cron.d  (most direct)
+-- ls /etc/cron.d  — direct listing
 ((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
  'ls', '/etc/cron.d', 'exact', NULL),
 
--- ls /etc  (player browses the parent, sees cron.d listed)
-((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
- 'ls', '/etc', 'exact', NULL),
-
--- find /etc  (recursive find from /etc root)
-((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
- 'find', '/etc', 'exact', NULL),
-
--- find / -name "*.d"  (searching for .d directories by name pattern)
+-- find /etc -name "*.d"  — targeted directory search
 ((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
  'find', NULL, 'exact', '.d'),
 
--- find / -name "*cron*"  (searching for anything with "cron" in the name)
+-- find / -name "*cron*"  — name search for cron files
 ((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
  'find', NULL, 'exact', 'cron'),
 
--- locate cron  (keyword search)
+-- locate cron  — keyword search
 ((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
  'locate', 'cron', 'contains', NULL),
 
--- locate updater  (searching for the file by name — also triggers discovery 2)
+-- locate updater  — searching for the suspicious file by name
 ((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
  'locate', 'updater', 'contains', NULL),
 
--- grep -r "cron" /etc  (scanning /etc for cron references)
-((SELECT discovery_id FROM d WHERE discovery_key = 'CRON_SCHEDULER_ACCESSED'),
- 'grep', '/etc', 'prefix', NULL),
-
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: MALICIOUS_CRON_ENTRY_READ
--- Triggered when the player actually reads or inspects the updater file content
+-- CONFIRMATION: MALICIOUS_CRON_ENTRY_READ
+-- Fired when the player reads the actual cron file content.
+-- Reveals /home/sysadmin/.bash_history (admin also read this file).
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- cat /etc/cron.d/updater  (direct read)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'MALICIOUS_CRON_ENTRY_READ'),
  'cat', '/etc/cron.d/updater', 'exact', NULL),
 
--- strings /etc/cron.d/updater  (extract printable strings)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'MALICIOUS_CRON_ENTRY_READ'),
  'strings', '/etc/cron.d/updater', 'exact', NULL),
 
--- grep <anything> /etc/cron.d/updater  (searching the file)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'MALICIOUS_CRON_ENTRY_READ'),
  'grep', '/etc/cron.d/updater', 'exact', NULL),
 
--- grep -r <anything> /etc/cron.d  (recursive grep across all cron.d files)
+-- grep -r <pattern> /etc/cron.d  — recursive search confined to cron.d only
 ((SELECT discovery_id FROM d WHERE discovery_key = 'MALICIOUS_CRON_ENTRY_READ'),
  'grep', '/etc/cron.d', 'exact', NULL),
 
--- locate updater  (locates the file, implicitly reads path → counts as awareness)
-((SELECT discovery_id FROM d WHERE discovery_key = 'MALICIOUS_CRON_ENTRY_READ'),
- 'locate', 'updater', 'contains', NULL),
-
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: EXECUTION_TRACED_IN_SYSLOG
--- Triggered when the player accesses or searches the syslog for execution evidence
+-- CONFIRMATION: EXECUTION_TRACED_IN_SYSLOG
+-- Fired when the player reads syslog.
+-- Reveals /var/log/net.log.
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- cat /var/log/syslog  (direct read)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
  'cat', '/var/log/syslog', 'exact', NULL),
 
--- strings /var/log/syslog  (printable string extraction)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
  'strings', '/var/log/syslog', 'exact', NULL),
 
--- grep <anything> /var/log/syslog  (targeted search in syslog)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
  'grep', '/var/log/syslog', 'exact', NULL),
 
--- grep -r <anything> /var/log  (recursive search in log directory)
-((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
- 'grep', '/var/log', 'prefix', NULL),
-
--- find /var/log  (enumerating the log directory reveals syslog presence)
-((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
- 'find', '/var/log', 'exact', NULL),
-
--- ls /var/log  (listing the log directory)
-((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
- 'ls', '/var/log', 'exact', NULL),
-
--- locate syslog  (keyword search)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXECUTION_TRACED_IN_SYSLOG'),
  'locate', 'syslog', 'contains', NULL),
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: PAYLOAD_LOCATION_IDENTIFIED
--- Triggered when the player finds the hidden .cache directory under /tmp
+-- INSPECTION: PAYLOAD_LOCATION_IDENTIFIED
+-- Fired when the player actively explores /tmp (find /tmp or ls /tmp/.cache).
+-- ls /tmp removed — seeing sync.pid alone is not payload location.
+-- Reveals /tmp/.cache/sync.sh and .exfil_manifest.
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- find /tmp  (most direct: recursive find reveals .cache)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
  'find', '/tmp', 'exact', NULL),
 
--- find /tmp -type f  (file-only find)
-((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
- 'find', '/tmp', 'prefix', NULL),
-
--- find / -name "*.sh"  (name-based search across filesystem)
-((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
- 'find', NULL, 'exact', '.sh'),
-
--- find / -name "sync*"  (name search for sync files)
-((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
- 'find', NULL, 'exact', 'sync'),
-
--- ls /tmp  (listing /tmp shows sync.pid, suggesting more files exist)
-((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
- 'ls', '/tmp', 'exact', NULL),
-
--- ls /tmp/.cache  (direct listing of the cache directory)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
  'ls', '/tmp/.cache', 'exact', NULL),
 
--- locate sync  (finds sync.sh and sync.pid)
+((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
+ 'find', NULL, 'exact', '.sh'),
+
+((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
+ 'find', NULL, 'exact', 'sync'),
+
 ((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
  'locate', 'sync', 'contains', NULL),
 
--- locate .cache  (directly searches for the cache directory)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'PAYLOAD_LOCATION_IDENTIFIED'),
  'locate', '.cache', 'contains', NULL),
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: SCRIPT_CONTENT_ANALYZED
--- Triggered when the player reads or extracts strings from sync.sh
+-- ANALYSIS: SCRIPT_CONTENT_ANALYZED
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- cat /tmp/.cache/sync.sh  (direct read)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'SCRIPT_CONTENT_ANALYZED'),
  'cat', '/tmp/.cache/sync.sh', 'exact', NULL),
 
--- strings /tmp/.cache/sync.sh  (printable string extraction — reveals C2 URL)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'SCRIPT_CONTENT_ANALYZED'),
  'strings', '/tmp/.cache/sync.sh', 'exact', NULL),
 
--- grep <anything> /tmp/.cache/sync.sh  (pattern search within the script)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'SCRIPT_CONTENT_ANALYZED'),
  'grep', '/tmp/.cache/sync.sh', 'exact', NULL),
 
--- grep -r <anything> /tmp/.cache  (recursive search in cache dir)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'SCRIPT_CONTENT_ANALYZED'),
- 'grep', '/tmp/.cache', 'prefix', NULL),
+ 'grep', '/tmp/.cache', 'exact', NULL),
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: EXFIL_CONFIRMED_VIA_NETLOG  (bonus/secret)
--- Triggered when the player finds and reads the network log
+-- ANALYSIS: EXFIL_CONFIRMED_VIA_NETLOG  (bonus/secret)
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- cat /var/log/net.log
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXFIL_CONFIRMED_VIA_NETLOG'),
  'cat', '/var/log/net.log', 'exact', NULL),
 
--- strings /var/log/net.log
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXFIL_CONFIRMED_VIA_NETLOG'),
  'strings', '/var/log/net.log', 'exact', NULL),
 
--- grep <anything> /var/log/net.log
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXFIL_CONFIRMED_VIA_NETLOG'),
  'grep', '/var/log/net.log', 'exact', NULL),
 
--- locate net.log
 ((SELECT discovery_id FROM d WHERE discovery_key = 'EXFIL_CONFIRMED_VIA_NETLOG'),
  'locate', 'net.log', 'contains', NULL),
 
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- DISCOVERY: PROCESS_ACTIVITY_EXAMINED  (bonus)
--- Triggered by any ps invocation — the process table shows a /tmp shell
+-- AWARENESS: PROCESS_ACTIVITY_EXAMINED  (bonus)
 -- ══════════════════════════════════════════════════════════════════════════════
 
--- ps  (basic process list)
-((SELECT discovery_id FROM d WHERE discovery_key = 'PROCESS_ACTIVITY_EXAMINED'),
- 'ps', NULL, 'exact', NULL),
-
--- ps aux  (full detailed process list — matches command-only trigger)
 ((SELECT discovery_id FROM d WHERE discovery_key = 'PROCESS_ACTIVITY_EXAMINED'),
  'ps', NULL, 'exact', NULL);
 
