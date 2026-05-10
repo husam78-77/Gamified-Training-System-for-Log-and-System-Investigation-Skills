@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useProgression } from '../../context/ProgressionContext';
 import { motion } from 'framer-motion';
 import './Progress.css';
 // ─── Utilities ───────────────────────────────────────────────────────────────
@@ -188,33 +189,8 @@ const LoadingState = () => (
 
 export default function InvestigatorProgress() {
     const { token } = useAuth();
-    const [data, setData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const { progression: data, loading, error } = useProgression();
     const [xpAnimated, setXpAnimated] = useState(false);
-
-    useEffect(() => {
-        if (!token) return;
-        const fetchData = async () => {
-            try {
-                const res = await fetch(
-                    `${import.meta.env.VITE_API_URL}/api/users/progression`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const json = await res.json();
-                if (json.success && json.data) {
-                    setData(json.data);
-                } else {
-                    setError(json.message || 'Failed to load data');
-                }
-            } catch {
-                setError('SIGNAL_LOST');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [token]);
 
     // Trigger XP bar fill after data arrives
     useEffect(() => {
@@ -237,6 +213,12 @@ export default function InvestigatorProgress() {
     const { identity, metrics, missionArchive, achievements, investigationStyle, rankTimeline } = data;
     const rankColor = getRankColor(identity.rank);
     const unlockedCount = achievements.filter(a => a.unlocked).length;
+
+    // Unified XP Logic
+    const currentLevel = identity.level || 1;
+    const currentXp = identity.xp || 0;
+    const targetXp = currentLevel * 1000;
+    const xpPercent = Math.round(Math.min(100, Math.max(0, (currentXp / targetXp) * 100)));
 
     return (
         <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white overflow-hidden relative flex flex-col">
@@ -318,23 +300,23 @@ export default function InvestigatorProgress() {
                                 <div>
                                     <div className="flex justify-between items-end mb-3 font-mono font-bold text-[10px] tracking-[0.2em] uppercase">
                                         <span className="text-white/40">XP_PROGRESSION</span>
-                                        <span style={{ color: rankColor }}>{identity.xpPercent}%</span>
+                                        <span style={{ color: rankColor }}>{xpPercent}%</span>
                                     </div>
 
                                     {/* Track */}
                                     <div className="h-8 bg-[#0A0A0A] border border-white/10 shadow-[5px_5px_0px_#050505] overflow-hidden skew-x-[-15deg] mb-3">
                                         <div
                                             className="h-full relative overflow-hidden transition-all duration-1000 ease-out"
-                                            style={{ width: xpAnimated ? `${identity.xpPercent}%` : '0%', backgroundColor: rankColor, boxShadow: `0 0 20px ${rankColor}` }}
+                                            style={{ width: xpAnimated ? `${xpPercent}%` : '0%', backgroundColor: rankColor, boxShadow: `0 0 20px ${rankColor}` }}
                                         >
                                             <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.4)_50%,transparent_100%)] animate-[scan_2s_ease-in-out_infinite]"></div>
                                         </div>
                                     </div>
 
                                     <div className="flex justify-between font-mono font-bold text-[9px] tracking-[0.15em] uppercase">
-                                        <span className="text-white/30">{identity.xpBase.toLocaleString()} XP</span>
-                                        <span className="text-white">{identity.xp.toLocaleString()} XP</span>
-                                        <span className="text-white/30">{identity.xpTarget.toLocaleString()} XP</span>
+                                        <span className="text-white/30">0 XP</span>
+                                        <span className="text-white">{currentXp.toLocaleString()} XP</span>
+                                        <span className="text-white/30">{targetXp.toLocaleString()} XP</span>
                                     </div>
                                 </div>
                             </div>

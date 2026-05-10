@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { startSession, abandonSession, completeSession } from '../services/sessionService';
+import { useProgression } from '../context/ProgressionContext';
 // NOTE: startSession now sends only mode — backend assigns scenario
 
 /**
@@ -26,6 +27,8 @@ export const useSession = (mode, token, onScenarioAssigned, scenario_id) => {
     const [evaluation, setEvaluation] = useState(null);
     const [timeRemaining, setTimeRemaining] = useState(null);
     const [allComplete, setAllComplete] = useState(false); // User finished all scenarios
+
+    const { refreshProgression } = useProgression();
 
     // Timed mode: 15 minutes default, configurable via env
     const TIMED_DURATION_SECONDS = parseInt(import.meta.env.VITE_TIMED_DURATION || '900', 10);
@@ -108,6 +111,7 @@ export const useSession = (mode, token, onScenarioAssigned, scenario_id) => {
             const data = await completeSession(sessionRef.current, token);
             setEvaluation(data);
             setStatus('completed');
+            if (refreshProgression) refreshProgression();
         } catch (err) {
             setError(err.message);
             setStatus('error');
@@ -137,6 +141,7 @@ export const useSession = (mode, token, onScenarioAssigned, scenario_id) => {
             const data = await completeSession(sessionId, token);
             setEvaluation(data);
             setStatus('completed');
+            if (refreshProgression) refreshProgression();
         } catch (err) {
             setError(err.message);
             setStatus('error');

@@ -1,7 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useProgression } from '../../context/ProgressionContext';
 
 export default function Header() {
+    const { progression } = useProgression();
+    
+    const level = progression?.identity?.level || 1;
+    const xpPercent = progression?.identity?.xpPercent || 0;
+    const username = progression?.identity?.username || 'UNKNOWN';
+
     // --- Kinetic Animation Variants ---
     const slamDown = {
         hidden: { opacity: 0, y: -40 },
@@ -42,14 +49,14 @@ export default function Header() {
                 <nav className="hidden lg:flex items-center gap-10 flex-1 px-12">
                     <div className="flex items-center gap-3 group cursor-pointer">
                         <span className="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase group-hover:text-white transition-colors">OPERATIVE</span>
-                        <span className="font-black italic text-xl uppercase tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">LVL 42</span>
+                        <span className="font-black italic text-xl uppercase tracking-tighter text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">LVL {level}</span>
                     </div>
 
                     <div className="w-px h-6 bg-white/10 skew-x-[-12deg]"></div>
 
                     <div className="flex items-center gap-3 group cursor-pointer">
                         <span className="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase group-hover:text-white transition-colors">XP_YIELD</span>
-                        <span className="font-black italic text-xl uppercase tracking-tighter text-[#00FFFF] drop-shadow-[0_0_10px_rgba(0,255,255,0.3)]">88%</span>
+                        <span className="font-black italic text-xl uppercase tracking-tighter text-[#00FFFF] drop-shadow-[0_0_10px_rgba(0,255,255,0.3)]">{xpPercent}%</span>
                     </div>
 
                     <div className="w-px h-6 bg-white/10 skew-x-[-12deg]"></div>
@@ -85,7 +92,7 @@ export default function Header() {
                     <div className="group flex items-center gap-4 cursor-pointer">
                         <div className="hidden md:flex flex-col items-end">
                             <span className="font-mono text-[9px] text-[#00FFFF] tracking-[0.3em] font-bold uppercase">ONLINE</span>
-                            <span className="font-black italic text-sm text-white uppercase tracking-tighter group-hover:text-[#00FFFF] transition-colors">H.0X_PHANTOM</span>
+                            <span className="font-black italic text-sm text-white uppercase tracking-tighter group-hover:text-[#00FFFF] transition-colors">{username}</span>
                         </div>
 
                         <div className="relative w-12 h-12 skew-x-[-12deg] border border-white/20 group-hover:border-[#00FFFF] overflow-hidden shadow-[4px_4px_0px_#050505] transition-colors bg-black">

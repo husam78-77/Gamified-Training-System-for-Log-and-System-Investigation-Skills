@@ -1,11 +1,16 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useProgression } from "../../context/ProgressionContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function Sidebar() {
     const navigate = useNavigate();
     const { logout } = useAuth();
+    const { progression } = useProgression();
+
+    const username = progression?.identity?.username || 'UNKNOWN_OPERATIVE';
+    const rank = progression?.identity?.rank || 'ROGUE_AGENT';
 
     // State to trigger the dramatic exit sequence
     const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -55,9 +60,9 @@ export default function Sidebar() {
                             />
                         </div>
                         <div>
-                            <p className="font-mono text-[10px] text-[#00FFFF] tracking-[0.4em] font-bold uppercase mb-1">RANK: PHANTOM</p>
-                            <p className="font-black italic text-3xl tracking-tighter text-white uppercase leading-none drop-shadow-[2px_2px_0px_#FF003C] skew-x-[-5deg]">
-                                OPERATIVE_01
+                            <p className="font-mono text-[10px] text-[#00FFFF] tracking-[0.4em] font-bold uppercase mb-1">RANK: {rank}</p>
+                            <p className="font-black italic text-3xl tracking-tighter text-white uppercase leading-none drop-shadow-[2px_2px_0px_#FF003C] skew-x-[-5deg] truncate max-w-[180px]">
+                                {username}
                             </p>
                         </div>
                     </div>

@@ -1,7 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { useProgression } from '../../context/ProgressionContext';
 
 export default function Dashboard() {
+    const { token } = useAuth();
+    const navigate = useNavigate();
+    const { progression } = useProgression();
+    const [bruteForceMission, setBruteForceMission] = useState(null);
+    const [scriptMission, setScriptMission] = useState(null);
+
+    useEffect(() => {
+        if (!token) return;
+        const loadMissions = async () => {
+            try {
+                const scenRes = await fetch(`${import.meta.env.VITE_API_URL}/api/scenarios`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const scenJson = await scenRes.json();
+                
+                const progRes = await fetch(`${import.meta.env.VITE_API_URL}/api/users/progression`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                const progJson = await progRes.json();
+
+                if (scenJson.success && progJson.success) {
+                    const allScenarios = scenJson.data.grouped || {};
+                    const completedIds = new Set(
+                        (progJson.data.missionArchive || [])
+                            .filter(m => m.missionCompleted)
+                            .map(m => m.scenarioId)
+                    );
+
+                    const bruteScenarios = allScenarios['brute_force'] || allScenarios['bruteforce'] || [];
+                    const nextBrute = bruteScenarios.find(s => !completedIds.has(s.scenario_id));
+                    setBruteForceMission(nextBrute || null);
+
+                    const scriptScenarios = allScenarios['suspicious_script'] || allScenarios['script'] || [];
+                    const nextScript = scriptScenarios.find(s => !completedIds.has(s.scenario_id));
+                    setScriptMission(nextScript || null);
+                }
+            } catch (err) {
+                console.error("Failed to load active vectors:", err);
+            }
+        };
+        loadMissions();
+    }, [token]);
     // --- Kinetic Animation Variants ---
     const staggerContainer = {
         hidden: { opacity: 0 },
@@ -69,7 +114,7 @@ export default function Dashboard() {
                                     CURRENT_LEVEL
                                 </div>
                                 <h2 className="text-9xl md:text-[14rem] font-black italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-[8px_8px_0px_rgba(255,0,60,0.8)]">
-                                    42
+                                    {progression?.identity?.level || 1}
                                 </h2>
                             </div>
 
@@ -80,13 +125,14 @@ export default function Dashboard() {
                                         <span className="text-white/40">NEXT_UNLOCK: CLOAKING_RIG</span>
                                         <span className="text-lg text-white">XP_PROGRESSION</span>
                                     </div>
-                                    <span className="text-xl">14,200 <span className="text-white/30">/ 16,000 XP</span></span>
+                                    <span className="text-xl">{progression?.identity?.xp || 0} <span className="text-white/30">/ {(progression?.identity?.level || 1) * 1000} XP</span></span>
                                 </div>
 
                                 {/* Slanted Bar Container */}
                                 <div className="h-12 bg-[#0A0A0A] relative overflow-hidden skew-x-[-15deg] border-b-2 border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
                                     {/* The Fill */}
-                                    <div className="h-full bg-gradient-to-r from-[#FF003C] to-[#FF003C]/80 w-[88%] shadow-[0_0_30px_#FF003C] relative overflow-hidden flex items-center border-r-4 border-white">
+                                    <div className="h-full bg-gradient-to-r from-[#FF003C] to-[#FF003C]/80 shadow-[0_0_30px_#FF003C] relative overflow-hidden flex items-center border-r-4 border-white"
+                                         style={{ width: `${Math.min(100, Math.max(0, ((progression?.identity?.xp || 0) / ((progression?.identity?.level || 1) * 1000)) * 100))}%` }}>
                                         {/* Scanline effect */}
                                         <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[scan_2s_ease-in-out_infinite]"></div>
                                     </div>
@@ -131,13 +177,18 @@ export default function Dashboard() {
                                         <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
                                             <div>
                                                 <p className="font-mono font-bold text-[#00FFFF] text-[10px] tracking-[0.2em] mb-2 uppercase">NODE_EXPLOITATION</p>
-                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">Ghost in the Shell</h4>
-                                                <p className="text-white/50 font-sans text-sm leading-relaxed font-medium">Breach the secondary firewall of the Neo-Saito mainframe. Recover encrypted blueprints for the X-4 interceptor before the trace completes.</p>
+                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">
+                                                    {bruteForceMission ? bruteForceMission.title : "NO NEW MISSIONS"}
+                                                </h4>
                                             </div>
-                                            <button className="mt-8 w-full bg-white text-black font-black italic text-xl py-4 skew-x-[-10deg] group-hover:bg-[#FF003C] group-hover:text-white transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
-                                                <span className="skew-x-[10deg] uppercase tracking-tighter">EXECUTE BREACH</span>
-                                                <span className="skew-x-[10deg] material-symbols-outlined text-3xl">arrow_forward</span>
-                                            </button>
+                                            {bruteForceMission && (
+                                                <button 
+                                                    onClick={() => navigate(`/briefing/${bruteForceMission.scenario_id}?mode=free&type=${bruteForceMission.type}`)}
+                                                    className="mt-8 w-full bg-white text-black font-black italic text-xl py-4 skew-x-[-10deg] group-hover:bg-[#FF003C] group-hover:text-white transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
+                                                    <span className="skew-x-[10deg] uppercase tracking-tighter">EXECUTE BREACH</span>
+                                                    <span className="skew-x-[10deg] material-symbols-outlined text-3xl">arrow_forward</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -163,13 +214,18 @@ export default function Dashboard() {
                                         <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
                                             <div>
                                                 <p className="font-mono font-bold text-white/40 text-[10px] tracking-[0.2em] mb-2 uppercase">SIGNAL_INTERCEPT</p>
-                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">Static Frequency</h4>
-                                                <p className="text-white/50 font-sans text-sm leading-relaxed font-medium">Decode the sub-surface signal emitting from abandoned satellite station 7. Isolate the noise.</p>
+                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">
+                                                    {scriptMission ? scriptMission.title : "NO NEW MISSIONS"}
+                                                </h4>
                                             </div>
-                                            <button className="mt-8 w-full bg-transparent ring-2 ring-white/10 text-white font-black italic text-xl py-4 skew-x-[-10deg] group-hover:ring-[#00FFFF] group-hover:bg-[#00FFFF]/10 group-hover:text-[#00FFFF] transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
-                                                <span className="skew-x-[10deg] uppercase tracking-tighter">ANALYZE FEED</span>
-                                                <span className="skew-x-[10deg] material-symbols-outlined text-3xl">analytics</span>
-                                            </button>
+                                            {scriptMission && (
+                                                <button 
+                                                    onClick={() => navigate(`/briefing/${scriptMission.scenario_id}?mode=free&type=${scriptMission.type}`)}
+                                                    className="mt-8 w-full bg-transparent ring-2 ring-white/10 text-white font-black italic text-xl py-4 skew-x-[-10deg] group-hover:ring-[#00FFFF] group-hover:bg-[#00FFFF]/10 group-hover:text-[#00FFFF] transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
+                                                    <span className="skew-x-[10deg] uppercase tracking-tighter">ANALYZE FEED</span>
+                                                    <span className="skew-x-[10deg] material-symbols-outlined text-3xl">analytics</span>
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </motion.div>

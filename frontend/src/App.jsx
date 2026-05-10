@@ -2,6 +2,7 @@ import React from 'react';
 import '@xterm/xterm/css/xterm.css';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProgressionProvider } from './context/ProgressionContext';
 import LandingPage from './pages/LandingPage/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import RegisterPage from './pages/RegisterPage/RegisterPage';
@@ -26,7 +27,8 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <ProgressionProvider>
+        <Router>
         <div className="App">
           <Routes>
             {/* ── Public routes ──────────────────────────── */}
@@ -86,7 +88,8 @@ function App() {
             } />
           </Routes>
         </div>
-      </Router>
+        </Router>
+      </ProgressionProvider>
     </AuthProvider>
   );
 }
