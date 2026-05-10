@@ -6,7 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
-
+frontend/src/pages/GamingEnvironment/*
 frontend/node_modules
 frontend/.env
 backend/node_modules
@@ -25,3 +25,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+

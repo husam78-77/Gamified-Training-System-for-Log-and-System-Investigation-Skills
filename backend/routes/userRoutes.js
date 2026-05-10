@@ -4,8 +4,9 @@ const userController = require('../controllers/userController');
 const verifyToken = require('../middleware/authMiddleware');
 
 // GET /api/users/profile
-// Protected route: Requires a valid JWT token
 router.get('/profile', verifyToken, userController.getProfile);
-// Post
+// GET /api/users/progression — full investigator progression data for the Progress page
+router.get('/progression', verifyToken, userController.getProgression);
+// POST /api/users/change-password
 router.post('/change-password', verifyToken, userController.changePassword);
 module.exports = router;

@@ -6,19 +6,19 @@
  * Receives state: { scenario_id, mode }
  *
  * Hook wiring:
- *   useSession     → session lifecycle, timer, abandon/complete
- *   useTerminal    → xterm.js, command execution, file system
- *   useObjectives  → objective state, step progress tracking
- *   useHint        → AI oracle, hint log, limit tracking
+ * useSession     → session lifecycle, timer, abandon/complete
+ * useTerminal    → xterm.js, command execution, file system
+ * useObjectives  → objective state, step progress tracking
+ * useHint        → AI oracle, hint log, limit tracking
  *
  * Path: frontend/src/pages/GamingEnvironment/GamingEnvironment.jsx
  */
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { fetchFullScenarioData } from '../../services/scenarioService';
-import { useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { useSession } from '../../hooks/useSession';
 import { useTerminal } from '../../hooks/useTerminal';
@@ -30,7 +30,23 @@ import ObjectivesPanel from '../../components/ObjectivesPanel';
 import HintPanel from '../../components/HintPanel';
 import TimerDisplay from '../../components/TimerDisplay';
 
-import './GamingEnvironment.css';
+// --- Kinetic Animation Variants ---
+const staggerContainer = {
+    hidden: { opacity: 0 },
+    show: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.1 } }
+};
+const slamLeft = {
+    hidden: { opacity: 0, x: -40, skewX: "5deg" },
+    show: { opacity: 1, x: 0, skewX: "0deg", transition: { type: "spring", stiffness: 350, damping: 25 } }
+};
+const slamRight = {
+    hidden: { opacity: 0, x: 40, skewX: "-5deg" },
+    show: { opacity: 1, x: 0, skewX: "0deg", transition: { type: "spring", stiffness: 350, damping: 25 } }
+};
+const slamUp = {
+    hidden: { opacity: 0, y: 40, scale: 0.98 },
+    show: { opacity: 1, y: 0, scale: 1, transition: { type: "spring", stiffness: 350, damping: 25 } }
+};
 
 export default function GamingEnvironment() {
     const navigate = useNavigate();
@@ -38,6 +54,7 @@ export default function GamingEnvironment() {
     const mode = searchParams.get('mode') || 'free';
     const { token } = useAuth();
     const { scenario_id } = useParams();
+
     // ── Scenario data state — populated when backend assigns a scenario ────
     const [scenarioData, setScenarioData] = useState(null);
     const [scenarioLoading, setScenarioLoading] = useState(true);
@@ -55,7 +72,6 @@ export default function GamingEnvironment() {
     const [hasNewDiscovery, setHasNewDiscovery] = useState(false);
 
     // ── Called by useSession when backend assigns a scenario ──────────────
-    // This is the ONLY way scenario_id enters the frontend — from the backend
     const handleScenarioAssigned = useCallback(async (scenario) => {
         setAssignedId(scenario.scenario_id);
         setScenarioLoading(true);
@@ -70,12 +86,12 @@ export default function GamingEnvironment() {
         }
     }, [token]);
 
-    // ── SESSION HOOK — backend assigns scenario, fires handleScenarioAssigned
+    // ── SESSION HOOK ──────────────────────────────────────────────────────
     const session = useSession(mode, token, handleScenarioAssigned, scenario_id);
+
     // ── OBJECTIVES HOOK ───────────────────────────────────────────────────
     const objectives = useObjectives(scenarioData?.objectives || []);
 
-    // ── Stable callback refs — never recreated, prevent render loops ────────
     const objectivesRef = useRef(null);
     objectivesRef.current = objectives;
 
@@ -92,18 +108,19 @@ export default function GamingEnvironment() {
 
     const handleObjectivesUpdated = useCallback((completedIds) => {
         objectivesRef.current?.markObjectivesCompleted(completedIds);
-    }, []); // Empty deps — uses ref internally
+    }, []);
 
     const handleFilesRevealed = useCallback((newFiles) => {
         const now = new Date();
         const fmt = (d) => d.toTimeString().slice(0, 8);
         const paths = newFiles.map(f => f.file_path);
-        // Track for CSS reveal animation
+
         setNewlyRevealedFilePaths(prev => {
             const next = new Set(prev);
             paths.forEach(p => next.add(p));
             return next;
         });
+
         newFiles.forEach(f => {
             setSystemLogs(prev => [...prev, {
                 time: fmt(now),
@@ -112,7 +129,7 @@ export default function GamingEnvironment() {
                 sub: 'New evidence accessible',
             }]);
         });
-        // Clear highlight after animation finishes
+
         setTimeout(() => {
             setNewlyRevealedFilePaths(prev => {
                 const next = new Set(prev);
@@ -129,35 +146,34 @@ export default function GamingEnvironment() {
             ...prev,
             ...newDiscoveries.map(d => ({ ...d, at: fmt(now) })),
         ]);
+
         setSystemLogs(prev => {
             const entries = newDiscoveries.flatMap(d => {
                 const sev = d.severity_level || (d.is_critical ? 'confirmation' : 'awareness');
                 const logs = [{
-                    time:     fmt(now),
-                    message:  `DISCOVERY: ${d.title}`,
-                    type:     'discovery',
+                    time: fmt(now),
+                    message: `DISCOVERY: ${d.title}`,
+                    type: 'discovery',
                     severity: sev,
-                    sub:      d.description ? d.description.slice(0, 70) : null,
+                    sub: d.description ? d.description.slice(0, 70) : null,
                 }];
-                // ARIA correlation feedback surfaced for high-severity findings only
                 if (sev === 'analysis' || (sev === 'confirmation' && d.is_critical)) {
                     logs.push({
-                        time:    fmt(now),
+                        time: fmt(now),
                         message: '[ARIA] Correlation confidence increasing...',
-                        type:    'aria',
+                        type: 'aria',
                     });
                 }
                 return logs;
             });
             return [...prev, ...entries];
         });
+
         setHasNewDiscovery(true);
         setTimeout(() => setHasNewDiscovery(false), 1500);
     }, []);
 
     // ── HINT HOOK ─────────────────────────────────────────────────────────
-    // Initialised BEFORE useTerminal so consumeAutoHint is available
-    // when we pass it down as onAutoHint below.
     const hint = useHint(session.sessionId, token);
 
     // ── TERMINAL HOOK ─────────────────────────────────────────────────────
@@ -172,19 +188,16 @@ export default function GamingEnvironment() {
         onDiscovery: handleDiscovery,
     });
 
-    // ── Auto-complete when all required objectives done ───────────────────
     useEffect(() => {
         if (objectives.allRequiredComplete && session.isActive) {
             terminal.writeToTerminal(
                 '\x1b[32m[SYSTEM] All objectives complete. Mission ready to finalize.\x1b[0m'
             );
         }
-    }, [objectives.allRequiredComplete]);
+    }, [objectives.allRequiredComplete, session.isActive, terminal]);
 
-    // ── Session completed → navigate to results ───────────────────────────
     useEffect(() => {
         if (session.isCompleted && session.evaluation) {
-            // Brief delay so user sees the terminal complete message
             const timer = setTimeout(() => {
                 navigate('/mission', {
                     state: { evaluation: session.evaluation },
@@ -192,21 +205,18 @@ export default function GamingEnvironment() {
             }, 3000);
             return () => clearTimeout(timer);
         }
-    }, [session.isCompleted, session.evaluation]);
+    }, [session.isCompleted, session.evaluation, navigate]);
 
-    // ── Session abandoned → navigate away immediately ─────────────────────
     useEffect(() => {
         if (session.isAbandoned) {
             navigate('/mission', { replace: true });
         }
-    }, [session.isAbandoned]);
+    }, [session.isAbandoned, navigate]);
 
-    // ── Exit button handler ───────────────────────────────────────────────
     const handleExitClick = () => {
         if (mode === 'timed') {
-            setShowExitModal(true); // Show warning
+            setShowExitModal(true);
         } else {
-            // Free mode — just complete (saves partial progress)
             session.complete();
         }
     };
@@ -216,18 +226,17 @@ export default function GamingEnvironment() {
         await session.abandon();
     };
 
-    // ── System logs state — updated live as steps are matched ───────────
+    // ── System logs state ─────────────────────────────────────────────────
     const [systemLogs, setSystemLogs] = useState([]);
 
-    // Initialize system logs once scenario data loads
     useEffect(() => {
         if (!scenarioData?.scenario) return;
         setSystemLogs(buildSystemLogs(terminal.virtualFiles, scenarioData.scenario));
-    }, [scenarioData?.scenario?.scenario_id]);
+    }, [scenarioData?.scenario?.scenario_id, terminal.virtualFiles]);
 
 
-    // ── Loading screen ────────────────────────────────────────────────────
-    if (scenarioLoading || session.isLoading && !session.sessionId) {
+    // ── Loading & Error Screens ───────────────────────────────────────────
+    if (scenarioLoading || (session.isLoading && !session.sessionId)) {
         return <BootScreen />;
     }
 
@@ -236,11 +245,17 @@ export default function GamingEnvironment() {
     }
 
     return (
-        <div className="gaming-env-wrapper font-body selection:bg-primary selection:text-white">
-            <div className="fixed inset-0 bg-noise z-50 pointer-events-none"></div>
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white overflow-hidden relative">
 
-            {/* ── HUD: Top Right — Timer ─────────────────────────────────── */}
-            <div className="fixed top-8 right-8 z-40 flex flex-col items-end gap-2">
+            {/* ── BACKGROUND VOID ───────────────────────────────────────── */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
+                <div className="fixed inset-0 z-[60] pointer-events-none opacity-[0.05]" style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,1) 2px, rgba(0,0,0,1) 4px)' }}></div>
+            </div>
+
+            {/* ── HUD OVERLAYS ──────────────────────────────────────────── */}
+            <div className="fixed top-6 right-6 z-40 flex flex-col items-end gap-2 drop-shadow-[0_0_15px_rgba(0,0,0,0.8)]">
                 <TimerDisplay
                     formattedTime={session.formattedTime}
                     timeRemaining={session.timeRemaining}
@@ -248,55 +263,49 @@ export default function GamingEnvironment() {
                 />
             </div>
 
-            {/* ── HUD: Bottom Left — Exit ───────────────────────────────── */}
-            <div className="fixed bottom-8 left-8 z-40">
+            <div className="fixed bottom-6 left-6 z-40">
                 <button
                     onClick={handleExitClick}
                     disabled={session.isLoading}
-                    className="group flex items-center gap-4 bg-surface-container-high/50 border border-white/5 px-8 py-3 skew-x-[-12deg] hover:bg-[#FF003C] transition-all duration-300 disabled:opacity-50"
+                    className="group flex items-center gap-4 bg-[#0A0A0A] border border-[#FF003C]/30 px-8 py-4 skew-x-[-12deg] hover:bg-[#FF003C] hover:text-black transition-all duration-300 shadow-[6px_6px_0px_#050505] disabled:opacity-50"
                 >
-                    <span className="material-symbols-outlined text-[#FF003C] group-hover:text-black transition-colors">
-                        logout
-                    </span>
-                    <span className="font-label font-bold text-on-surface group-hover:text-black transition-colors tracking-widest">
-                        EXIT_SESSION
-                    </span>
+                    <span className="skew-x-[12deg] material-symbols-outlined text-[#FF003C] group-hover:text-black transition-colors">logout</span>
+                    <span className="skew-x-[12deg] font-black italic text-lg tracking-widest uppercase">EXIT_SESSION</span>
                 </button>
             </div>
 
-            {/* ── HUD: Bottom Right — Complete mission button ───────────── */}
             {objectives.allRequiredComplete && session.isActive && (
-                <div className="fixed bottom-8 right-8 z-40">
+                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-6 right-6 z-40">
                     <button
                         onClick={session.complete}
-                        className="group flex items-center gap-3 bg-green-500/20 border border-green-500/40 px-6 py-3 skew-x-[-12deg] hover:bg-green-500 transition-all duration-300 animate-pulse"
+                        className="group flex items-center gap-4 bg-[#00FFFF] text-black px-8 py-4 skew-x-[-12deg] hover:bg-white transition-all duration-300 shadow-[0_0_30px_rgba(0,255,255,0.4)]"
                     >
-                        <span className="material-symbols-outlined text-green-400 group-hover:text-black transition-colors">
-                            check_circle
-                        </span>
-                        <span className="font-label font-bold text-green-400 group-hover:text-black transition-colors tracking-widest text-xs">
-                            FINALIZE_MISSION
-                        </span>
+                        <span className="skew-x-[12deg] material-symbols-outlined font-black">bolt</span>
+                        <span className="skew-x-[12deg] font-black italic text-lg tracking-widest uppercase">FINALIZE_MISSION</span>
                     </button>
-                </div>
+                </motion.div>
             )}
 
             {/* ── MAIN LAYOUT ───────────────────────────────────────────── */}
-            <main className="h-screen w-full flex p-4 gap-4 relative z-10">
+            <motion.main variants={staggerContainer} initial="hidden" animate="show" className="h-screen w-full flex p-6 gap-6 relative z-10 pt-20 pb-24">
 
-                {/* LEFT PANEL */}
-                <aside className="w-[19%] flex flex-col gap-4">
+                {/* LEFT PANEL: Logs & File System */}
+                <motion.aside variants={slamLeft} className="w-[20%] flex flex-col gap-6">
 
                     {/* SYSTEM LOGS */}
-                    <section className="flex-1 bg-surface-container-lowest/80 p-4 flex flex-col gap-4 overflow-hidden relative border-t border-l border-white/5">
-                        <div className="flex justify-between items-center border-b border-outline-variant/10 pb-2">
-                            <h2 className="font-label text-xs font-bold tracking-widest text-[#FF003C] flex items-center gap-2">
+                    <section
+                        className="flex-[3] bg-[#0A0A0A] flex flex-col overflow-hidden relative shadow-[10px_10px_0px_#050505] border border-white/5"
+                        style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)" }}
+                    >
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF003C] to-transparent"></div>
+                        <div className="flex justify-between items-center p-4 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
+                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">developer_board</span>
                                 SYSTEM_LOGS
                             </h2>
-                            <span className="text-[9px] text-[#FF003C]/60 font-label animate-pulse">LIVE_FEED</span>
+                            <span className="text-[8px] text-[#FF003C]/60 font-mono tracking-widest animate-pulse">LIVE_FEED</span>
                         </div>
-                        <div className="flex-1 font-label text-[10px] leading-relaxed overflow-y-auto space-y-3 opacity-90 custom-scrollbar">
+                        <div className="flex-1 font-mono text-[10px] leading-relaxed overflow-y-auto p-4 space-y-4 custom-scrollbar">
                             {systemLogs.map((log, i) => (
                                 <SystemLogEntry key={i} log={log} />
                             ))}
@@ -304,12 +313,14 @@ export default function GamingEnvironment() {
                     </section>
 
                     {/* FILE SYSTEM */}
-                    <section className="h-2/5 bg-surface-container-low/50 p-4 border-l-2 border-[#00EBF7]/20">
-                        <h2 className="font-label text-xs font-bold tracking-widest text-[#00EBF7] mb-4 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-[14px]">folder_zip</span>
-                            FILE_SYSTEM
-                        </h2>
-                        <div className="font-label text-xs space-y-1 text-[#00EBF7]/60 overflow-y-auto max-h-full custom-scrollbar">
+                    <section className="flex-[2] bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505]">
+                        <div className="p-4 border-b border-white/5">
+                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[14px]">folder_zip</span>
+                                FILE_SYSTEM
+                            </h2>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                             <FileTree
                                 files={terminal.virtualFiles}
                                 currentPath={terminal.currentPath}
@@ -318,11 +329,14 @@ export default function GamingEnvironment() {
                             />
                         </div>
                     </section>
-                </aside>
+                </motion.aside>
 
-                {/* CENTER: Terminal */}
-                <div className="flex-1 flex flex-col gap-2">
-                    <div className="w-full flex-1 relative min-h-0">
+                {/* CENTER: Terminal & Metadata */}
+                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-6">
+                    <div
+                        className="w-full flex-1 relative min-h-0 bg-[#0A0A0A] border border-[#FF003C]/20 shadow-[0_0_40px_rgba(255,0,60,0.05)]"
+                        style={{ clipPath: "polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)" }}
+                    >
                         <TerminalPanel
                             terminalRef={terminal.terminalRef}
                             currentPath={terminal.currentPath}
@@ -332,112 +346,99 @@ export default function GamingEnvironment() {
                         />
                     </div>
 
-                    {/* Scenario title strip */}
-                    <div className="flex items-center justify-between px-4 py-2 bg-surface-container-lowest/60 border border-white/5 flex-shrink-0">
+                    {/* Scenario Metadata Strip */}
+                    <div className="flex items-center justify-between px-6 py-4 bg-[#0A0A0A] border border-white/5 shadow-[5px_5px_0px_#050505]">
                         <div className="flex items-center gap-4">
-                            <div className="w-2 h-2 bg-[#FF003C] animate-pulse"></div>
-                            <span className="font-label text-[10px] text-white/40 tracking-widest uppercase">
-                                {scenarioData?.scenario?.title || 'LOADING...'}
+                            <div className="w-2 h-2 bg-[#00FFFF] animate-pulse shadow-[0_0_8px_#00FFFF]"></div>
+                            <span className="font-mono text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
+                                {scenarioData?.scenario?.title || 'AWAITING_DATA...'}
                             </span>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
-                                MODE: {mode?.toUpperCase()}
-                            </span>
-                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
-                                DIFF: {scenarioData?.scenario?.difficulty?.toUpperCase() || '—'}
-                            </span>
-                            <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
-                                STEPS: {objectives.completedCount}/{objectives.totalRequired}
-                            </span>
+                        <div className="flex items-center gap-6 font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase font-bold">
+                            <span>MODE: <span className="text-white">{mode}</span></span>
+                            <span>DIFF: <span className="text-white">{scenarioData?.scenario?.difficulty || '—'}</span></span>
+                            <span>STEPS: <span className="text-[#FF003C]">{objectives.completedCount}/{objectives.totalRequired}</span></span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
-                {/* RIGHT PANEL */}
-                <aside className="w-[19%] flex flex-col gap-4">
+                {/* RIGHT PANEL: Status, Hints, Objectives */}
+                <motion.aside variants={slamRight} className="w-[22%] flex flex-col gap-6">
 
                     {/* Operative status */}
-                    <section className="bg-surface-container-high/40 p-4 border-r-2 border-[#FF003C]/60">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="font-label text-[10px] font-bold tracking-widest text-[#FF003C]">
+                    <section
+                        className="bg-[#0A0A0A] p-5 border border-white/5 border-r-4 border-r-[#FF003C] shadow-[10px_10px_0px_#050505]"
+                        style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%)" }}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase">
                                 OPERATIVE_STATUS
                             </h2>
-                            <span className="material-symbols-outlined text-[#00EBF7] text-base">shield</span>
+                            <span className="material-symbols-outlined text-[#00FFFF] text-lg">shield</span>
                         </div>
-                        <div className="space-y-4">
-                            {/* Completion index */}
+                        <div className="space-y-6">
                             <div>
-                                <div className="flex justify-between text-[9px] font-label text-on-surface/40 mb-1">
+                                <div className="flex justify-between font-mono text-[9px] text-white/40 tracking-[0.2em] uppercase mb-2">
                                     <span>COMPLETION_INDEX</span>
-                                    <span className="text-[#FF003C]">{objectives.completionPercent}%</span>
+                                    <span className="text-[#FF003C] font-bold">{objectives.completionPercent}%</span>
                                 </div>
-                                <div className="h-1 bg-white/5 w-full">
+                                <div className="h-1 bg-white/10 w-full overflow-hidden">
                                     <div
-                                        className="h-full bg-[#FF003C] transition-all duration-700 relative"
+                                        className="h-full bg-[#FF003C] transition-all duration-700 relative shadow-[0_0_10px_#FF003C]"
                                         style={{ width: `${objectives.completionPercent}%` }}
-                                    >
-                                        <div className="absolute top-0 right-0 h-full w-1 bg-white animate-pulse"></div>
-                                    </div>
+                                    ></div>
                                 </div>
                             </div>
-
-                            {/* Session ID */}
-                            <div className="flex justify-between items-center bg-black/20 p-2">
-                                <div className="font-label">
-                                    <div className="text-[9px] text-on-surface/40">SESSION_ID</div>
-                                    <div className="text-xl font-bold text-[#00EBF7] tracking-tight">
-                                        {session.sessionId
-                                            ? String(session.sessionId).padStart(8, '0')
-                                            : '--------'
-                                        }
+                            <div className="bg-[#050505] p-3 border border-white/5 flex justify-between items-center">
+                                <div className="font-mono">
+                                    <div className="text-[8px] text-white/30 tracking-widest uppercase mb-1">SESSION_ID</div>
+                                    <div className="text-lg font-black italic text-[#00FFFF] tracking-tighter">
+                                        {session.sessionId ? String(session.sessionId).padStart(8, '0') : '--------'}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </section>
 
-                    {/* AI HINT PANEL */}
-                    <HintPanel
-                        latestHint={hint.latestHint}
-                        hints={hint.hints}
-                        hintsRemaining={hint.hintsRemaining}
-                        limitReached={hint.limitReached}
-                        isLoading={hint.isLoading}
-                        error={hint.error}
-                        onRequestHint={hint.getHint}
+                    {/* AI HINT PANEL (Assuming HintPanel handles its own internal styling, wrapping it in a tactical box) */}
+                    <div className="bg-[#0A0A0A] border border-white/5 shadow-[10px_10px_0px_#050505] flex-1 min-h-[200px] overflow-hidden">
+                        <HintPanel
+                            latestHint={hint.latestHint}
+                            hints={hint.hints}
+                            hintsRemaining={hint.hintsRemaining}
+                            limitReached={hint.limitReached}
+                            isLoading={hint.isLoading}
+                            error={hint.error}
+                            onRequestHint={hint.getHint}
+                        />
+                    </div>
+
+                    {/* OBJECTIVES PANEL (Assuming ObjectivesPanel handles its own styling, wrapping it) */}
+                    <div className="bg-[#0D0D0D] border border-white/5 shadow-[10px_10px_0px_#050505] flex-[2] overflow-hidden">
+                        <ObjectivesPanel
+                            objectives={objectives.objectives}
+                            completedCount={objectives.completedCount}
+                            totalRequired={objectives.totalRequired}
+                            completionPercent={objectives.completionPercent}
+                            secretObjectives={objectives.secretObjectives}
+                        />
+                    </div>
+
+                </motion.aside>
+            </motion.main>
+
+            {/* ── MODALS ────────────────────────────────────────────────── */}
+            <AnimatePresence>
+                {showExitModal && (
+                    <ExitModal
+                        onConfirm={handleConfirmAbandon}
+                        onCancel={() => setShowExitModal(false)}
                     />
-
-                    {/* OBJECTIVES PANEL */}
-                    <ObjectivesPanel
-                        objectives={objectives.objectives}
-                        completedCount={objectives.completedCount}
-                        totalRequired={objectives.totalRequired}
-                        completionPercent={objectives.completionPercent}
-                        secretObjectives={objectives.secretObjectives}
-                    />
-                </aside>
-            </main>
-
-            {/* ── SCANLINE OVERLAY ──────────────────────────────────────── */}
-            <div className="fixed inset-0 pointer-events-none z-[60] opacity-[0.06]"
-                style={{
-                    background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
-                }}
-            ></div>
-
-            {/* ── EXIT WARNING MODAL (timed mode) ──────────────────────── */}
-            {showExitModal && (
-                <ExitModal
-                    onConfirm={handleConfirmAbandon}
-                    onCancel={() => setShowExitModal(false)}
-                />
-            )}
-
-            {/* ── COMPLETION OVERLAY ────────────────────────────────────── */}
-            {session.isCompleted && (
-                <CompletionOverlay evaluation={session.evaluation} />
-            )}
+                )}
+                {session.isCompleted && (
+                    <CompletionOverlay evaluation={session.evaluation} />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
@@ -446,57 +447,49 @@ export default function GamingEnvironment() {
 // SUB-COMPONENTS
 // =============================================================================
 
-// Severity → visual treatment for discovery log entries
 const DISCOVERY_SEVERITY_STYLE = {
-    awareness:    { wrapper: 'p-2 bg-[#00EBF7]/05 border-l border-[#00EBF7]/40 log-discovery', text: 'text-[#00EBF7]/60' },
-    inspection:   { wrapper: 'p-2 bg-[#00EBF7]/08 border-l-2 border-[#00EBF7]/60 log-discovery', text: 'text-[#00EBF7]/80' },
-    confirmation: { wrapper: 'p-2 bg-[#00EBF7]/10 border-l-2 border-[#00EBF7] log-discovery',   text: 'text-[#00EBF7] font-bold' },
-    analysis:     { wrapper: 'p-2 bg-[#00EBF7]/15 border-l-4 border-[#00EBF7] log-discovery',   text: 'text-[#00EBF7] font-bold' },
+    awareness: { wrapper: 'border-l-2 border-[#00FFFF]/30 pl-3', text: 'text-[#00FFFF]/60' },
+    inspection: { wrapper: 'border-l-2 border-[#00FFFF]/60 pl-3', text: 'text-[#00FFFF]/80' },
+    confirmation: { wrapper: 'border-l-2 border-[#00FFFF] pl-3', text: 'text-[#00FFFF] font-bold' },
+    analysis: { wrapper: 'border-l-4 border-[#00FFFF] pl-3', text: 'text-[#00FFFF] font-bold drop-shadow-[0_0_5px_#00FFFF]' },
 };
 
 function SystemLogEntry({ log }) {
-    const isCritical  = log.type === 'critical';
+    const isCritical = log.type === 'critical';
     const isDiscovery = log.type === 'discovery';
-    const isAria      = log.type === 'aria';
+    const isAria = log.type === 'aria';
 
     if (isDiscovery) {
         const sev = log.severity || 'confirmation';
         const style = DISCOVERY_SEVERITY_STYLE[sev] || DISCOVERY_SEVERITY_STYLE.confirmation;
         return (
-            <div className={style.wrapper}>
-                <div className={`flex gap-2 text-[10px] ${style.text}`}>
-                    <span className="shrink-0">[{log.time}]</span>
+            <div className={`py-1 ${style.wrapper}`}>
+                <div className={`flex gap-3 text-[10px] uppercase tracking-widest ${style.text}`}>
+                    <span className="shrink-0 opacity-50">[{log.time}]</span>
                     <span>{log.message}</span>
                 </div>
                 {log.sub && (
-                    <div className="text-[9px] mt-1 ml-2 text-[#00EBF7]/60">{log.sub}</div>
+                    <div className="text-[9px] mt-1 text-[#00FFFF]/50 tracking-widest">{log.sub}</div>
                 )}
             </div>
         );
     }
 
     return (
-        <div className={
-            isCritical ? 'p-2 bg-[#FF003C]/10 border-l-2 border-[#FF003C]' :
-            isAria     ? 'flex gap-2 text-[#00EBF7]/30 italic' :
-                         'flex gap-2 text-[#00EBF7]/40'
-        }>
-            <div className={`flex gap-2 text-[10px] ${isCritical ? 'text-[#FF003C] font-bold' : ''}`}>
-                <span className="shrink-0">[{log.time}]</span>
-                <span className={isCritical ? '' : 'text-on-surface/80'}>{log.message}</span>
+        <div className={`py-1 ${isCritical ? 'border-l-2 border-[#FF003C] pl-3 bg-[#FF003C]/5' : isAria ? 'pl-3 italic' : 'pl-3'}`}>
+            <div className={`flex gap-3 text-[10px] tracking-widest uppercase ${isCritical ? 'text-[#FF003C] font-bold' : isAria ? 'text-[#00FFFF]/50' : 'text-white/40'}`}>
+                <span className="shrink-0 opacity-50">[{log.time}]</span>
+                <span>{log.message}</span>
             </div>
             {log.sub && (
-                <div className="text-[9px] mt-1 ml-2 text-[#FF003C]/70">{log.sub}</div>
+                <div className="text-[9px] mt-1 text-[#FF003C]/70 tracking-widest uppercase">{log.sub}</div>
             )}
         </div>
     );
 }
 
 function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths }) {
-    const norm = (p) => {
-        if (!p) return '/';
-        return p.replace(/\/+/g, '/').replace(/\/$/, '') || '/';
-    };
+    const norm = (p) => p ? p.replace(/\/+/g, '/').replace(/\/$/, '') || '/' : '/';
     const getParent = (p) => {
         const n = norm(p);
         if (n === '/') return '/';
@@ -505,21 +498,15 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
     };
 
     const discovered = discoveredPaths || new Set(['/']);
-
-    // Collect all unique directory paths
     const allDirs = new Set(['/']);
+
     (files || []).forEach(f => {
         if (!f.file_path) return;
         const parts = norm(f.file_path).split('/').filter(Boolean);
-        for (let i = 1; i <= parts.length - 1; i++) {
-            allDirs.add('/' + parts.slice(0, i).join('/'));
-        }
-        if (f.file_type === 'directory') {
-            allDirs.add(norm(f.file_path));
-        }
+        for (let i = 1; i <= parts.length - 1; i++) allDirs.add('/' + parts.slice(0, i).join('/'));
+        if (f.file_type === 'directory') allDirs.add(norm(f.file_path));
     });
 
-    // Build parent → children map
     const tree = {};
     allDirs.forEach(dir => {
         if (dir === '/') return;
@@ -527,6 +514,7 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
         if (!tree[parent]) tree[parent] = { dirs: [], files: [] };
         if (!tree[parent].dirs.includes(dir)) tree[parent].dirs.push(dir);
     });
+
     (files || []).forEach(f => {
         if (!f.file_path || f.file_type === 'directory') return;
         const parent = getParent(norm(f.file_path));
@@ -543,48 +531,34 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
 
         return (
             <div key={path}>
-                <div
-                    className={`flex items-center gap-1.5 py-0.5 text-[10px] ${isCurrent ? 'text-[#FF003C]' : 'text-[#00EBF7]/70'
-                        }`}
-                    style={{ paddingLeft: `${indent + 4}px` }}
-                >
-                    <span className="material-symbols-outlined text-[12px]"
-                        style={{ fontVariationSettings: "'FILL' 1" }}>
+                <div className={`flex items-center gap-2 py-1 font-mono text-[10px] uppercase tracking-widest ${isCurrent ? 'text-[#00FFFF] font-bold bg-[#00FFFF]/10' : 'text-white/40'}`} style={{ paddingLeft: `${indent + 8}px` }}>
+                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                         {isCurrent ? 'folder_open' : 'folder'}
                     </span>
-                    <span className={isCurrent ? 'font-bold' : ''}>{name}</span>
-                    {isCurrent && (
-                        <span className="text-[#FF003C]/40 text-[8px] ml-1">← here</span>
-                    )}
+                    <span>{name}</span>
+                    {isCurrent && <span className="text-[#00FFFF]/50 text-[8px] ml-2 animate-pulse">←_ACTIVE</span>}
                 </div>
 
-                <div style={{ marginLeft: `${indent + 10}px` }}
-                    className="border-l border-white/5">
+                <div style={{ marginLeft: `${indent + 14}px` }} className="border-l border-white/10 mt-1 mb-1">
                     {children.dirs.map(d => renderNode(d, depth + 1))}
                     {children.files.map(f => {
                         const fp = norm(f.file_path);
                         if (!discovered.has(fp)) return null;
-                        const fname       = f.file_name || fp.split('/').pop();
-                        const isLog       = f.file_type === 'log' || fname.endsWith('.log');
-                        const isScript    = fname.endsWith('.sh') || fname.endsWith('.py');
-                        const isRevealed  = newlyRevealedFilePaths?.has(f.file_path);
+                        const fname = f.file_name || fp.split('/').pop();
+                        const isLog = f.file_type === 'log' || fname.endsWith('.log');
+                        const isScript = fname.endsWith('.sh') || fname.endsWith('.py');
+                        const isRevealed = newlyRevealedFilePaths?.has(f.file_path);
                         const isMalicious = f.evidence_tags?.some(t => ['malicious', 'malware'].includes(t));
-                        const topTag      = f.evidence_tags?.[0];
+                        const topTag = f.evidence_tags?.[0];
+
                         return (
-                            <div key={f.virtual_file_id}
-                                className={`flex items-center gap-1.5 py-0.5 text-[10px] pl-2 ${
-                                    isRevealed  ? 'file-revealed' :
-                                    isMalicious ? 'text-[#FF003C]/70' :
-                                    isLog       ? 'text-yellow-400/60' :
-                                    isScript    ? 'text-[#FF003C]/60' :
-                                                  'text-[#00EBF7]/50'
-                                }`}>
-                                <span className="material-symbols-outlined text-[11px]">
+                            <div key={f.virtual_file_id} className={`flex items-center gap-2 py-1 pl-3 font-mono text-[10px] tracking-widest transition-all ${isRevealed ? 'text-black bg-[#00FFFF] font-bold' : isMalicious ? 'text-[#FF003C]' : isLog ? 'text-yellow-500/80' : isScript ? 'text-[#00FFFF]/80' : 'text-white/50'}`}>
+                                <span className="material-symbols-outlined text-[12px]">
                                     {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}
                                 </span>
                                 <span className="truncate">{fname}</span>
                                 {topTag && (
-                                    <span className={`evidence-tag ${isMalicious ? 'evidence-tag-malicious' : ''}`}>
+                                    <span className={`text-[8px] px-1.5 py-0.5 border ${isMalicious ? 'border-[#FF003C] text-[#FF003C] bg-[#FF003C]/10' : 'border-white/20 text-white/40'}`}>
                                         {topTag}
                                     </span>
                                 )}
@@ -597,48 +571,39 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
     };
 
     return (
-        <div className="space-y-0.5">
+        <div className="space-y-1">
             {renderNode('/')}
             {discovered.size <= 1 && (
-                <div className="text-white/15 text-[9px] italic mt-2 pl-2">
-                    Navigate to reveal the filesystem...
+                <div className="font-mono text-[9px] text-[#00FFFF]/40 uppercase tracking-widest mt-4 pl-4 animate-pulse">
+                    AWAITING_SYSTEM_NAVIGATION...
                 </div>
             )}
         </div>
     );
 }
 
-
 function ExitModal({ onConfirm, onCancel }) {
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-            <div className="bg-surface-container-high border-l-8 border-[#FF003C] p-10 max-w-md w-full mx-4 relative">
-                <div className="absolute -top-3 -left-3 bg-[#FF003C] px-3 py-1 font-label text-[10px] font-black text-black tracking-widest">
-                    WARNING
-                </div>
-                <h2 className="font-headline text-3xl font-black italic text-[#FF003C] uppercase mb-4">
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/90 backdrop-blur-md">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#0A0A0A] border border-[#FF003C]/30 p-12 max-w-lg w-full relative shadow-[20px_20px_0px_rgba(255,0,60,0.15)]" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)" }}>
+                <div className="absolute top-0 right-0 w-32 h-2 bg-[#FF003C]"></div>
+
+                <h2 className="text-4xl font-black italic text-[#FF003C] uppercase mb-6 tracking-tighter skew-x-[-5deg]">
                     ABORT_SESSION?
                 </h2>
-                <p className="font-body text-zinc-300 leading-relaxed mb-8">
-                    You are in <span className="text-[#FF003C] font-bold">TIMED MODE</span>. Exiting now will
-                    discard all progress and award no score or XP for this session.
+                <p className="font-sans text-white/70 leading-relaxed mb-10">
+                    You are in <span className="text-[#FF003C] font-bold">TIMED MODE</span>. Terminating the uplink now will discard all temporary data. No score or XP will be awarded for this session.
                 </p>
-                <div className="flex gap-4">
-                    <button
-                        onClick={onConfirm}
-                        className="flex-1 bg-[#FF003C] text-black font-headline font-black italic py-4 text-lg uppercase tracking-widest hover:bg-white transition-colors"
-                    >
-                        ABANDON
+                <div className="flex flex-col gap-4">
+                    <button onClick={onConfirm} className="w-full bg-[#FF003C] text-black font-black italic py-5 text-xl uppercase tracking-tighter skew-x-[-10deg] hover:bg-white transition-all shadow-[8px_8px_0px_#050505]">
+                        <span className="skew-x-[10deg] block">CONFIRM ABANDON</span>
                     </button>
-                    <button
-                        onClick={onCancel}
-                        className="flex-1 border-2 border-[#00EBF7] text-[#00EBF7] font-headline font-black italic py-4 text-lg uppercase tracking-widest hover:bg-[#00EBF7]/10 transition-colors"
-                    >
-                        CONTINUE
+                    <button onClick={onCancel} className="w-full bg-transparent border-2 border-white/20 text-white font-black italic py-4 text-lg uppercase tracking-tighter skew-x-[-10deg] hover:border-[#00FFFF] hover:text-[#00FFFF] hover:bg-[#00FFFF]/10 transition-all">
+                        <span className="skew-x-[10deg] block">RESUME OPERATION</span>
                     </button>
                 </div>
-            </div>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -647,68 +612,64 @@ function CompletionOverlay({ evaluation }) {
     const xp = evaluation?.xpAwarded ?? 0;
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md">
-            <div className="text-center space-y-6">
-                <div className="font-headline text-8xl font-black italic text-[#00EBF7] animate-pulse">
-                    MISSION_COMPLETE
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/95 backdrop-blur-xl">
+            <div className="text-center flex flex-col items-center">
+                <motion.div initial={{ scale: 1.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }} className="font-black text-[8rem] md:text-[12rem] italic text-transparent bg-clip-text bg-gradient-to-b from-white to-white/20 uppercase tracking-tighter leading-none skew-x-[-8deg] drop-shadow-[10px_10px_0px_rgba(0,255,255,0.2)] mb-4">
+                    CLEARED
+                </motion.div>
+
+                <div className="bg-[#0A0A0A] border border-[#00FFFF]/30 p-8 shadow-[15px_15px_0px_#050505] skew-x-[-5deg] min-w-[400px]">
+                    <div className="font-mono text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
+                        FINAL_EVALUATION
+                    </div>
+                    <div className="font-black italic text-7xl text-white skew-x-[5deg] mb-2">
+                        {score}<span className="text-3xl text-white/30">/100</span>
+                    </div>
+                    <div className="font-mono text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
+                        +{xp} XP AWARDED
+                    </div>
                 </div>
-                <div className="font-headline text-6xl font-black text-white">
-                    {score}<span className="text-[#FF003C]">/100</span>
-                </div>
-                <div className="font-label text-[#00EBF7] text-lg tracking-widest">
-                    +{xp} XP AWARDED
-                </div>
-                <div className="font-label text-zinc-500 text-sm tracking-widest animate-pulse">
-                    Returning to mission hub...
+
+                <div className="mt-12 font-mono text-[10px] text-white/40 tracking-[0.4em] uppercase font-bold animate-pulse">
+                    RE-ESTABLISHING HUB UPLINK...
                 </div>
             </div>
-        </div>
+        </motion.div>
     );
 }
 
 function BootScreen() {
     return (
-        <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-6">
-            <div className="flex gap-1.5">
+        <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center text-white">
+            <div className="flex gap-2 mb-8">
                 {[0, 1, 2, 3, 4].map(i => (
-                    <div
+                    <motion.div
                         key={i}
-                        className="w-1.5 h-8 bg-[#FF003C]"
-                        style={{
-                            animation: 'bootBar 0.8s ease-in-out infinite',
-                            animationDelay: `${i * 0.15}s`,
-                        }}
-                    ></div>
+                        animate={{ scaleY: [0.3, 1, 0.3], opacity: [0.3, 1, 0.3] }}
+                        transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.1 }}
+                        className="w-2 h-12 bg-[#FF003C] origin-bottom skew-x-[-10deg]"
+                    ></motion.div>
                 ))}
             </div>
-            <span className="font-label text-[11px] text-white/20 tracking-[0.5em] uppercase">
-                Initializing investigation environment...
+            <span className="font-mono font-bold text-[10px] text-[#FF003C] tracking-[0.5em] uppercase animate-pulse">
+                INITIALIZING_BREACH_PROTOCOL...
             </span>
-            <style>{`
-                @keyframes bootBar {
-                    0%, 100% { transform: scaleY(0.3); opacity: 0.3; }
-                    50%       { transform: scaleY(1);   opacity: 1;   }
-                }
-            `}</style>
         </div>
     );
 }
 
 function ErrorScreen({ error, onBack }) {
     return (
-        <div className="h-screen w-full bg-black flex flex-col items-center justify-center gap-6 p-8">
-            <span className="material-symbols-outlined text-[#FF003C] text-6xl">error</span>
-            <div className="font-headline text-3xl font-black italic text-[#FF003C] uppercase">
+        <div className="h-screen w-full bg-[#050505] flex flex-col items-center justify-center p-8 text-center">
+            <span className="material-symbols-outlined text-[#FF003C] text-[8rem] mb-6 drop-shadow-[0_0_30px_rgba(255,0,60,0.5)]">gpp_bad</span>
+            <div className="text-5xl font-black italic text-[#FF003C] uppercase tracking-tighter skew-x-[-5deg] mb-6">
                 SYSTEM_FAILURE
             </div>
-            <p className="font-label text-zinc-500 text-sm tracking-widest text-center max-w-sm">
+            <p className="font-mono text-xs text-white/60 tracking-[0.2em] uppercase max-w-lg leading-loose bg-white/5 p-6 border border-white/10 mb-10">
                 {error}
             </p>
-            <button
-                onClick={onBack}
-                className="font-label text-xs text-zinc-400 hover:text-white underline tracking-widest uppercase"
-            >
-                ← Return to base
+            <button onClick={onBack} className="bg-transparent border-2 border-white/20 text-white font-black italic py-4 px-10 text-xl uppercase tracking-tighter skew-x-[-10deg] hover:border-[#00FFFF] hover:text-[#00FFFF] hover:bg-[#00FFFF]/10 transition-all">
+                <span className="skew-x-[10deg] block">RETURN TO BASE</span>
             </button>
         </div>
     );

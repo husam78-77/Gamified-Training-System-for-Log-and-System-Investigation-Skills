@@ -1,4 +1,5 @@
 const userModel = require('../models/userModel');
+const progressionModel = require('../models/progressionModel');
 const response = require('../utils/responseHelper');
 const authService = require('../services/authService');
 
@@ -62,8 +63,22 @@ const changePassword = async (req, res) => {
     }
 };
 
-// Add to module.exports
+const getProgression = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const data = await progressionModel.getUserProgressionData(userId);
+        if (!data) {
+            return response.error(res, 404, 'OPERATIVE_NOT_FOUND');
+        }
+        return response.success(res, 200, 'Progression data retrieved', data);
+    } catch (err) {
+        console.error('getProgression error:', err);
+        return response.error(res, 500, 'SERVER_ERROR: Failed to fetch progression.');
+    }
+};
+
 module.exports = {
     getProfile,
     changePassword,
+    getProgression,
 };

@@ -1,0 +1,726 @@
+/* ================================================================
+   PROGRESS PAGE — Cinematic Cyber Investigator Interface
+   ================================================================ */
+
+/* ── Fonts (consistent with project) ──────────────────────────── */
+body { font-family: 'Inter', sans-serif; }
+.font-headline, .font-display { font-family: 'Epilogue', sans-serif; }
+.font-label  { font-family: 'Space Grotesk', sans-serif; }
+
+/* ── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 4px; }
+::-webkit-scrollbar-track { background: #131313; }
+::-webkit-scrollbar-thumb { background: #ffb3b2; }
+
+/* ── Legacy classes (kept for compatibility) ───────────────────── */
+.slashed-container { clip-path: polygon(0 0, 95% 0, 100% 10%, 100% 100%, 5% 100%, 0 90%); }
+.slashed-badge     { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+.glitch-subtle     { text-shadow: 2px 0 #ffb3b2, -2px 0 #00dbe9; }
+
+/* ================================================================
+   ANIMATIONS
+   ================================================================ */
+
+@keyframes pgXpFill {
+    from { width: 0%; }
+    to   { width: var(--xp-target, 0%); }
+}
+
+@keyframes pgShimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(200%);  }
+}
+
+@keyframes pgGlitch {
+    0%, 90%, 100% {
+        transform: skewX(-8deg) translateX(0);
+        clip-path: none;
+    }
+    91% { transform: skewX(-8deg) translateX(-3px); }
+    93% {
+        transform: skewX(-8deg) translateX(3px);
+        clip-path: polygon(0 18%, 100% 18%, 100% 82%, 0 82%);
+    }
+    95% { transform: skewX(-8deg) translateX(0); clip-path: none; }
+}
+
+@keyframes pgDotPulse {
+    0%, 100% { box-shadow: 0 0 6px #FF003C; opacity: 1; }
+    50%       { box-shadow: 0 0 14px #FF003C; opacity: 0.6; }
+}
+
+@keyframes pgNodeGlow {
+    0%, 100% { box-shadow: 0 0 10px rgba(0, 219, 233, 0.9), 0 0 20px rgba(0, 219, 233, 0.4); }
+    50%       { box-shadow: 0 0 20px rgba(0, 219, 233, 1),   0 0 40px rgba(0, 219, 233, 0.6); }
+}
+
+@keyframes pgFadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes pgAchieveIn {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1);   }
+}
+
+@keyframes pgLoadBar {
+    from { width: 0%;    }
+    to   { width: 100%;  }
+}
+
+@keyframes pgBlink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+}
+
+/* ================================================================
+   PAGE CANVAS
+   ================================================================ */
+
+.pg-canvas {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 4rem;
+}
+@media (min-width: 768px)  { .pg-canvas { padding: 3rem 3rem 6rem; } }
+@media (min-width: 1024px) { .pg-canvas { padding: 4rem 5rem 8rem; } }
+
+/* ================================================================
+   LOADING STATE
+   ================================================================ */
+
+.pg-loading-wrapper {
+    min-height: 100vh;
+    background: #0A0A0A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pg-loading-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.pg-loading-track {
+    width: 280px;
+    height: 2px;
+    background: #1c1b1b;
+    overflow: hidden;
+    clip-path: skewX(-15deg);
+}
+
+.pg-loading-bar {
+    height: 100%;
+    background: #FF003C;
+    box-shadow: 0 0 10px #FF003C;
+    animation: pgLoadBar 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.pg-loading-text {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    color: #FF003C;
+    text-transform: uppercase;
+}
+.pg-loading-text::after {
+    content: '█';
+    animation: pgBlink 0.7s step-end infinite;
+}
+
+/* ================================================================
+   SECTION STRUCTURE
+   ================================================================ */
+
+.pg-section-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.pg-section-title {
+    font-family: 'Epilogue', sans-serif;
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    color: #e5e2e1;
+    white-space: nowrap;
+}
+
+.pg-section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #353534, transparent);
+}
+
+/* ================================================================
+   HERO SECTION
+   ================================================================ */
+
+.pg-hero {
+    position: relative;
+    background: #131313;
+    clip-path: polygon(0 0, 97% 0, 100% 5%, 100% 100%, 3% 100%, 0 95%);
+    padding: 2.5rem 2.5rem 3rem;
+    overflow: hidden;
+    border-top: 1px solid rgba(255, 0, 60, 0.25);
+    margin-top: 1.5rem;
+    animation: pgFadeUp 0.6s ease both;
+}
+
+/* Corner glow */
+.pg-hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 45%;
+    height: 100%;
+    background: radial-gradient(ellipse at top right, rgba(255, 0, 60, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Scanlines overlay */
+.pg-scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.12) 2px,
+        rgba(0, 0, 0, 0.12) 4px
+    );
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Status pills */
+.pg-pulse-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #FF003C;
+    box-shadow: 0 0 8px #FF003C;
+    animation: pgDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+.pg-status-pill {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.85rem;
+    clip-path: skewX(-10deg);
+}
+
+.pg-status-active {
+    background: rgba(0, 219, 233, 0.08);
+    color: #00dbe9;
+    border: 1px solid rgba(0, 219, 233, 0.25);
+}
+
+.pg-status-training {
+    background: rgba(255, 0, 60, 0.08);
+    color: #FF003C;
+    border: 1px solid rgba(255, 0, 60, 0.25);
+}
+
+/* Username glitch */
+.pg-hero-username {
+    animation: pgGlitch 10s ease-in-out infinite;
+}
+
+/* XP container */
+.pg-xp-block {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 1.25rem 1.5rem;
+    clip-path: polygon(0 0, 100% 0, 100% 88%, 97% 100%, 0 100%);
+}
+
+/* XP fill bar — transitions driven by React state */
+.pg-xp-fill {
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        var(--rank-color, #FF003C) 0%,
+        rgba(255, 255, 255, 0.25) 100%
+    );
+    box-shadow: 0 0 16px var(--rank-color, #FF003C), 0 0 32px rgba(255, 0, 60, 0.25);
+    transition: width 1.6s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.pg-xp-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+    animation: pgShimmer 2.5s ease-in-out infinite;
+    will-change: transform;
+}
+
+/* ================================================================
+   METRICS GRID
+   ================================================================ */
+
+.pg-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.875rem;
+}
+@media (min-width: 768px)  { .pg-metrics-grid { grid-template-columns: repeat(4, 1fr); gap: 1rem; } }
+@media (min-width: 1280px) { .pg-metrics-grid { gap: 1.25rem; } }
+
+.pg-metric-card {
+    background: #131313;
+    padding: 1.375rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+    animation: pgFadeUp 0.5s ease both;
+}
+.pg-metric-card:hover { transform: translateY(-3px); }
+
+/* Top accent bar */
+.pg-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+}
+.pg-metric-primary::before {
+    background: #FF003C;
+    box-shadow: 0 2px 10px rgba(255, 0, 60, 0.5);
+}
+.pg-metric-secondary::before {
+    background: #00FFFF;
+    box-shadow: 0 2px 10px rgba(0, 255, 255, 0.4);
+}
+.pg-metric-primary:hover  { box-shadow: 0 6px 24px rgba(255, 0, 60, 0.12); }
+.pg-metric-secondary:hover{ box-shadow: 0 6px 24px rgba(0, 255, 255, 0.08); }
+
+.pg-metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.pg-metric-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(229, 226, 225, 0.35);
+    line-height: 1.4;
+}
+
+.pg-metric-icon {
+    font-size: 1.2rem;
+    opacity: 0.25;
+}
+.pg-metric-primary   .pg-metric-icon { color: #FF003C; }
+.pg-metric-secondary .pg-metric-icon { color: #00FFFF; }
+
+.pg-metric-value {
+    font-family: 'Epilogue', sans-serif;
+    font-size: clamp(1.6rem, 3vw, 2.25rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: #e5e2e1;
+    margin-top: 0.25rem;
+}
+
+.pg-metric-suffix {
+    font-size: 0.85rem;
+    color: rgba(229, 226, 225, 0.45);
+}
+
+.pg-metric-sub {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: rgba(229, 226, 225, 0.22);
+    margin-top: 0.1rem;
+}
+
+/* ================================================================
+   INVESTIGATION STYLE CARD
+   ================================================================ */
+
+.pg-style-card {
+    background: #131313;
+    padding: 2.25rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+    border-left: 3px solid #FF003C;
+    clip-path: polygon(0 0, 100% 0, 100% 93%, 96% 100%, 0 100%);
+    animation: pgFadeUp 0.5s ease both;
+}
+.pg-style-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 55%; height: 100%;
+    background: radial-gradient(ellipse at bottom right, rgba(255, 0, 60, 0.05) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.pg-trait-pill {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.8rem;
+    background: rgba(255, 0, 60, 0.07);
+    border: 1px solid rgba(255, 0, 60, 0.18);
+    color: rgba(229, 226, 225, 0.65);
+    clip-path: skewX(-8deg);
+    display: inline-block;
+}
+
+/* ================================================================
+   RANK CARD
+   ================================================================ */
+
+.pg-rank-card {
+    background: #131313;
+    padding: 2.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    border-top: 3px solid var(--rank-color, #FF003C);
+    position: relative;
+    overflow: hidden;
+    animation: pgFadeUp 0.5s ease both;
+}
+.pg-rank-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 75%; height: 75%;
+    background: radial-gradient(ellipse at top right, rgba(255, 0, 60, 0.06) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* ================================================================
+   ACHIEVEMENTS
+   ================================================================ */
+
+.pg-achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+}
+@media (min-width: 480px)  { .pg-achievements-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px)  { .pg-achievements-grid { grid-template-columns: repeat(4, 1fr); gap: 1.5rem; } }
+@media (min-width: 1280px) { .pg-achievements-grid { grid-template-columns: repeat(5, 1fr); } }
+
+.pg-achievement {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+    cursor: default;
+    transition: transform 0.25s ease;
+}
+.pg-achievement-unlocked:hover { transform: scale(1.06); }
+
+/* Hexagon shape */
+.pg-achievement-hex {
+    width: 5rem;
+    height: 5.75rem;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* Unlocked — alternating red fill / outlined */
+.pg-achievement-unlocked .pg-achievement-hex {
+    background: #FF003C;
+    box-shadow: 0 0 18px rgba(255, 0, 60, 0.5);
+    animation: pgAchieveIn 0.4s ease backwards;
+}
+.pg-achievement-unlocked:nth-child(even) .pg-achievement-hex {
+    background: #1c1b1b;
+    border: 2px solid #FF003C;
+    box-shadow: 0 0 14px rgba(255, 0, 60, 0.3);
+}
+.pg-achievement-unlocked:hover .pg-achievement-hex {
+    box-shadow: 0 0 30px rgba(255, 0, 60, 0.75);
+}
+
+/* Locked */
+.pg-achievement-locked .pg-achievement-hex {
+    background: #1c1b1b;
+    border: 1px dashed #353534;
+    filter: grayscale(1);
+    opacity: 0.35;
+}
+
+.pg-achievement-icon {
+    font-size: 1.9rem;
+}
+.pg-achievement-unlocked                  .pg-achievement-icon { color: #ffffff; }
+.pg-achievement-unlocked:nth-child(even)  .pg-achievement-icon { color: #FF003C; }
+.pg-achievement-locked                    .pg-achievement-icon { color: #353534; }
+
+.pg-achievement-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 1.5;
+}
+.pg-achievement-unlocked .pg-achievement-label { color: #e5e2e1; }
+.pg-achievement-locked   .pg-achievement-label { color: #353534; opacity: 0.4; }
+
+.pg-achievement-desc {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.58rem;
+    line-height: 1.45;
+    color: rgba(229, 226, 225, 0.35);
+    text-align: center;
+    max-width: 12ch;
+    display: none;
+}
+@media (min-width: 1024px) { .pg-achievement-desc { display: block; } }
+
+/* ================================================================
+   RANK MILESTONE TIMELINE
+   ================================================================ */
+
+/* Active row scale boost */
+.pg-tl-active-row { transform: scale(1.02); transform-origin: center; }
+
+/* Diamond nodes */
+.pg-tl-node-done {
+    background: #FF003C;
+    box-shadow: 0 0 10px rgba(255, 0, 60, 0.8);
+}
+
+.pg-tl-node-active {
+    background: #00dbe9;
+    box-shadow: 0 0 22px rgba(0, 219, 233, 1);
+    animation: pgNodeGlow 2s ease-in-out infinite;
+}
+
+.pg-tl-node-locked {
+    background: #2a2a2a;
+    border: 1px solid #353534;
+}
+
+/* Typography for timeline */
+.pg-tl-status-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
+.pg-tl-rank-name {
+    font-family: 'Epilogue', sans-serif;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 900;
+    font-style: italic;
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+}
+
+.pg-tl-xp-req {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(229, 226, 225, 0.25);
+    margin-bottom: 0.5rem;
+}
+
+.pg-tl-desc {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.65;
+    color: rgba(229, 226, 225, 0.55);
+    max-width: 34ch;
+}
+
+/* ================================================================
+   MISSION ARCHIVE
+   ================================================================ */
+
+.pg-archive-card {
+    background: #131313;
+    padding: 1.1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    border-left: 2px solid transparent;
+    transition: border-color 0.2s ease, background 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+}
+.pg-archive-card:hover {
+    border-left-color: #FF003C;
+    background: #1c1b1b;
+}
+.pg-archive-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 30%; height: 100%;
+    background: linear-gradient(to left, rgba(255, 0, 60, 0.03), transparent);
+    pointer-events: none;
+}
+
+@media (min-width: 768px) {
+    .pg-archive-card {
+        flex-direction: row;
+        align-items: center;
+        gap: 2rem;
+    }
+}
+
+.pg-archive-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.pg-archive-codename {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255, 0, 60, 0.65);
+    margin-bottom: 0.2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pg-archive-title {
+    font-family: 'Epilogue', sans-serif;
+    font-size: 1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    color: #e5e2e1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pg-archive-diff {
+    display: inline-block;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    margin-top: 0.3rem;
+    clip-path: skewX(-8deg);
+}
+.pg-diff-easy   { color: #86efac; background: rgba(134,239,172,0.08); border: 1px solid rgba(134,239,172,0.18); }
+.pg-diff-medium { color: #fde68a; background: rgba(253,230,138,0.08); border: 1px solid rgba(253,230,138,0.18); }
+.pg-diff-hard   { color: #FF003C; background: rgba(255,0,60,0.08);    border: 1px solid rgba(255,0,60,0.2);    }
+
+.pg-archive-stats {
+    display: flex;
+    gap: 1.25rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.pg-archive-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 2.75rem;
+}
+
+.pg-archive-stat-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.48rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(229, 226, 225, 0.28);
+}
+
+.pg-archive-stat-val {
+    font-family: 'Epilogue', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 900;
+    color: #e5e2e1;
+}
+
+.pg-archive-grade {
+    font-family: 'Epilogue', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    font-style: italic;
+}
+.pg-grade-S { color: #fbbf24; text-shadow: 0 0 10px rgba(251,191,36,0.6); }
+.pg-grade-A { color: #86efac; text-shadow: 0 0 8px rgba(134,239,172,0.4); }
+.pg-grade-B { color: #00dbe9; }
+.pg-grade-C { color: #fb923c; }
+.pg-grade-D { color: #FF003C; }
+
+.pg-archive-right { flex-shrink: 0; }
+
+.pg-op-badge {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.3rem 0.8rem;
+    clip-path: skewX(-10deg);
+}
+.pg-op-complete {
+    background: rgba(0, 219, 233, 0.08);
+    color: #00dbe9;
+    border: 1px solid rgba(0, 219, 233, 0.25);
+}
+.pg-op-partial {
+    background: rgba(255, 0, 60, 0.08);
+    color: #FF003C;
+    border: 1px solid rgba(255, 0, 60, 0.22);
+}

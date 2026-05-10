@@ -1,187 +1,269 @@
 import React from 'react';
-import './dashboard.css';
+import { motion } from 'framer-motion';
 
 export default function Dashboard() {
+    // --- Kinetic Animation Variants ---
+    const staggerContainer = {
+        hidden: { opacity: 0 },
+        show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.15, delayChildren: 0.1 }
+        }
+    };
+
+    const slamUp = {
+        hidden: { opacity: 0, y: 60, skewX: "15deg" },
+        show: { opacity: 1, y: 0, skewX: "0deg", transition: { type: "spring", stiffness: 350, damping: 25 } }
+    };
+
+    const slamDown = {
+        hidden: { opacity: 0, y: -40, skewX: "-10deg" },
+        show: { opacity: 1, y: 0, skewX: "0deg", transition: { type: "spring", stiffness: 350, damping: 25 } }
+    };
+
     return (
-        <div className="dashboard-wrapper font-body selection:bg-primary-container selection:text-white">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#00FFFF] selection:text-black overflow-hidden relative flex flex-col">
 
-            {/* Main Content Canvas */}
-            <main className="pt-8 pl-[288px] px-6 md:px-12 pb-16 overflow-x-hidden">
-                {/* Hero Progress Section */}
-                <section className="relative mb-20">
-                    <div className="flex flex-col md:flex-row items-end gap-8">
-                        <div className="relative">
-                            <h2 className="text-8xl md:text-[12rem] font-headline font-black italic leading-none text-[#FF003C] skew-x-[-10deg] drop-shadow-[10px_10px_0px_#00FFFF]">
-                                42
-                            </h2>
-                            <div className="absolute -top-4 -left-4 bg-white text-black px-4 py-1 font-headline font-bold skew-x-[-15deg]">
-                                LEVEL
+            {/* ==========================================
+                THE VOID: Tactical Background & Grid
+                ========================================== */}
+            <div className="fixed inset-0 z-0 pointer-events-none">
+                {/* Micro-grid */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+                {/* Macro-grid */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
+                {/* Vignette & Core Glow */}
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,0,60,0.03),transparent_50%)]"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
+            </div>
+
+            {/* Restricted Watermark */}
+            <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 pointer-events-none opacity-[0.02]">
+                <h1 className="font-black italic text-[20vw] leading-none tracking-tighter whitespace-nowrap">BREACH</h1>
+            </div>
+
+            {/* ==========================================
+                FLOATING COMMAND RIBBON (Replaces Sidebar)
+                ========================================== */}
+            <motion.header
+                variants={slamDown}
+                initial="hidden"
+                animate="show"
+                className="relative z-40 w-full max-w-[1800px] mx-auto px-6 md:px-12 pt-8"
+            >
+
+            </motion.header>
+
+            {/* ==========================================
+                MAIN CANVAS
+                ========================================== */}
+            <main className="relative z-20 flex-1 w-full max-w-[1800px] mx-auto px-6 md:px-12 pt-12 pb-24 overflow-y-auto custom-scrollbar">
+                <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-16">
+
+                    {/* --- Hero Progress Section --- */}
+                    <motion.section variants={slamUp} className="relative w-full">
+                        <div className="flex flex-col lg:flex-row items-end gap-12">
+                            {/* Level Stamp */}
+                            <div className="relative z-10 shrink-0 transform -skew-x-[10deg] translate-y-4">
+                                <div className="absolute -top-6 left-2 bg-white text-black px-4 py-1 font-bold text-xs tracking-[0.3em] uppercase z-20 shadow-[4px_4px_0px_#FF003C]">
+                                    CURRENT_LEVEL
+                                </div>
+                                <h2 className="text-9xl md:text-[14rem] font-black italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-[8px_8px_0px_rgba(255,0,60,0.8)]">
+                                    42
+                                </h2>
                             </div>
-                        </div>
-                        <div className="flex-1 w-full pb-6">
-                            <div className="flex justify-between font-label text-[#00FFFF] mb-2 uppercase tracking-widest">
-                                <span>XP Progress</span>
-                                <span>14,200 / 16,000 XP</span>
-                            </div>
-                            <div className="h-12 bg-zinc-900 skew-x-[-20deg] border-2 border-zinc-700 relative overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-[#FF003C] to-[#ff525c] w-[88%] shadow-[0_0_20px_#FF003C]"></div>
-                                <div className="absolute inset-0 flex justify-around opacity-20">
-                                    <div className="w-[1px] h-full bg-black"></div>
-                                    <div className="w-[1px] h-full bg-black"></div>
-                                    <div className="w-[1px] h-full bg-black"></div>
-                                    <div className="w-[1px] h-full bg-black"></div>
+
+                            {/* XP Bar Component */}
+                            <div className="flex-1 w-full pb-4 lg:pb-8">
+                                <div className="flex items-end justify-between font-mono text-[10px] font-bold text-[#00FFFF] mb-4 uppercase tracking-[0.25em]">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-white/40">NEXT_UNLOCK: CLOAKING_RIG</span>
+                                        <span className="text-lg text-white">XP_PROGRESSION</span>
+                                    </div>
+                                    <span className="text-xl">14,200 <span className="text-white/30">/ 16,000 XP</span></span>
+                                </div>
+
+                                {/* Slanted Bar Container */}
+                                <div className="h-12 bg-[#0A0A0A] relative overflow-hidden skew-x-[-15deg] border-b-2 border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
+                                    {/* The Fill */}
+                                    <div className="h-full bg-gradient-to-r from-[#FF003C] to-[#FF003C]/80 w-[88%] shadow-[0_0_30px_#FF003C] relative overflow-hidden flex items-center border-r-4 border-white">
+                                        {/* Scanline effect */}
+                                        <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                                    </div>
+                                    {/* Grid Overlay */}
+                                    <div className="absolute inset-0 bg-[linear-gradient(90deg,#000_2px,transparent_2px)] bg-[size:40px_100%] opacity-20 pointer-events-none"></div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </section>
+                    </motion.section>
 
-                {/* Dynamic Grid Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Active Missions (Asymmetric Panels) */}
-                    <div className="lg:col-span-8 space-y-8">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-4xl font-headline font-black italic uppercase tracking-tighter skew-x-[-5deg]">
-                                Active_Missions
-                            </h3>
-                            <div className="h-1 flex-1 mx-8 bg-gradient-to-r from-[#FF003C] to-transparent"></div>
+                    {/* --- Dynamic Asymmetrical Grid --- */}
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-12 xl:gap-16">
+
+                        {/* ACTIVE VECTORS (Missions - Takes up 7 columns) */}
+                        <div className="xl:col-span-7 space-y-12">
+                            <motion.div variants={slamUp} className="flex items-center gap-6">
+                                <h3 className="text-5xl font-black italic uppercase tracking-tighter skew-x-[-8deg] text-white">
+                                    ACTIVE_VECTORS
+                                </h3>
+                                <div className="h-2 flex-1 bg-gradient-to-r from-[#FF003C] via-[#FF003C]/20 to-transparent skew-x-[-8deg]"></div>
+                            </motion.div>
+
+                            <div className="flex flex-col gap-10">
+                                {/* Mission Card 1 (Critical) */}
+                                <motion.div variants={slamUp} className="group relative transition-all duration-500 hover:translate-x-4">
+                                    <div className="absolute -top-4 right-8 bg-[#FF003C] text-black px-4 py-1.5 font-mono text-[10px] font-bold z-20 uppercase tracking-widest shadow-[6px_6px_0px_#050505] skew-x-[-10deg]">
+                                        <span className="skew-x-[10deg] block">PRIORITY: CRITICAL</span>
+                                    </div>
+
+                                    <div
+                                        className="bg-[#0A0A0A] relative flex flex-col md:flex-row h-full shadow-[20px_20px_0px_rgba(5,5,5,0.8)] border border-white/5"
+                                        style={{ clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 40px 100%, 0 calc(100% - 40px))" }}
+                                    >
+                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[250px]">
+                                            <img
+                                                alt="Server Room Breach"
+                                                className="absolute inset-0 w-full h-full object-cover grayscale contrast-150 opacity-40 group-hover:grayscale-0 group-hover:opacity-90 transition-all duration-700 scale-110 group-hover:scale-100 mix-blend-luminosity"
+                                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJrtfo386RqE6kjgGUpz1X2Qnhu_oKuUHjS3ht9btxbiLrjDb7ETfxfX9GwVZ4bpXXA5eBfJbzvKuKose0Lz52oB52dwEmKy56r0uMJ4Ibvae_1q72Hp52v9CE4T6gRZWNliXVMIdWbTylwd8ZVmXU19s5vtO6HFuuMo5tOX1B_JYm7G9h8QJE3pW2_kbwNXog1RgDaSZezBT-CRLJ17XhvPgYerORpoPBRPvDcrQrKhNcZJxHpYik_Uzyiypfh6wASVuQtL-kMD2I"
+                                            />
+                                            <div className="absolute inset-0 bg-[#FF003C]/20 mix-blend-overlay"></div>
+                                        </div>
+                                        <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
+                                            <div>
+                                                <p className="font-mono font-bold text-[#00FFFF] text-[10px] tracking-[0.2em] mb-2 uppercase">NODE_EXPLOITATION</p>
+                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">Ghost in the Shell</h4>
+                                                <p className="text-white/50 font-sans text-sm leading-relaxed font-medium">Breach the secondary firewall of the Neo-Saito mainframe. Recover encrypted blueprints for the X-4 interceptor before the trace completes.</p>
+                                            </div>
+                                            <button className="mt-8 w-full bg-white text-black font-black italic text-xl py-4 skew-x-[-10deg] group-hover:bg-[#FF003C] group-hover:text-white transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
+                                                <span className="skew-x-[10deg] uppercase tracking-tighter">EXECUTE BREACH</span>
+                                                <span className="skew-x-[10deg] material-symbols-outlined text-3xl">arrow_forward</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+
+                                {/* Mission Card 2 (Low Priority) */}
+                                <motion.div variants={slamUp} className="group relative transition-all duration-500 hover:translate-x-4 md:ml-12">
+                                    <div className="absolute -top-4 right-8 bg-white text-black px-4 py-1.5 font-mono text-[10px] font-bold z-20 uppercase tracking-widest shadow-[6px_6px_0px_#050505] skew-x-[-10deg]">
+                                        <span className="skew-x-[10deg] block">PRIORITY: LOW</span>
+                                    </div>
+
+                                    <div
+                                        className="bg-[#0A0A0A] relative flex flex-col md:flex-row h-full shadow-[20px_20px_0px_rgba(5,5,5,0.8)] border border-white/5"
+                                        style={{ clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 40px 100%, 0 calc(100% - 40px))" }}
+                                    >
+                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[250px]">
+                                            <img
+                                                alt="Digital Circuitry"
+                                                className="absolute inset-0 w-full h-full object-cover grayscale contrast-150 opacity-30 group-hover:opacity-70 transition-all duration-700 scale-110 group-hover:scale-100"
+                                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtGi3tZD4Pj0MIUrCjX-y-XWiOo0UC5ZSkQM33NS9kakcoXytQTIEPnQoUobdJTl_xvEFwpINSiL9N5x9rGRaklN99kIER5nbcXmxtK1IOJU-wN4Rr99ujhewlWDBPBysUaUMxm6yiXSd4qaKaqmr8j9TFziHmTS6Z70xa6tdWoTYjtYPk19q5L3yuxkJap8-5og4GXRHkOQOp6euZSjsVPf2R3AbKvU7Xk2h_VL9qAEClCVyGSx8n2Nt2pGoUe1Yxru342Upt5mJR"
+                                            />
+                                            <div className="absolute inset-0 bg-[#00FFFF]/10 mix-blend-overlay"></div>
+                                        </div>
+                                        <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
+                                            <div>
+                                                <p className="font-mono font-bold text-white/40 text-[10px] tracking-[0.2em] mb-2 uppercase">SIGNAL_INTERCEPT</p>
+                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">Static Frequency</h4>
+                                                <p className="text-white/50 font-sans text-sm leading-relaxed font-medium">Decode the sub-surface signal emitting from abandoned satellite station 7. Isolate the noise.</p>
+                                            </div>
+                                            <button className="mt-8 w-full bg-transparent ring-2 ring-white/10 text-white font-black italic text-xl py-4 skew-x-[-10deg] group-hover:ring-[#00FFFF] group-hover:bg-[#00FFFF]/10 group-hover:text-[#00FFFF] transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
+                                                <span className="skew-x-[10deg] uppercase tracking-tighter">ANALYZE FEED</span>
+                                                <span className="skew-x-[10deg] material-symbols-outlined text-3xl">analytics</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
                         </div>
 
-                        <div className="grid md:grid-cols-2 gap-12">
-                            {/* Mission Card 1 */}
-                            <div className="group relative bg-zinc-900 p-1 transition-transform hover:scale-105">
-                                <div className="absolute -top-4 -right-4 bg-[#FF003C] text-black px-3 py-1 font-label font-bold z-10 skew-x-[-10deg]">
-                                    PRIORITY: HIGH
-                                </div>
-                                <div className="relative overflow-hidden bg-black aspect-video skew-panel">
-                                    <img
-                                        alt="Server Room"
-                                        className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700"
-                                        data-alt="Futuristic dark server room with glowing red data streams and holographic interfaces"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJrtfo386RqE6kjgGUpz1X2Qnhu_oKuUHjS3ht9btxbiLrjDb7ETfxfX9GwVZ4bpXXA5eBfJbzvKuKose0Lz52oB52dwEmKy56r0uMJ4Ibvae_1q72Hp52v9CE4T6gRZWNliXVMIdWbTylwd8ZVmXU19s5vtO6HFuuMo5tOX1B_JYm7G9h8QJE3pW2_kbwNXog1RgDaSZezBT-CRLJ17XhvPgYerORpoPBRPvDcrQrKhNcZJxHpYik_Uzyiypfh6wASVuQtL-kMD2I"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                                    <div className="absolute bottom-6 left-6 right-6">
-                                        <p className="font-label text-[#00FFFF] text-xs mb-1">NODE_EXPLOITATION</p>
-                                        <h4 className="text-2xl font-headline font-black italic leading-tight uppercase group-hover:text-[#FF003C] transition-colors">Ghost in the Shell</h4>
+                        {/* DATA SHARDS (Logs & Stats - Takes up 5 columns) */}
+                        <div className="xl:col-span-5 space-y-12">
+
+                            {/* METRICS (Moved above logs for better flow without sidebar) */}
+                            <motion.div variants={slamUp} className="bg-[#0D0D0D] p-10 skew-x-[2deg] shadow-[15px_15px_0px_rgba(255,0,60,0.15)] relative border border-[#FF003C]/20" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)" }}>
+                                <div className="absolute top-0 right-0 w-24 h-2 bg-[#FF003C]"></div>
+
+                                <h3 className="text-sm font-mono font-bold uppercase mb-8 tracking-[0.2em] text-[#FF003C] flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-lg">monitoring</span>
+                                    OPERATIVE_METRICS
+                                </h3>
+
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-white/20"></div>
+                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">12</p>
+                                        <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Breaches</p>
+                                    </div>
+                                    <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-white/20"></div>
+                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">84<span className="text-2xl">%</span></p>
+                                        <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Accuracy</p>
+                                    </div>
+                                    <div className="p-6 bg-[#00FFFF]/5 skew-x-[-5deg] ring-1 ring-[#00FFFF]/30 shadow-[inset_0_0_30px_rgba(0,255,255,0.05)] flex flex-col justify-center relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-[#00FFFF]"></div>
+                                        <p className="font-black italic text-5xl text-[#00FFFF] leading-none skew-x-[5deg] drop-shadow-[0_0_10px_#00FFFF]">2.4<span className="text-2xl text-[#00FFFF]/50">k</span></p>
+                                        <p className="font-mono text-[10px] font-bold text-[#00FFFF]/60 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Nodes Hacked</p>
+                                    </div>
+                                    <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-[#FF003C]/50"></div>
+                                        <p className="font-black italic text-5xl text-white/20 leading-none skew-x-[5deg]">0</p>
+                                        <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Flatlines</p>
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <p className="text-zinc-400 font-body text-sm mb-6 leading-relaxed">Breach the secondary firewall of the Neo-Saito mainframe. Recover encrypted blueprints for the X-4 interceptor.</p>
-                                    <button className="w-full bg-white text-black font-headline font-black italic py-3 skew-x-[-10deg] group-hover:bg-[#FF003C] group-hover:text-white transition-all flex items-center justify-center gap-2">
-                                        EXECUTE MISSION <span className="material-symbols-outlined" data-icon="play_arrow">play_arrow</span>
-                                    </button>
-                                </div>
-                            </div>
+                            </motion.div>
 
-                            {/* Mission Card 2 */}
-                            <div className="group relative bg-zinc-900 p-1 translate-y-12 transition-transform hover:scale-105">
-                                <div className="absolute -top-4 -right-4 bg-zinc-700 text-white px-3 py-1 font-label font-bold z-10 skew-x-[-10deg]">
-                                    PRIORITY: LOW
-                                </div>
-                                <div className="relative overflow-hidden bg-black aspect-video skew-panel">
-                                    <img
-                                        alt="Digital Circuitry"
-                                        className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700"
-                                        data-alt="Extreme close-up of a glowing neon blue motherboard with digital pulse patterns and sharp angles"
-                                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtGi3tZD4Pj0MIUrCjX-y-XWiOo0UC5ZSkQM33NS9kakcoXytQTIEPnQoUobdJTl_xvEFwpINSiL9N5x9rGRaklN99kIER5nbcXmxtK1IOJU-wN4Rr99ujhewlWDBPBysUaUMxm6yiXSd4qaKaqmr8j9TFziHmTS6Z70xa6tdWoTYjtYPk19q5L3yuxkJap8-5og4GXRHkOQOp6euZSjsVPf2R3AbKvU7Xk2h_VL9qAEClCVyGSx8n2Nt2pGoUe1Yxru342Upt5mJR"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                                    <div className="absolute bottom-6 left-6 right-6">
-                                        <p className="font-label text-[#00FFFF] text-xs mb-1">SIGNAL_INTERCEPTION</p>
-                                        <h4 className="text-2xl font-headline font-black italic leading-tight uppercase group-hover:text-[#FF003C] transition-colors">Static Frequency</h4>
+                            {/* SYSTEM LOG */}
+                            <motion.div variants={slamUp} className="bg-[#0A0A0A] p-10 relative overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-white/5" style={{ clipPath: "polygon(30px 0, 100% 0, 100% 100%, 0 100%, 0 30px)" }}>
+                                <div className="absolute top-0 right-0 w-48 h-48 bg-[#00FFFF]/5 rounded-full blur-[50px]"></div>
+                                <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-[#00FFFF] to-transparent"></div>
+
+                                <h3 className="text-sm font-mono font-bold uppercase mb-8 tracking-[0.2em] flex items-center gap-3 text-white">
+                                    <span className="w-2 h-2 bg-[#00FFFF] shadow-[0_0_10px_#00FFFF] animate-pulse"></span>
+                                    TERMINAL_LOG.DAT
+                                </h3>
+
+                                <div className="space-y-6 font-mono text-[11px] tracking-widest uppercase">
+                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
+                                        <span className="text-[#00FFFF] shrink-0 opacity-70">14:22:01</span>
+                                        <p className="text-white/80 leading-relaxed"><span className="text-[#FF003C] font-bold bg-[#FF003C]/10 px-1">[SUCCESS]</span> Firewall bypassed in 0.4s (Tokyo Node). Payload injected.</p>
+                                    </div>
+                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
+                                        <span className="text-[#00FFFF] shrink-0 opacity-70">13:45:33</span>
+                                        <p className="text-white/80 leading-relaxed"><span className="text-[#00FFFF] font-bold bg-[#00FFFF]/10 px-1">[UPDATE]</span> Operative level increased to 42. Skill points allocated.</p>
+                                    </div>
+                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
+                                        <span className="text-white/30 shrink-0">12:10:14</span>
+                                        <p className="text-white/40 leading-relaxed"><span className="text-white/30">[LOGIN]</span> Terminal access granted from external IP 192.168.X.1</p>
+                                    </div>
+                                    <div className="flex gap-6 items-start hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
+                                        <span className="text-[#FF003C] shrink-0 animate-pulse">09:30:00</span>
+                                        <p className="text-[#FF003C] leading-relaxed"><span className="font-bold bg-[#FF003C]/20 px-1">[CRITICAL]</span> Unauthorized breach detected in Sector 7 Training Deck.</p>
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <p className="text-zinc-400 font-body text-sm mb-6 leading-relaxed">Decode the sub-surface signal emitting from the abandoned satellite station 7. Isolate the noise.</p>
-                                    <button className="w-full border-2 border-zinc-700 text-white font-headline font-black italic py-3 skew-x-[-10deg] group-hover:border-[#00FFFF] group-hover:text-[#00FFFF] transition-all flex items-center justify-center gap-2">
-                                        ANALYZE FEED <span className="material-symbols-outlined" data-icon="analytics">analytics</span>
-                                    </button>
-                                </div>
-                            </div>
+                            </motion.div>
                         </div>
                     </div>
-
-                    {/* Sidebar Content */}
-                    <div className="lg:col-span-4 space-y-12">
-                        {/* System Log */}
-                        <div className="bg-zinc-900/50 backdrop-blur-sm p-8 border-l-4 border-[#00FFFF] relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-24 h-24 bg-[#00FFFF]/5 rounded-full blur-3xl"></div>
-                            <h3 className="text-xl font-headline font-black italic uppercase mb-6 tracking-widest flex items-center gap-2">
-                                <span className="w-2 h-2 bg-[#00FFFF] animate-pulse"></span>
-                                SYSTEM_LOG.TXT
-                            </h3>
-                            <div className="space-y-4 font-label text-xs">
-                                <div className="flex gap-4 items-start border-b border-zinc-800 pb-3">
-                                    <span className="text-zinc-500">14:22</span>
-                                    <p><span className="text-[#FF003C]">[SUCCESS]</span> Firewall bypassed in 0.4s (Tokyo Node)</p>
-                                </div>
-                                <div className="flex gap-4 items-start border-b border-zinc-800 pb-3">
-                                    <span className="text-zinc-500">13:45</span>
-                                    <p><span className="text-[#00FFFF]">[UPDATE]</span> Operative level increased to 42</p>
-                                </div>
-                                <div className="flex gap-4 items-start border-b border-zinc-800 pb-3">
-                                    <span className="text-zinc-500">12:10</span>
-                                    <p><span className="text-zinc-400">[LOGIN]</span> Terminal access from IP 192.168.X.1</p>
-                                </div>
-                                <div className="flex gap-4 items-start border-b border-zinc-800 pb-3">
-                                    <span className="text-zinc-500">09:30</span>
-                                    <p><span className="text-[#FF003C]">[ALERT]</span> Breach detected in Sector 7 Training Deck</p>
-                                </div>
-                                <div className="flex gap-4 items-start">
-                                    <span className="text-zinc-500">08:55</span>
-                                    <p><span className="text-zinc-400">[SYSTEM]</span> Kernel optimization complete</p>
-                                </div>
-                            </div>
-                            <div className="mt-6 flex justify-end">
-                                <span className="text-[8px] text-zinc-700">SCR_ID: 9982-FF-01</span>
-                            </div>
-                        </div>
-
-                        {/* Stats Fragment */}
-                        <div className="bg-zinc-950 p-8 skew-x-[2deg] border border-zinc-800 shadow-[10px_10px_0px_rgba(255,0,60,0.1)]">
-                            <h3 className="text-lg font-headline font-black italic uppercase mb-6 tracking-widest text-[#FF003C]">OPERATIVE_STATISTICS</h3>
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="text-center p-4 bg-zinc-900 skew-x-[-10deg]">
-                                    <p className="font-headline text-3xl font-black italic text-white leading-none">12</p>
-                                    <p className="font-label text-[10px] text-zinc-500 mt-1 uppercase">Breaches</p>
-                                </div>
-                                <div className="text-center p-4 bg-zinc-900 skew-x-[-10deg]">
-                                    <p className="font-headline text-3xl font-black italic text-white leading-none">84%</p>
-                                    <p className="font-label text-[10px] text-zinc-500 mt-1 uppercase">Accuracy</p>
-                                </div>
-                                <div className="text-center p-4 bg-zinc-900 skew-x-[-10deg]">
-                                    <p className="font-headline text-3xl font-black italic text-[#00FFFF] leading-none">2.4k</p>
-                                    <p className="font-label text-[10px] text-zinc-500 mt-1 uppercase">Nodes</p>
-                                </div>
-                                <div className="text-center p-4 bg-zinc-900 skew-x-[-10deg]">
-                                    <p className="font-headline text-3xl font-black italic text-white leading-none">0</p>
-                                    <p className="font-label text-[10px] text-zinc-500 mt-1 uppercase">Deaths</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Floating HUD Element (Module Completion Hint) */}
-                <div className="fixed bottom-12 right-12 flex items-center gap-6 z-30">
-                    <div className="slash-card bg-zinc-900/90 border-r-8 border-[#FF003C] px-8 py-4 backdrop-blur-xl hidden lg:block">
-                        <p className="font-label text-xs text-[#FF003C] font-bold uppercase">Next Reward In</p>
-                        <p className="font-headline text-2xl font-black italic text-white uppercase tracking-tighter">1,800 XP</p>
-                    </div>
-                    <button className="w-20 h-20 bg-[#FF003C] shadow-[0_0_40px_rgba(255,0,60,0.4)] flex items-center justify-center hover:scale-110 transition-transform skew-x-[-5deg]">
-                        <span className="material-symbols-outlined text-white text-4xl" data-icon="bolt">bolt</span>
-                    </button>
-                </div>
+                </motion.div>
             </main>
 
-            {/* Bottom Nav for Mobile */}
-            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-zinc-950 border-t-4 border-[#FF003C] flex justify-around py-4 z-50">
-                <span className="material-symbols-outlined text-[#FF003C]" data-icon="grid_view">grid_view</span>
-                <span className="material-symbols-outlined text-white" data-icon="ads_click">ads_click</span>
-                <span className="material-symbols-outlined text-white" data-icon="query_stats">query_stats</span>
-                <span className="material-symbols-outlined text-white" data-icon="account_circle">account_circle</span>
-            </nav>
+            {/* ==========================================
+                FLOATING HUD COMPONENT (Bottom Right)
+                ========================================== */}
+            <div className="fixed bottom-12 right-12 flex items-end gap-6 z-50 pointer-events-none">
+                <div
+                    className="bg-[#050505]/95 px-8 py-6 backdrop-blur-xl hidden lg:block shadow-[0_0_50px_rgba(255,0,60,0.15)] border border-[#FF003C]/30"
+                    style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 20px 100%, 0 calc(100% - 20px))" }}
+                >
+                    <div className="absolute right-0 top-0 w-1.5 h-full bg-[#FF003C] shadow-[0_0_15px_#FF003C]"></div>
+                    <p className="font-mono text-[10px] font-bold text-[#FF003C] uppercase tracking-[0.3em] mb-2">Imminent Unlock</p>
+                    <p className="text-3xl font-black italic text-white uppercase tracking-tighter">1,800 XP</p>
+                </div>
+
+                {/* Action FAB */}
+                <button className="w-20 h-20 bg-[#FF003C] shadow-[0_0_50px_rgba(255,0,60,0.6)] flex items-center justify-center pointer-events-auto hover:bg-white hover:text-black hover:scale-110 transition-all skew-x-[-12deg]">
+                    <span className="material-symbols-outlined text-4xl skew-x-[12deg]">bolt</span>
+                </button>
+            </div>
         </div>
     );
 }

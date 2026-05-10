@@ -16,6 +16,7 @@ import Sequence from './pages/Mission/MissionDashboard/MissionSequence';
 import Briefing from './pages/Mission/MissionDashboard/MissionBriefing';
 import Game from './pages/GamingEnvironment/GamingEnvironment';
 import Profile from './pages/Profile/Profile';
+import Progress from './pages/Progress/Progress'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -75,6 +76,12 @@ function App() {
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Layout><Profile /></Layout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/progress" element={
+              <ProtectedRoute>
+                <Layout><Progress /></Layout>
               </ProtectedRoute>
             } />
           </Routes>

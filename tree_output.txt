@@ -1,0 +1,156 @@
+├── .gitignore
+├── CHANGES.md
+├── DISCOVERY_PHASE_SUMMARY.md
+├── package-lock.json
+├── package.json
+├── progress.md
+├── start.bat
+├── system.md
+├── TERMINAL_UX_PHASE_SUMMARY.md
+├── tree_output.txt
+├── backend/
+│   ├── .env
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── server.js
+│   ├── config/
+│   │   ├── db.js
+│   │   ├── passport.js
+│   ├── constants/
+│   │   ├── messages.js
+│   │   ├── promptConstants.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── hintController.js
+│   │   ├── scenarioController.js
+│   │   ├── sessionController.js
+│   │   ├── terminalController.js
+│   │   ├── userController.js
+│   ├── middleware/
+│   │   ├── authMiddleware.js
+│   │   ├── validateRequest.js
+│   ├── models/
+│   │   ├── discoveryModel.js
+│   │   ├── hintCacheModel.js
+│   │   ├── hintModel.js
+│   │   ├── progressionModel.js
+│   │   ├── scenarioModel.js
+│   │   ├── sessionModel.js
+│   │   ├── terminalModel.js
+│   │   ├── userModel.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── healthRoutes.js
+│   │   ├── hintRoutes.js
+│   │   ├── scenarioRoutes.js
+│   │   ├── sessionRoutes.js
+│   │   ├── terminalRoutes.js
+│   │   ├── userRoutes.js
+│   ├── services/
+│   │   ├── aiAdapter.js
+│   │   ├── authService.js
+│   │   ├── autoTriggerService.js
+│   │   ├── discoveryService.js
+│   │   ├── evaluationService.js
+│   │   ├── hintCacheService.js
+│   │   ├── hintLevelService.js
+│   │   ├── hintService.js
+│   │   ├── playerStateAnalyzer.js
+│   ├── utils/
+│   │   ├── emailSender.js
+│   │   ├── responseHelper.js
+│   │   ├── terminalParser.js
+│   │   ├── test.js
+├── database/
+│   ├── database.sql
+│   ├── discovery_based_progression_refactor.sql
+│   ├── fix_discovery_triggers_reveals.sql
+│   ├── phase1_player_state.sql
+│   ├── phase2_hint_levels.sql
+│   ├── phase3_hint_cache.sql
+├── frontend/
+│   ├── .env
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   ├── vercel.json
+│   ├── vite.config.js
+│   ├── public/
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── main.jsx
+│   │   ├── assets/
+│   │   │   ├── globals.css
+│   │   │   ├── images/
+│   │   ├── components/
+│   │   │   ├── HintPanel.jsx
+│   │   │   ├── ObjectivesPanel.jsx
+│   │   │   ├── TerminalPanel.jsx
+│   │   │   ├── TimerDisplay.jsx
+│   │   │   ├── common/
+│   │   │   ├── features/
+│   │   │   ├── layout/
+│   │   │   │   ├── Header.jsx
+│   │   │   │   ├── Layout.jsx
+│   │   │   │   ├── Sidebar.jsx
+│   │   ├── context/
+│   │   │   ├── AuthContext.jsx
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js
+│   │   │   ├── useCompiler.js
+│   │   │   ├── useHint.js
+│   │   │   ├── useObjectives.js
+│   │   │   ├── useSession.js
+│   │   │   ├── useTerminal.js
+│   │   ├── pages/
+│   │   │   ├── CodingWorkspace.jsx
+│   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   ├── ResetPasswordPage.jsx
+│   │   │   ├── VerifyEmailPage.jsx
+│   │   │   ├── auth/
+│   │   │   │   ├── callback/
+│   │   │   │   │   ├── AuthCallback.jsx
+│   │   │   ├── Dashboard/
+│   │   │   │   ├── dashboard.css
+│   │   │   │   ├── Dashboard.jsx
+│   │   │   ├── GamingEnvironment/
+│   │   │   │   ├── GamingEnvironment.css
+│   │   │   │   ├── GamingEnvironment.jsx
+│   │   │   │   ├── oldGamingEnviroments.jsx
+│   │   │   ├── LandingPage/
+│   │   │   │   ├── Landing.css
+│   │   │   │   ├── LandingPage.jsx
+│   │   │   ├── Login/
+│   │   │   │   ├── Login.css
+│   │   │   │   ├── LoginPage.jsx
+│   │   │   ├── Mission/
+│   │   │   │   ├── Levels/
+│   │   │   │   │   ├── suspicious_script_exec_level.sql
+│   │   │   │   ├── MissionDashboard/
+│   │   │   │   │   ├── MissionBriefing.css
+│   │   │   │   │   ├── MissionBriefing.jsx
+│   │   │   │   │   ├── MissionDashboard.css
+│   │   │   │   │   ├── MissionDashboard.jsx
+│   │   │   │   │   ├── MissionSequence.css
+│   │   │   │   │   ├── MissionSequence.jsx
+│   │   │   ├── Profile/
+│   │   │   │   ├── Profile.css
+│   │   │   │   ├── Profile.jsx
+│   │   │   ├── Progress/
+│   │   │   │   ├── Progress.css
+│   │   │   │   ├── Progress.jsx
+│   │   │   ├── RegisterPage/
+│   │   │   │   ├── Register.css
+│   │   │   │   ├── RegisterPage.jsx
+│   │   ├── services/
+│   │   │   ├── aiService.js
+│   │   │   ├── authService.js
+│   │   │   ├── hintService.js
+│   │   │   ├── scenarioService.js
+│   │   │   ├── sessionService.js
+│   │   │   ├── terminalService.js
+│   │   ├── utils/
+│   │   │   ├── constants.js
+│   │   │   ├── formatters.js
