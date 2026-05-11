@@ -1,3 +1,11 @@
+/*
+ls /etc/cron.d
+cat /etc/cron.d/updater
+cat /var/log/syslog
+find /tmp
+cat /tmp/.cache/sync.sh
+cat /var/log/net.log
+*/
 -- =============================================================================
 -- CLEANUP — Remove any existing "Dead Drop" data before re-inserting.
 --

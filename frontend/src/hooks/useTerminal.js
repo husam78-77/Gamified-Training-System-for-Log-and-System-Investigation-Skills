@@ -45,7 +45,7 @@ const resolveFSPath = (target, currentPath) => {
     if (!target) return normalizeFSPath(currentPath);
     const expanded = target === '~' ? '/'
         : target.startsWith('~/') ? '/' + target.slice(2)
-        : target;
+            : target;
     if (expanded.startsWith('/')) {
         return resolveAbsFSPath(normalizeFSPath(expanded));
     }
@@ -104,31 +104,31 @@ export const useTerminal = ({
     onAutoHint,
     onDiscovery,
 }) => {
-    const terminalRef  = useRef(null);   // DOM element ref (attach xterm here)
-    const xtermRef     = useRef(null);   // xterm Terminal instance
-    const fitAddonRef  = useRef(null);   // FitAddon instance
-    const inputBuffer  = useRef('');     // Current line being typed
+    const terminalRef = useRef(null);   // DOM element ref (attach xterm here)
+    const xtermRef = useRef(null);   // xterm Terminal instance
+    const fitAddonRef = useRef(null);   // FitAddon instance
+    const inputBuffer = useRef('');     // Current line being typed
     const isProcessing = useRef(false);  // Prevent double-submit while awaiting API
 
     // cursorPosRef: distance from the END of inputBuffer.current (0 = cursor at end)
     const cursorPosRef = useRef(0);
 
-    const [currentPath, setCurrentPath]         = useState('/');
-    const [virtualFiles, setVirtualFiles]       = useState(initialFiles);
-    const [isReady, setIsReady]                 = useState(false);
+    const [currentPath, setCurrentPath] = useState('/');
+    const [virtualFiles, setVirtualFiles] = useState(initialFiles);
+    const [isReady, setIsReady] = useState(false);
     const [isProcessingState, setIsProcessingState] = useState(false);
 
     // ── Local command history (up/down navigation) ────────────────────────
-    const localHistory    = useRef([]);
+    const localHistory = useRef([]);
     const historyIndexRef = useRef(-1);
-    const savedInputRef   = useRef('');
+    const savedInputRef = useRef('');
 
     // Stable function refs so handleKeyInput (useCallback []) can call latest impl
-    const navigateHistoryFn    = useRef(() => {});
-    const tabCompleteFn        = useRef(() => {});
-    const redrawCurrentLineRef = useRef(() => {});
+    const navigateHistoryFn = useRef(() => { });
+    const tabCompleteFn = useRef(() => { });
+    const redrawCurrentLineRef = useRef(() => { });
     const handleLocalCommandRef = useRef(() => false);
-    const injectNotesFileRef   = useRef(() => {});
+    const injectNotesFileRef = useRef(() => { });
 
     // ── Discovery system ──────────────────────────────────────────────────
     const [discoveredPaths, setDiscoveredPaths] = useState(() => new Set(['/']));
@@ -139,22 +139,30 @@ export const useTerminal = ({
     const discoverPaths = (paths) => {
         setDiscoveredPaths(prev => {
             const next = new Set(prev);
-            paths.forEach(p => next.add(normalizeFSPath(p)));
+            paths.forEach(p => {
+                let current = normalizeFSPath(p);
+                while (current && current !== '/') {
+                    next.add(current);
+                    const lastSlash = current.lastIndexOf('/');
+                    current = lastSlash <= 0 ? '/' : current.slice(0, lastSlash);
+                }
+                next.add('/');
+            });
             return next;
         });
     };
 
     // ── Stable refs ───────────────────────────────────────────────────────
-    const sessionIdRef   = useRef(null);
-    const tokenRef       = useRef(null);
+    const sessionIdRef = useRef(null);
+    const tokenRef = useRef(null);
     const currentPathRef = useRef('/');
-    const onAutoHintRef  = useRef(null);
+    const onAutoHintRef = useRef(null);
     const onDiscoveryRef = useRef(null);
 
-    useEffect(() => { sessionIdRef.current   = sessionId; },  [sessionId]);
-    useEffect(() => { tokenRef.current       = token; },      [token]);
+    useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
+    useEffect(() => { tokenRef.current = token; }, [token]);
     useEffect(() => { currentPathRef.current = currentPath; }, [currentPath]);
-    useEffect(() => { onAutoHintRef.current  = onAutoHint; },  [onAutoHint]);
+    useEffect(() => { onAutoHintRef.current = onAutoHint; }, [onAutoHint]);
     useEffect(() => { onDiscoveryRef.current = onDiscovery; }, [onDiscovery]);
 
     // ── Per-render function assignments (updated every render, called via ref) ──
@@ -195,7 +203,7 @@ export const useTerminal = ({
         const parts = cmd.trim().match(/^(\w+)\s*([\s\S]*)$/);
         if (!parts) return false;
         const command = parts[1].toLowerCase();
-        const args    = (parts[2] || '').trim();
+        const args = (parts[2] || '').trim();
 
         // note "..." — append timestamped entry
         if (command === 'note') {
@@ -204,7 +212,7 @@ export const useTerminal = ({
                 term.writeln('\r\x1b[33mnote: provide a message — e.g.  note "cron job found"\x1b[0m');
                 return true;
             }
-            const ts    = new Date().toTimeString().slice(0, 8);
+            const ts = new Date().toTimeString().slice(0, 8);
             const entry = `[${ts}] ${text}`;
             investigatorNotesRef.current = investigatorNotesRef.current
                 ? investigatorNotesRef.current + '\n' + entry
@@ -239,12 +247,12 @@ export const useTerminal = ({
 
         // grep <pattern> /tmp/investigator_notes.txt
         if (command === 'grep' && args.includes(NOTES_FILE_PATH)) {
-            const beforePath   = args.slice(0, args.lastIndexOf(NOTES_FILE_PATH)).trim();
+            const beforePath = args.slice(0, args.lastIndexOf(NOTES_FILE_PATH)).trim();
             const flagsPattern = beforePath.match(/^((?:-\w+\s+)*)(.+)$/);
-            const rawPattern   = flagsPattern ? flagsPattern[2] : beforePath;
-            const pattern      = rawPattern.replace(/^["']|["']$/g, '').trim();
-            const ignoreCase   = beforePath.includes('-i');
-            const notes        = investigatorNotesRef.current;
+            const rawPattern = flagsPattern ? flagsPattern[2] : beforePath;
+            const pattern = rawPattern.replace(/^["']|["']$/g, '').trim();
+            const ignoreCase = beforePath.includes('-i');
+            const notes = investigatorNotesRef.current;
             if (!notes) {
                 term.writeln('\r\x1b[90m(no notes to search)\x1b[0m');
                 return true;
@@ -303,7 +311,7 @@ export const useTerminal = ({
     };
 
     tabCompleteFn.current = (term) => {
-        const input    = inputBuffer.current;
+        const input = inputBuffer.current;
         const hasSpace = input.includes(' ');
 
         // ── Complete command name ─────────────────────────────────────────
@@ -315,7 +323,7 @@ export const useTerminal = ({
             if (matches.length === 1) {
                 const addition = matches[0].slice(partial.length) + ' ';
                 term.write(addition);
-                inputBuffer.current  = matches[0] + ' ';
+                inputBuffer.current = matches[0] + ' ';
                 cursorPosRef.current = 0;
             } else {
                 term.write('\r\n\r' + matches.join('  ') + '\r\n');
@@ -326,27 +334,27 @@ export const useTerminal = ({
 
         // ── Complete file / directory argument ────────────────────────────
         const lastSpaceIdx = input.lastIndexOf(' ');
-        const partial      = input.slice(lastSpaceIdx + 1);
-        const cmdPrefix    = input.slice(0, lastSpaceIdx + 1);
+        const partial = input.slice(lastSpaceIdx + 1);
+        const cmdPrefix = input.slice(0, lastSpaceIdx + 1);
 
         // Command-aware filtering: cd/find → dirs only; cat/strings → files only
-        const cmdWord   = cmdPrefix.trim().split(/\s+/)[0].toLowerCase();
-        const dirsOnly  = cmdWord === 'cd';
+        const cmdWord = cmdPrefix.trim().split(/\s+/)[0].toLowerCase();
+        const dirsOnly = cmdWord === 'cd';
         const filesOnly = cmdWord === 'cat' || cmdWord === 'strings';
 
         let baseDir, baseName;
         if (partial.includes('/')) {
             const slashIdx = partial.lastIndexOf('/');
-            const dirPart  = partial.slice(0, slashIdx) || '/';
+            const dirPart = partial.slice(0, slashIdx) || '/';
             baseName = partial.slice(slashIdx + 1);
-            baseDir  = resolveFSPath(dirPart, currentPathRef.current);
+            baseDir = resolveFSPath(dirPart, currentPathRef.current);
         } else {
-            baseDir  = currentPathRef.current || '/';
+            baseDir = currentPathRef.current || '/';
             baseName = partial;
         }
 
         const files = virtualFilesRef.current;
-        const pfx   = baseDir === '/' ? '/' : baseDir + '/';
+        const pfx = baseDir === '/' ? '/' : baseDir + '/';
 
         // Pass 1 — collect directory names (skip when filesOnly)
         // Two sources:
@@ -355,9 +363,9 @@ export const useTerminal = ({
         const dirNames = new Set();
         if (!filesOnly) {
             files.forEach(f => {
-                const fp     = normalizeFSPath(f.file_path || '');
+                const fp = normalizeFSPath(f.file_path || '');
                 const parent = getFSParent(fp);
-                const name   = fp.slice(fp.lastIndexOf('/') + 1);
+                const name = fp.slice(fp.lastIndexOf('/') + 1);
 
                 // (a) explicit directory entry immediately under baseDir
                 if (parent === baseDir && name.startsWith(baseName) && f.file_type === 'directory') {
@@ -368,7 +376,7 @@ export const useTerminal = ({
                 // (b) inferred directory — file path that is deeper than one level under baseDir
                 if (fp.startsWith(pfx) && fp.length > pfx.length) {
                     const remainder = baseDir === '/' ? fp.slice(1) : fp.slice(pfx.length);
-                    const firstSeg  = remainder.split('/')[0];
+                    const firstSeg = remainder.split('/')[0];
                     if (firstSeg && firstSeg.startsWith(baseName) && remainder.includes('/')) {
                         dirNames.add(firstSeg);
                     }
@@ -380,9 +388,9 @@ export const useTerminal = ({
         const fileNames = new Set();
         if (!dirsOnly) {
             files.forEach(f => {
-                const fp     = normalizeFSPath(f.file_path || '');
+                const fp = normalizeFSPath(f.file_path || '');
                 const parent = getFSParent(fp);
-                const name   = fp.slice(fp.lastIndexOf('/') + 1);
+                const name = fp.slice(fp.lastIndexOf('/') + 1);
                 if (parent === baseDir && name.startsWith(baseName)
                     && f.file_type !== 'directory'
                     && !dirNames.has(name)) {
@@ -401,7 +409,7 @@ export const useTerminal = ({
         if (matches.length === 1) {
             const addition = matches[0].slice(baseName.length);
             term.write(addition);
-            inputBuffer.current  = cmdPrefix + partial + addition;
+            inputBuffer.current = cmdPrefix + partial + addition;
             cursorPosRef.current = 0;
         } else {
             term.write('\r\n\r' + matches.join('  ') + '\r\n');
@@ -416,7 +424,7 @@ export const useTerminal = ({
         // Enter
         if (code === 13) {
             const cmd = inputBuffer.current.trim();
-            inputBuffer.current  = '';
+            inputBuffer.current = '';
             cursorPosRef.current = 0;
             historyIndexRef.current = -1;
             if (cmd.length === 0) {
@@ -439,7 +447,7 @@ export const useTerminal = ({
                 term.write('\b \b');
             } else if (pos < buf.length) {
                 // Mid-line — delete the character immediately left of cursor
-                const deleteIdx     = buf.length - pos - 1;
+                const deleteIdx = buf.length - pos - 1;
                 inputBuffer.current = buf.slice(0, deleteIdx) + buf.slice(deleteIdx + 1);
                 redrawCurrentLineRef.current(term);
             }
@@ -449,7 +457,7 @@ export const useTerminal = ({
 
         // Ctrl+C
         if (domEvent.ctrlKey && domEvent.key === 'c') {
-            inputBuffer.current  = '';
+            inputBuffer.current = '';
             cursorPosRef.current = 0;
             historyIndexRef.current = -1;
             term.write('^C');
@@ -519,7 +527,7 @@ export const useTerminal = ({
             const buf = inputBuffer.current;
             const pos = cursorPosRef.current;
             if (pos > 0) {
-                const deleteIdx     = buf.length - pos;
+                const deleteIdx = buf.length - pos;
                 inputBuffer.current = buf.slice(0, deleteIdx) + buf.slice(deleteIdx + 1);
                 cursorPosRef.current--;
                 redrawCurrentLineRef.current(term);
@@ -541,7 +549,7 @@ export const useTerminal = ({
             term.write(key);
         } else {
             // Mid-line insert — splice and redraw
-            const insertIdx     = buf.length - pos;
+            const insertIdx = buf.length - pos;
             inputBuffer.current = buf.slice(0, insertIdx) + key + buf.slice(insertIdx);
             redrawCurrentLineRef.current(term);
         }
@@ -580,7 +588,7 @@ export const useTerminal = ({
         term.open(terminalRef.current);
         fitAddon.fit();
 
-        xtermRef.current    = term;
+        xtermRef.current = term;
         fitAddonRef.current = fitAddon;
 
         printBootSequence(term);
@@ -630,8 +638,8 @@ export const useTerminal = ({
 
     // ── Submit command to backend ─────────────────────────────────────────
     const submitCommand = useCallback(async (cmd, term) => {
-        const sid  = sessionIdRef.current;
-        const tok  = tokenRef.current;
+        const sid = sessionIdRef.current;
+        const tok = tokenRef.current;
         const path = currentPathRef.current;
 
         if (!sid || !tok || isProcessing.current) return;
@@ -662,9 +670,9 @@ export const useTerminal = ({
             // Augment ls/find /tmp output with notes file when notes are present
             let output = result.output || '';
             if (investigatorNotesRef.current) {
-                const trimCmd  = cmd.trim();
-                const inTmp    = path === '/tmp';
-                const isTmpLs  = /^ls(\s+\/tmp)?\s*$/.test(trimCmd) && (trimCmd.includes('/tmp') || inTmp);
+                const trimCmd = cmd.trim();
+                const inTmp = path === '/tmp';
+                const isTmpLs = /^ls(\s+\/tmp)?\s*$/.test(trimCmd) && (trimCmd.includes('/tmp') || inTmp);
                 const isTmpFind = /^find(\s+(\/tmp|\/)\s*)/.test(trimCmd) ||
                     (trimCmd === 'find' && inTmp);
                 if (isTmpLs && !output.includes('investigator_notes.txt')) {
@@ -747,9 +755,9 @@ export const useTerminal = ({
             output.includes('Not a directory')
         )) return;
 
-        const tokens  = cmd.trim().split(/\s+/);
+        const tokens = cmd.trim().split(/\s+/);
         const command = tokens[0]?.toLowerCase();
-        const arg     = tokens.slice(1).find(t => !t.startsWith('-'));
+        const arg = tokens.slice(1).find(t => !t.startsWith('-'));
         const resolve = (target) => resolveFSPath(target || null, currentPathValue || '/');
 
         const toDiscover = [];
@@ -761,7 +769,7 @@ export const useTerminal = ({
                 toDiscover.push(getFSParent(resolved));
             }
         } else if (command === 'ls') {
-            const listedPath   = resolve(arg || null);
+            const listedPath = resolve(arg || null);
             toDiscover.push(listedPath);
             virtualFilesRef.current.forEach(f => {
                 const fp = normalizeFSPath(f.file_path);
@@ -773,7 +781,7 @@ export const useTerminal = ({
             toDiscover.push(getFSParent(fp));
         } else if (command === 'find') {
             const searchPath = resolve(arg || null);
-            const pfx        = searchPath === '/' ? '/' : searchPath + '/';
+            const pfx = searchPath === '/' ? '/' : searchPath + '/';
             toDiscover.push(searchPath);
             virtualFilesRef.current.forEach(f => {
                 const fp = normalizeFSPath(f.file_path);

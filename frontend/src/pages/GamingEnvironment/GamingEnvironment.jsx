@@ -229,6 +229,10 @@ export default function GamingEnvironment() {
     // ── System logs state ─────────────────────────────────────────────────
     const [systemLogs, setSystemLogs] = useState([]);
 
+    // ── Panel Accordion States ────────────────────────────────────────────
+    const [activeLeftPanel, setActiveLeftPanel] = useState('filesystem');
+    const [activeRightPanel, setActiveRightPanel] = useState('objectives');
+
     useEffect(() => {
         if (!scenarioData?.scenario) return;
         setSystemLogs(buildSystemLogs(terminal.virtualFiles, scenarioData.scenario));
@@ -245,7 +249,7 @@ export default function GamingEnvironment() {
     }
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white overflow-hidden relative">
+        <div className="min-h-screen bg-[#050505] text-white font-body selection:bg-[#FF003C] selection:text-white overflow-hidden relative">
 
             {/* ── BACKGROUND VOID ───────────────────────────────────────── */}
             <div className="fixed inset-0 z-0 pointer-events-none">
@@ -263,16 +267,7 @@ export default function GamingEnvironment() {
                 />
             </div>
 
-            <div className="fixed bottom-6 left-6 z-40">
-                <button
-                    onClick={handleExitClick}
-                    disabled={session.isLoading}
-                    className="group flex items-center gap-4 bg-[#0A0A0A] border border-[#FF003C]/30 px-8 py-4 skew-x-[-12deg] hover:bg-[#FF003C] hover:text-black transition-all duration-300 shadow-[6px_6px_0px_#050505] disabled:opacity-50"
-                >
-                    <span className="skew-x-[12deg] material-symbols-outlined text-[#FF003C] group-hover:text-black transition-colors">logout</span>
-                    <span className="skew-x-[12deg] font-black italic text-lg tracking-widest uppercase">EXIT_SESSION</span>
-                </button>
-            </div>
+            {/* (Exit button moved to metadata strip) */}
 
             {objectives.allRequiredComplete && session.isActive && (
                 <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="fixed bottom-6 right-6 z-40">
@@ -287,52 +282,60 @@ export default function GamingEnvironment() {
             )}
 
             {/* ── MAIN LAYOUT ───────────────────────────────────────────── */}
-            <motion.main variants={staggerContainer} initial="hidden" animate="show" className="h-screen w-full flex p-6 gap-6 relative z-10 pt-20 pb-24">
+            <motion.main variants={staggerContainer} initial="hidden" animate="show" className="h-screen w-full flex max-w-[1920px] mx-auto p-4 md:p-6 gap-4 relative z-10 pt-20 pb-24 overflow-hidden">
 
                 {/* LEFT PANEL: Logs & File System */}
-                <motion.aside variants={slamLeft} className="w-[20%] flex flex-col gap-6">
+                <motion.aside variants={slamLeft} className="w-[20%] xl:w-[22%] flex flex-col gap-4">
 
                     {/* SYSTEM LOGS */}
                     <section
-                        className="flex-[3] bg-[#0A0A0A] flex flex-col overflow-hidden relative shadow-[10px_10px_0px_#050505] border border-white/5"
-                        style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%)" }}
+                        className={`bg-[#0A0A0A] flex flex-col overflow-hidden relative shadow-[10px_10px_0px_#050505] border border-white/5 transition-all duration-300 ${activeLeftPanel === 'logs' ? 'flex-1' : 'flex-none'}`}
                     >
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF003C] to-transparent"></div>
-                        <div className="flex justify-between items-center p-4 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent">
-                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
+                        <button onClick={() => setActiveLeftPanel(p => p === 'logs' ? null : 'logs')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent hover:bg-white/5 transition-colors cursor-pointer group">
+                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">developer_board</span>
                                 SYSTEM_LOGS
                             </h2>
-                            <span className="text-[8px] text-[#FF003C]/60 font-mono tracking-widest animate-pulse">LIVE_FEED</span>
-                        </div>
-                        <div className="flex-1 font-mono text-[10px] leading-relaxed overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                            {systemLogs.map((log, i) => (
-                                <SystemLogEntry key={i} log={log} />
-                            ))}
-                        </div>
+                            <span className="material-symbols-outlined text-[#FF003C]/60 group-hover:text-[#FF003C] transition-colors">
+                                {activeLeftPanel === 'logs' ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+                        {activeLeftPanel === 'logs' && (
+                            <div className="flex-1 font-label text-[10px] leading-relaxed overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                                {systemLogs.map((log, i) => (
+                                    <SystemLogEntry key={i} log={log} />
+                                ))}
+                            </div>
+                        )}
                     </section>
 
                     {/* FILE SYSTEM */}
-                    <section className="flex-[2] bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505]">
-                        <div className="p-4 border-b border-white/5">
-                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
+                    <section className={`bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505] transition-all duration-300 ${activeLeftPanel === 'filesystem' ? 'flex-[2]' : 'flex-none'}`}>
+                        <button onClick={() => setActiveLeftPanel(p => p === 'filesystem' ? null : 'filesystem')} className="w-full p-4 border-b border-white/5 flex justify-between items-center bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer group">
+                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">folder_zip</span>
                                 FILE_SYSTEM
                             </h2>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-                            <FileTree
-                                files={terminal.virtualFiles}
-                                currentPath={terminal.currentPath}
-                                discoveredPaths={terminal.discoveredPaths}
-                                newlyRevealedFilePaths={newlyRevealedFilePaths}
-                            />
-                        </div>
+                            <span className="material-symbols-outlined text-[#00FFFF]/60 group-hover:text-[#00FFFF] transition-colors">
+                                {activeLeftPanel === 'filesystem' ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+                        {activeLeftPanel === 'filesystem' && (
+                            <div className="flex-1 overflow-y-auto p-4 pb-28 custom-scrollbar">
+                                <FileTree
+                                    files={terminal.virtualFiles}
+                                    currentPath={terminal.currentPath}
+                                    discoveredPaths={terminal.discoveredPaths}
+                                    newlyRevealedFilePaths={newlyRevealedFilePaths}
+                                />
+                            </div>
+                        )}
                     </section>
                 </motion.aside>
 
                 {/* CENTER: Terminal & Metadata */}
-                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-6">
+                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-4">
                     <div
                         className="w-full flex-1 relative min-h-0 bg-[#0A0A0A] border border-[#FF003C]/20 shadow-[0_0_40px_rgba(255,0,60,0.05)]"
                         style={{ clipPath: "polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)" }}
@@ -350,35 +353,45 @@ export default function GamingEnvironment() {
                     <div className="flex items-center justify-between px-6 py-4 bg-[#0A0A0A] border border-white/5 shadow-[5px_5px_0px_#050505]">
                         <div className="flex items-center gap-4">
                             <div className="w-2 h-2 bg-[#00FFFF] animate-pulse shadow-[0_0_8px_#00FFFF]"></div>
-                            <span className="font-mono text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
+                            <span className="font-label text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
                                 {scenarioData?.scenario?.title || 'AWAITING_DATA...'}
                             </span>
                         </div>
-                        <div className="flex items-center gap-6 font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase font-bold">
+                        <div className="flex items-center gap-6 font-label text-[10px] text-white tracking-[0.2em] uppercase font-bold">
                             <span>MODE: <span className="text-white">{mode}</span></span>
                             <span>DIFF: <span className="text-white">{scenarioData?.scenario?.difficulty || '—'}</span></span>
                             <span>STEPS: <span className="text-[#FF003C]">{objectives.completedCount}/{objectives.totalRequired}</span></span>
+                            
+                            {/* EXIT BUTTON */}
+                            <button
+                                onClick={handleExitClick}
+                                disabled={session.isLoading}
+                                className="ml-4 flex items-center gap-2 bg-[#FF003C]/10 border border-[#FF003C]/30 px-3 py-1 hover:bg-[#FF003C] hover:text-black transition-all duration-300 disabled:opacity-50 group skew-x-[-8deg]"
+                            >
+                                <span className="skew-x-[8deg] material-symbols-outlined text-[14px] text-[#FF003C] group-hover:text-black">logout</span>
+                                <span className="skew-x-[8deg] text-[#FF003C] group-hover:text-black tracking-widest">EXIT</span>
+                            </button>
                         </div>
                     </div>
                 </motion.div>
 
                 {/* RIGHT PANEL: Status, Hints, Objectives */}
-                <motion.aside variants={slamRight} className="w-[22%] flex flex-col gap-6">
+                <motion.aside variants={slamRight} className="w-[22%] xl:w-[24%] flex flex-col gap-4">
 
                     {/* Operative status */}
                     <section
-                        className="bg-[#0A0A0A] p-5 border border-white/5 border-r-4 border-r-[#FF003C] shadow-[10px_10px_0px_#050505]"
+                        className="bg-[#0A0A0A] p-4 border border-white/5 border-r-4 border-r-[#FF003C] shadow-[10px_10px_0px_#050505]"
                         style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%)" }}
                     >
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="font-mono text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase">
+                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase">
                                 OPERATIVE_STATUS
                             </h2>
                             <span className="material-symbols-outlined text-[#00FFFF] text-lg">shield</span>
                         </div>
                         <div className="space-y-6">
                             <div>
-                                <div className="flex justify-between font-mono text-[9px] text-white/40 tracking-[0.2em] uppercase mb-2">
+                                <div className="flex justify-between font-label text-[9px] text-white tracking-[0.2em] uppercase mb-2">
                                     <span>COMPLETION_INDEX</span>
                                     <span className="text-[#FF003C] font-bold">{objectives.completionPercent}%</span>
                                 </div>
@@ -389,39 +402,53 @@ export default function GamingEnvironment() {
                                     ></div>
                                 </div>
                             </div>
-                            <div className="bg-[#050505] p-3 border border-white/5 flex justify-between items-center">
-                                <div className="font-mono">
-                                    <div className="text-[8px] text-white/30 tracking-widest uppercase mb-1">SESSION_ID</div>
-                                    <div className="text-lg font-black italic text-[#00FFFF] tracking-tighter">
-                                        {session.sessionId ? String(session.sessionId).padStart(8, '0') : '--------'}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </section>
 
-                    {/* AI HINT PANEL (Assuming HintPanel handles its own internal styling, wrapping it in a tactical box) */}
-                    <div className="bg-[#0A0A0A] border border-white/5 shadow-[10px_10px_0px_#050505] flex-1 min-h-[200px] overflow-hidden">
-                        <HintPanel
-                            latestHint={hint.latestHint}
-                            hints={hint.hints}
-                            hintsRemaining={hint.hintsRemaining}
-                            limitReached={hint.limitReached}
-                            isLoading={hint.isLoading}
-                            error={hint.error}
-                            onRequestHint={hint.getHint}
-                        />
+                    {/* AI HINT PANEL */}
+                    <div className={`bg-[#0A0A0A] border border-white/5 shadow-[10px_10px_0px_#050505] flex flex-col overflow-hidden transition-all duration-300 ${activeRightPanel === 'oracle' ? 'flex-[1.5]' : 'flex-none'}`}>
+                        <button onClick={() => setActiveRightPanel(p => p === 'oracle' ? null : 'oracle')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer text-left group">
+                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#00EBF7] uppercase flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[14px]">smart_toy</span>
+                                AI_ORACLE
+                            </h2>
+                            <span className="material-symbols-outlined text-[#00EBF7]/60 group-hover:text-[#00EBF7] transition-colors">
+                                {activeRightPanel === 'oracle' ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+                        {activeRightPanel === 'oracle' && (
+                            <HintPanel
+                                latestHint={hint.latestHint}
+                                hints={hint.hints}
+                                hintsRemaining={hint.hintsRemaining}
+                                limitReached={hint.limitReached}
+                                isLoading={hint.isLoading}
+                                error={hint.error}
+                                onRequestHint={hint.getHint}
+                            />
+                        )}
                     </div>
 
-                    {/* OBJECTIVES PANEL (Assuming ObjectivesPanel handles its own styling, wrapping it) */}
-                    <div className="bg-[#0D0D0D] border border-white/5 shadow-[10px_10px_0px_#050505] flex-[2] overflow-hidden">
-                        <ObjectivesPanel
-                            objectives={objectives.objectives}
-                            completedCount={objectives.completedCount}
-                            totalRequired={objectives.totalRequired}
-                            completionPercent={objectives.completionPercent}
-                            secretObjectives={objectives.secretObjectives}
-                        />
+                    {/* OBJECTIVES PANEL */}
+                    <div className={`bg-[#0D0D0D] border border-white/5 shadow-[10px_10px_0px_#050505] flex flex-col overflow-hidden transition-all duration-300 ${activeRightPanel === 'objectives' ? 'flex-[1.5]' : 'flex-none'}`}>
+                        <button onClick={() => setActiveRightPanel(p => p === 'objectives' ? null : 'objectives')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer text-left group">
+                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
+                                <span className="material-symbols-outlined text-[14px]">crisis_alert</span>
+                                OBJECTIVES
+                            </h2>
+                            <span className="material-symbols-outlined text-[#FF003C]/60 group-hover:text-[#FF003C] transition-colors">
+                                {activeRightPanel === 'objectives' ? 'expand_less' : 'expand_more'}
+                            </span>
+                        </button>
+                        {activeRightPanel === 'objectives' && (
+                            <ObjectivesPanel
+                                objectives={objectives.objectives}
+                                completedCount={objectives.completedCount}
+                                totalRequired={objectives.totalRequired}
+                                completionPercent={objectives.completionPercent}
+                                secretObjectives={objectives.secretObjectives}
+                            />
+                        )}
                     </div>
 
                 </motion.aside>
@@ -477,7 +504,7 @@ function SystemLogEntry({ log }) {
 
     return (
         <div className={`py-1 ${isCritical ? 'border-l-2 border-[#FF003C] pl-3 bg-[#FF003C]/5' : isAria ? 'pl-3 italic' : 'pl-3'}`}>
-            <div className={`flex gap-3 text-[10px] tracking-widest uppercase ${isCritical ? 'text-[#FF003C] font-bold' : isAria ? 'text-[#00FFFF]/50' : 'text-white/40'}`}>
+            <div className={`flex gap-3 text-[10px] tracking-widest uppercase ${isCritical ? 'text-[#FF003C] font-bold' : isAria ? 'text-[#00FFFF]/50' : 'text-white'}`}>
                 <span className="shrink-0 opacity-50">[{log.time}]</span>
                 <span>{log.message}</span>
             </div>
@@ -531,7 +558,7 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
 
         return (
             <div key={path}>
-                <div className={`flex items-center gap-2 py-1 font-mono text-[10px] uppercase tracking-widest ${isCurrent ? 'text-[#00FFFF] font-bold bg-[#00FFFF]/10' : 'text-white/40'}`} style={{ paddingLeft: `${indent + 8}px` }}>
+                <div className={`flex items-center gap-2 py-1 font-label text-[10px] uppercase tracking-widest ${isCurrent ? 'text-[#00FFFF] font-bold bg-[#00FFFF]/10' : 'text-white'}`} style={{ paddingLeft: `${indent + 8}px` }}>
                     <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                         {isCurrent ? 'folder_open' : 'folder'}
                     </span>
@@ -552,13 +579,13 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
                         const topTag = f.evidence_tags?.[0];
 
                         return (
-                            <div key={f.virtual_file_id} className={`flex items-center gap-2 py-1 pl-3 font-mono text-[10px] tracking-widest transition-all ${isRevealed ? 'text-black bg-[#00FFFF] font-bold' : isMalicious ? 'text-[#FF003C]' : isLog ? 'text-yellow-500/80' : isScript ? 'text-[#00FFFF]/80' : 'text-white/50'}`}>
+                            <div key={f.virtual_file_id} className={`flex items-center gap-2 py-1 pl-3 font-label text-[10px] tracking-widest transition-all ${isRevealed ? 'text-black bg-[#00FFFF] font-bold' : isMalicious ? 'text-[#FF003C]' : isLog ? 'text-yellow-500/80' : isScript ? 'text-[#00FFFF]/80' : 'text-white'}`}>
                                 <span className="material-symbols-outlined text-[12px]">
                                     {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}
                                 </span>
                                 <span className="truncate">{fname}</span>
                                 {topTag && (
-                                    <span className={`text-[8px] px-1.5 py-0.5 border ${isMalicious ? 'border-[#FF003C] text-[#FF003C] bg-[#FF003C]/10' : 'border-white/20 text-white/40'}`}>
+                                    <span className={`text-[8px] px-1.5 py-0.5 border ${isMalicious ? 'border-[#FF003C] text-[#FF003C] bg-[#FF003C]/10' : 'border-white/20 text-white'}`}>
                                         {topTag}
                                     </span>
                                 )}
@@ -574,7 +601,7 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
         <div className="space-y-1">
             {renderNode('/')}
             {discovered.size <= 1 && (
-                <div className="font-mono text-[9px] text-[#00FFFF]/40 uppercase tracking-widest mt-4 pl-4 animate-pulse">
+                <div className="font-label text-[9px] text-[#00FFFF]/40 uppercase tracking-widest mt-4 pl-4 animate-pulse">
                     AWAITING_SYSTEM_NAVIGATION...
                 </div>
             )}
@@ -591,7 +618,7 @@ function ExitModal({ onConfirm, onCancel }) {
                 <h2 className="text-4xl font-black italic text-[#FF003C] uppercase mb-6 tracking-tighter skew-x-[-5deg]">
                     ABORT_SESSION?
                 </h2>
-                <p className="font-sans text-white/70 leading-relaxed mb-10">
+                <p className="font-body text-white leading-relaxed mb-10">
                     You are in <span className="text-[#FF003C] font-bold">TIMED MODE</span>. Terminating the uplink now will discard all temporary data. No score or XP will be awarded for this session.
                 </p>
                 <div className="flex flex-col gap-4">
@@ -619,18 +646,18 @@ function CompletionOverlay({ evaluation }) {
                 </motion.div>
 
                 <div className="bg-[#0A0A0A] border border-[#00FFFF]/30 p-8 shadow-[15px_15px_0px_#050505] skew-x-[-5deg] min-w-[400px]">
-                    <div className="font-mono text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
+                    <div className="font-label text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
                         FINAL_EVALUATION
                     </div>
                     <div className="font-black italic text-7xl text-white skew-x-[5deg] mb-2">
-                        {score}<span className="text-3xl text-white/30">/100</span>
+                        {score}<span className="text-3xl text-white">/100</span>
                     </div>
-                    <div className="font-mono text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
+                    <div className="font-label text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
                         +{xp} XP AWARDED
                     </div>
                 </div>
 
-                <div className="mt-12 font-mono text-[10px] text-white/40 tracking-[0.4em] uppercase font-bold animate-pulse">
+                <div className="mt-12 font-label text-[10px] text-white tracking-[0.4em] uppercase font-bold animate-pulse">
                     RE-ESTABLISHING HUB UPLINK...
                 </div>
             </div>
@@ -651,7 +678,7 @@ function BootScreen() {
                     ></motion.div>
                 ))}
             </div>
-            <span className="font-mono font-bold text-[10px] text-[#FF003C] tracking-[0.5em] uppercase animate-pulse">
+            <span className="font-label font-bold text-[10px] text-[#FF003C] tracking-[0.5em] uppercase animate-pulse">
                 INITIALIZING_BREACH_PROTOCOL...
             </span>
         </div>
@@ -665,7 +692,7 @@ function ErrorScreen({ error, onBack }) {
             <div className="text-5xl font-black italic text-[#FF003C] uppercase tracking-tighter skew-x-[-5deg] mb-6">
                 SYSTEM_FAILURE
             </div>
-            <p className="font-mono text-xs text-white/60 tracking-[0.2em] uppercase max-w-lg leading-loose bg-white/5 p-6 border border-white/10 mb-10">
+            <p className="font-label text-xs text-white tracking-[0.2em] uppercase max-w-lg leading-loose bg-white/5 p-6 border border-white/10 mb-10">
                 {error}
             </p>
             <button onClick={onBack} className="bg-transparent border-2 border-white/20 text-white font-black italic py-4 px-10 text-xl uppercase tracking-tighter skew-x-[-10deg] hover:border-[#00FFFF] hover:text-[#00FFFF] hover:bg-[#00FFFF]/10 transition-all">

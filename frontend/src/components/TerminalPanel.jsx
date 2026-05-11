@@ -32,7 +32,7 @@ export default function TerminalPanel({ terminalRef, currentPath, isReady, isPro
                         <div className="w-3 h-3 rounded-full bg-yellow-500/60"></div>
                         <div className="w-3 h-3 rounded-full bg-green-500/60"></div>
                     </div>
-                    <span className="font-label text-[10px] tracking-[0.3em] text-white/20 uppercase">
+                    <span className="font-label text-[10px] tracking-[0.3em] text-white uppercase">
                         Hyperion-OS // secure shell
                     </span>
                 </div>
@@ -41,14 +41,14 @@ export default function TerminalPanel({ terminalRef, currentPath, isReady, isPro
                 <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#FF003C] text-sm">terminal</span>
                     <span className="font-label text-xs text-[#00EBF7] tracking-wider">
-                        root@hyperion:<span className="text-white/60">{currentPath}</span>
+                        root@hyperion:<span className="text-white">{currentPath}</span>
                     </span>
                 </div>
 
                 {/* Right: status indicator */}
                 <div className="flex items-center gap-2">
                     <div className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-green-400 animate-pulse' : 'bg-zinc-600'}`}></div>
-                    <span className="font-label text-[9px] text-white/20 tracking-widest uppercase">
+                    <span className="font-label text-[9px] text-white tracking-widest uppercase">
                         {isReady ? 'ACTIVE' : 'INIT'}
                     </span>
                 </div>
@@ -75,7 +75,7 @@ export default function TerminalPanel({ terminalRef, currentPath, isReady, isPro
                             ></div>
                         ))}
                     </div>
-                    <span className="font-label text-[10px] text-white/20 tracking-[0.4em] uppercase">
+                    <span className="font-label text-[10px] text-white tracking-[0.4em] uppercase">
                         Initializing secure shell...
                     </span>
                 </div>

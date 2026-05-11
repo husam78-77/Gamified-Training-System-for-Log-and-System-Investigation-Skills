@@ -88,7 +88,7 @@ export default function HintPanel({
                     disabled={!canRequest}
                     className={`w-full py-3 font-label text-[10px] font-bold tracking-[0.3em] uppercase transition-all duration-300 flex items-center justify-center gap-2 ${canRequest
                             ? 'bg-[#00EBF7]/10 border border-[#00EBF7]/30 text-[#00EBF7] hover:bg-[#00EBF7]/20 hover:border-[#00EBF7]/60 cursor-pointer'
-                            : 'bg-white/5 border border-white/5 text-white/20 cursor-not-allowed'
+                            : 'bg-white/5 border border-white/5 text-white cursor-not-allowed'
                         }`}
                 >
                     {isLoading ? (
@@ -105,7 +105,7 @@ export default function HintPanel({
                         <>
                             <span className="material-symbols-outlined text-sm">psychology</span>
                             Request Analysis
-                            <span className="text-white/30">({hintsRemaining} left)</span>
+                            <span className="text-white">({hintsRemaining} left)</span>
                         </>
                     )}
                 </button>
@@ -115,7 +115,7 @@ export default function HintPanel({
                     <div>
                         <button
                             onClick={() => setShowHistory(h => !h)}
-                            className="flex items-center gap-1.5 font-label text-[9px] text-white/20 hover:text-white/40 transition-colors uppercase tracking-wider"
+                            className="flex items-center gap-1.5 font-label text-[9px] text-white hover:text-white transition-colors uppercase tracking-wider"
                         >
                             <span className="material-symbols-outlined text-xs">
                                 {showHistory ? 'expand_less' : 'history'}
@@ -127,10 +127,10 @@ export default function HintPanel({
                             <div className="mt-3 space-y-3 max-h-40 overflow-y-auto custom-scrollbar">
                                 {hints.slice(0, -1).map((hint, i) => (
                                     <div key={hint.id} className="border-l border-white/10 pl-3">
-                                        <span className="font-label text-[8px] text-white/20 block mb-1">
+                                        <span className="font-label text-[8px] text-white block mb-1">
                                             HINT_{String(i + 1).padStart(2, '0')}
                                         </span>
-                                        <p className="font-body text-[10px] text-white/40 italic leading-relaxed">
+                                        <p className="font-body text-[10px] text-white italic leading-relaxed">
                                             "{hint.text}"
                                         </p>
                                     </div>
@@ -167,7 +167,7 @@ function LoadingState() {
 
 function PlaceholderState() {
     return (
-        <p className="font-body text-xs text-white/20 italic leading-relaxed">
+        <p className="font-body text-xs text-white italic leading-relaxed">
             The Oracle is watching. Request an analysis when you need guidance.
         </p>
     );
@@ -176,10 +176,10 @@ function PlaceholderState() {
 function LimitReachedState() {
     return (
         <div className="flex items-start gap-2">
-            <span className="material-symbols-outlined text-white/20 text-sm flex-shrink-0 mt-0.5">
+            <span className="material-symbols-outlined text-white text-sm flex-shrink-0 mt-0.5">
                 block
             </span>
-            <p className="font-label text-[10px] text-white/20 leading-relaxed">
+            <p className="font-label text-[10px] text-white leading-relaxed">
                 Oracle capacity exhausted for this session. Continue your investigation independently.
             </p>
         </div>

@@ -43,7 +43,7 @@ export default function ObjectivesPanel({
             {/* Objectives list */}
             <ul className="space-y-3 flex-1">
                 {objectives.length === 0 && (
-                    <li className="font-label text-xs text-white/30 italic">
+                    <li className="font-label text-xs text-white italic">
                         Loading objectives...
                     </li>
                 )}
@@ -104,7 +104,7 @@ function ObjectiveItem({ objective, isSecret = false }) {
                     </span>
                 )}
                 {isIncomplete && (
-                    <span className="material-symbols-outlined text-[16px] text-white/25">
+                    <span className="material-symbols-outlined text-[16px] text-white">
                         {isSecret ? 'lock' : 'radio_button_unchecked'}
                     </span>
                 )}
@@ -112,17 +112,16 @@ function ObjectiveItem({ objective, isSecret = false }) {
 
             {/* Text */}
             <div className="flex flex-col gap-1 min-w-0">
-                <span className={`font-label text-[11px] font-black tracking-wider uppercase leading-tight ${isCompleted ? 'line-through text-white/30' :
+                <span className={`font-label text-[11px] font-black tracking-wider uppercase leading-tight ${isCompleted ? 'line-through text-white' :
                         isInProgress ? 'text-[#00EBF7]' :
                             isSecret ? 'text-[#FF003C]/70' :
-                                'text-white/70'
+                                'text-white'
                     }`}>
                     {title}
                 </span>
 
                 {description && (
-                    <span className={`text-[10px] font-label leading-relaxed ${isCompleted ? 'text-white/20' : 'text-white/40'
-                        }`}>
+                    <span className={`text-[10px] font-label leading-relaxed text-white`}>
                         {isCompleted ? 'OBJECTIVE_COMPLETE' : description}
                     </span>
                 )}
