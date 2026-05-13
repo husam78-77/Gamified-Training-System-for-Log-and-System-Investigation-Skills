@@ -371,15 +371,15 @@ export const useTerminal = ({
                 return;
             }
 
-                // (b) inferred directory — file path that is deeper than one level under baseDir
-                if (fp.startsWith(pfx) && fp.length > pfx.length) {
-                    const remainder = baseDir === '/' ? fp.slice(1) : fp.slice(pfx.length);
-                    const firstSeg = remainder.split('/')[0];
-                    if (firstSeg && firstSeg.startsWith(baseName) && remainder.includes('/')) {
-                        dirNames.add(firstSeg);
-                    }
+            // (b) inferred directory — file path that is deeper than one level under baseDir
+            if (fp.startsWith(pfx) && fp.length > pfx.length) {
+                const remainder = baseDir === '/' ? fp.slice(1) : fp.slice(pfx.length);
+                const firstSeg = remainder.split('/')[0];
+                if (firstSeg && firstSeg.startsWith(baseName) && remainder.includes('/')) {
+                    dirNames.add(firstSeg);
                 }
-            });
+            }
+        });
         // Pass 2 — collect direct non-directory file children (skip when dirsOnly)
         const fileNames = new Set();
         if (!dirsOnly) {
@@ -619,18 +619,7 @@ export const useTerminal = ({
         const restore = async () => {
             try {
                 const data = await fetchCommandHistory(sessionId, token);
-                
-                if (data.revealedFiles && data.revealedFiles.length > 0) {
-                    setVirtualFiles(prev => {
-                        const existingIds = prev.map(f => f.virtual_file_id);
-                        const newlyAdded = data.revealedFiles
-                            .filter(f => !existingIds.includes(f.virtual_file_id))
-                            .map(f => ({ ...f, is_hidden: false }));
-                        return [...prev, ...newlyAdded];
-                    });
-                }
-
-                if (data.history && data.history.length > 0 && xtermRef.current) {
+                if (data.history.length > 0 && xtermRef.current) {
                     xtermRef.current.writeln('\r\x1b[2m-- Restoring previous session --\x1b[0m');
                     data.history.forEach(entry => {
                         xtermRef.current.writeln(`\r\x1b[90m> ${entry.command_entered}\x1b[0m`);

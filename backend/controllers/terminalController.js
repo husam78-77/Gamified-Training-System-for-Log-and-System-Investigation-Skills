@@ -25,8 +25,8 @@
 
 const terminalModel = require('../models/terminalModel');
 const scenarioModel = require('../models/scenarioModel');
-const sessionModel  = require('../models/sessionModel');
-const hintModel     = require('../models/hintModel');
+const sessionModel = require('../models/sessionModel');
+const hintModel = require('../models/hintModel');
 const discoveryModel = require('../models/discoveryModel');
 const { parseCommand, buildErrorOutput } = require('../utils/terminalParser');
 const evaluationService = require('../services/evaluationService');
@@ -144,9 +144,9 @@ const executeCommand = async (req, res) => {
         //
         // If BOTH fire for the same step_order, only one record is saved (direct wins).
         let saveMatchExpected = directMatch;
-        let saveStepOrder     = directMatch ? matchedStep.step_order : null;
-        let saveMatchType     = directMatch ? 'direct' : null;
-        let resolvedStep      = directMatch ? matchedStep : null;
+        let saveStepOrder = directMatch ? matchedStep.step_order : null;
+        let saveMatchType = directMatch ? 'direct' : null;
+        let resolvedStep = directMatch ? matchedStep : null;
 
         if (!directMatch && newDiscoveries.length > 0) {
             // Find the first discovery that credits a step not yet completed
@@ -157,9 +157,9 @@ const executeCommand = async (req, res) => {
             );
             if (discoveryWithStep) {
                 saveMatchExpected = true;
-                saveStepOrder     = discoveryWithStep.maps_to_step_order;
-                saveMatchType     = 'discovery';
-                resolvedStep      = expectedSteps.find(s => s.step_order === saveStepOrder);
+                saveStepOrder = discoveryWithStep.maps_to_step_order;
+                saveMatchType = 'discovery';
+                resolvedStep = expectedSteps.find(s => s.step_order === saveStepOrder);
             }
         }
 
@@ -167,17 +167,17 @@ const executeCommand = async (req, res) => {
         await terminalModel.saveCommand({
             sessionId,
             commandEntered: command,
-            matchExpected:  saveMatchExpected,
+            matchExpected: saveMatchExpected,
             matchStepOrder: saveStepOrder,
-            matchType:      saveMatchType,
+            matchType: saveMatchType,
         });
 
         // ── Save newly unlocked discoveries ───────────────────────────────────
         for (const discovery of newDiscoveries) {
             await discoveryModel.saveDiscovery({
                 sessionId,
-                discoveryId:       discovery.discovery_id,
-                discoveryKey:      discovery.discovery_key,
+                discoveryId: discovery.discovery_id,
+                discoveryKey: discovery.discovery_key,
                 triggeredByCommand: command,
             });
         }
@@ -213,7 +213,7 @@ const executeCommand = async (req, res) => {
         if (saveMatchType === 'discovery' && saveStepOrder) {
             newlyRevealedFiles.push(...virtualFiles.filter(
                 f => f.is_hidden && f.reveal_at_step === saveStepOrder &&
-                     !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
+                    !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
             ));
         }
 
@@ -221,9 +221,9 @@ const executeCommand = async (req, res) => {
         if (newDiscoveryKeys.length > 0) {
             newlyRevealedFiles.push(...virtualFiles.filter(
                 f => f.is_hidden &&
-                     f.reveal_at_discovery_key &&
-                     newDiscoveryKeys.includes(f.reveal_at_discovery_key) &&
-                     !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
+                    f.reveal_at_discovery_key &&
+                    newDiscoveryKeys.includes(f.reveal_at_discovery_key) &&
+                    !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
             ));
         }
 
@@ -260,11 +260,11 @@ const executeCommand = async (req, res) => {
 
             const triggerResult = await evaluateAutoTrigger({
                 sessionId,
-                scenarioId:          session.scenario_id,
-                commandHistory:      freshHistory,
+                scenarioId: session.scenario_id,
+                commandHistory: freshHistory,
                 expectedSteps,
                 completedStepOrders: updatedStepOrders,
-                sessionStartTime:    session.start_time,
+                sessionStartTime: session.start_time,
             });
 
             if (triggerResult.shouldTrigger) {
@@ -276,15 +276,15 @@ const executeCommand = async (req, res) => {
 
                 autoHint = await generateAutoHint({
                     sessionId,
-                    scenarioId:          session.scenario_id,
-                    commandHistory:      freshHistory,
+                    scenarioId: session.scenario_id,
+                    commandHistory: freshHistory,
                     expectedSteps,
                     completedStepOrders: updatedStepOrders,
                     previousHints,
-                    scenarioTitle:       scenario.title,
-                    missionBrief:        scenario.mission_brief,
-                    sessionStartTime:    session.start_time,
-                    triggerReason:       triggerResult.reason,
+                    scenarioTitle: scenario.title,
+                    missionBrief: scenario.mission_brief,
+                    sessionStartTime: session.start_time,
+                    triggerReason: triggerResult.reason,
                 });
             }
         } catch (autoTriggerErr) {
@@ -297,18 +297,18 @@ const executeCommand = async (req, res) => {
             output,
             matched: directMatch || newDiscoveries.length > 0,
             matchedStep: resolvedStep ? {
-                step_order:  resolvedStep.step_order,
+                step_order: resolvedStep.step_order,
                 description: resolvedStep.description,
             } : null,
             newlyRevealedFiles,
             completedObjectiveIds,
             newDiscoveries: newDiscoveries.map(d => ({
-                discovery_key:  d.discovery_key,
-                title:          d.title,
-                description:    d.description,
-                evidence_tags:  d.evidence_tags,
-                is_critical:    d.is_critical,
-                reveal_hint:    d.reveal_hint,
+                discovery_key: d.discovery_key,
+                title: d.title,
+                description: d.description,
+                evidence_tags: d.evidence_tags,
+                is_critical: d.is_critical,
+                reveal_hint: d.reveal_hint,
                 severity_level: d.severity_level || null,
             })),
             auto_hint: autoHint,
@@ -327,7 +327,7 @@ const executeCommand = async (req, res) => {
  */
 const getHistory = async (req, res) => {
     try {
-        const userId    = req.user.user_id;
+        const userId = req.user.user_id;
         const sessionId = parseInt(req.params.sessionId, 10);
 
         if (isNaN(sessionId)) {
@@ -339,27 +339,9 @@ const getHistory = async (req, res) => {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
 
-        const [history, completedDiscoveryIds, virtualFiles] = await Promise.all([
-            terminalModel.getCommandHistory(sessionId),
-            discoveryModel.getSessionDiscoveryIds(sessionId),
-            scenarioModel.getVirtualFilesByScenario(session.scenario_id),
-        ]);
+        const history = await terminalModel.getCommandHistory(sessionId);
 
-        const completedStepOrders = history.filter(h => h.match_type !== null).map(h => h.match_step_order);
-        const discoveries = await discoveryModel.getDiscoveriesWithTriggers(session.scenario_id);
-
-        const completedDiscoveryKeys = discoveries
-            .filter(d => completedDiscoveryIds.includes(d.discovery_id))
-            .map(d => d.discovery_key);
-
-        const revealedFiles = virtualFiles.filter(f => {
-            if (!f.is_hidden) return false; // Already visible by default
-            if (f.reveal_at_step && completedStepOrders.includes(f.reveal_at_step)) return true;
-            if (f.reveal_at_discovery_key && completedDiscoveryKeys.includes(f.reveal_at_discovery_key)) return true;
-            return false;
-        });
-
-        return response.success(res, 200, MESSAGES.HISTORY_FETCHED, { history, revealedFiles });
+        return response.success(res, 200, MESSAGES.HISTORY_FETCHED, { history });
     } catch (err) {
         console.error('getHistory error:', err);
         return response.error(res, 500, MESSAGES.SERVER_ERROR);
@@ -385,20 +367,20 @@ const buildTerminalOutput = (parsed, virtualFiles, currentPath, commandHistory =
     const { command, target } = parsed;
 
     switch (command) {
-        case 'ls':      return handleLs(resolvePath(target, currentPath), virtualFiles);
-        case 'cat':     return handleCat(target, virtualFiles, currentPath);
-        case 'pwd':     return currentPath;
-        case 'whoami':  return 'root';
-        case 'cd':      return handleCd(target, virtualFiles, currentPath);
-        case 'grep':    return handleGrep(parsed, virtualFiles, currentPath);
-        case 'find':    return handleFind(parsed, virtualFiles, currentPath);
-        case 'ps':      return handlePs(parsed);
-        case 'locate':  return handleLocate(parsed, virtualFiles);
+        case 'ls': return handleLs(resolvePath(target, currentPath), virtualFiles);
+        case 'cat': return handleCat(target, virtualFiles, currentPath);
+        case 'pwd': return currentPath;
+        case 'whoami': return 'root';
+        case 'cd': return handleCd(target, virtualFiles, currentPath);
+        case 'grep': return handleGrep(parsed, virtualFiles, currentPath);
+        case 'find': return handleFind(parsed, virtualFiles, currentPath);
+        case 'ps': return handlePs(parsed);
+        case 'locate': return handleLocate(parsed, virtualFiles);
         case 'strings': return handleStrings(parsed, virtualFiles, currentPath);
         case 'history': return handleHistory(commandHistory);
-        case 'clear':   return '__CLEAR__';
-        case 'help':    return buildHelp();
-        default:        return `bash: ${command}: command not found`;
+        case 'clear': return '__CLEAR__';
+        case 'help': return buildHelp();
+        default: return `bash: ${command}: command not found`;
     }
 };
 
@@ -453,7 +435,7 @@ const handleLs = (path, virtualFiles) => {
 const handleCd = (target, virtualFiles, currentPath) => {
     if (!target) return '';
 
-    const resolvedPath   = resolvePath(target, currentPath);
+    const resolvedPath = resolvePath(target, currentPath);
     const normalizedPath = normalizePath(resolvedPath);
 
     // Look up the explicit entry stored at exactly this path
@@ -462,9 +444,8 @@ const handleCd = (target, virtualFiles, currentPath) => {
     );
 
     // [DEBUG] Remove after validation confirms correct behavior
-    console.log(`[cd] input="${target}" resolved="${normalizedPath}" entry=${
-        entry ? `"${entry.file_path}" type=${entry.file_type}` : 'none'
-    }`);
+    console.log(`[cd] input="${target}" resolved="${normalizedPath}" entry=${entry ? `"${entry.file_path}" type=${entry.file_type}` : 'none'
+        }`);
 
     if (entry) {
         // Explicit entry found — accept only if it is a directory
@@ -474,7 +455,7 @@ const handleCd = (target, virtualFiles, currentPath) => {
     }
 
     // No explicit entry — accept if files live beneath this path (inferred directory)
-    const prefix      = normalizedPath === '/' ? '/' : normalizedPath + '/';
+    const prefix = normalizedPath === '/' ? '/' : normalizedPath + '/';
     const hasChildren = normalizedPath === '/' ||
         virtualFiles.some(f => normalizePath(f.file_path).startsWith(prefix));
 
@@ -503,19 +484,19 @@ const handleGrep = (parsed, virtualFiles, currentPath) => {
         return 'Usage: grep [options] [pattern] [file|path]\r\nOptions: -r recursive  -i case-insensitive  -n line numbers  -v invert';
     }
 
-    const pattern    = positional[0];
-    const targetArg  = positional[positional.length - 1];
+    const pattern = positional[0];
+    const targetArg = positional[positional.length - 1];
     const targetPath = resolvePath(targetArg, currentPath);
 
     const caseInsensitive = flags.some(f => f.includes('i'));
-    const showLineNums    = flags.some(f => f.includes('n'));
-    const invertMatch     = flags.some(f => f.includes('v'));
-    const recursive       = flags.some(f => f.includes('r') || f.includes('R'));
+    const showLineNums = flags.some(f => f.includes('n'));
+    const invertMatch = flags.some(f => f.includes('v'));
+    const recursive = flags.some(f => f.includes('r') || f.includes('R'));
 
     const hits = (line) => {
-        const hay    = caseInsensitive ? line.toLowerCase() : line;
+        const hay = caseInsensitive ? line.toLowerCase() : line;
         const needle = caseInsensitive ? pattern.toLowerCase() : pattern;
-        const match  = hay.includes(needle);
+        const match = hay.includes(needle);
         return invertMatch ? !match : match;
     };
 
@@ -570,14 +551,14 @@ const matchesWildcard = (name, pattern) => {
 const handleFind = (parsed, virtualFiles, currentPath) => {
     const { positional, args } = parsed;
 
-    const rawPath    = positional.length > 0 ? positional[0] : currentPath;
+    const rawPath = positional.length > 0 ? positional[0] : currentPath;
     const searchPath = resolvePath(rawPath, currentPath);
     const normalizedRoot = normalizePath(searchPath);
 
-    const nameIdx   = args.indexOf('-name');
+    const nameIdx = args.indexOf('-name');
     const nameFilter = nameIdx !== -1 && args[nameIdx + 1] ? args[nameIdx + 1] : null;
 
-    const typeIdx   = args.indexOf('-type');
+    const typeIdx = args.indexOf('-type');
     const typeFilter = typeIdx !== -1 && args[typeIdx + 1] ? args[typeIdx + 1] : null;
 
     const rootExists = normalizedRoot === '/' || virtualFiles.some(f => {
@@ -748,7 +729,7 @@ const resolvePath = (target, currentPath) => {
     // ~ expands to root in this simulated environment
     const expanded = target === '~' ? '/'
         : target.startsWith('~/') ? '/' + target.slice(2)
-        : target;
+            : target;
     if (expanded.startsWith('/')) {
         return resolveAbsPath(normalizePath(expanded));
     }
