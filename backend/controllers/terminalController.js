@@ -146,6 +146,7 @@ const executeCommand = async (req, res) => {
         let saveMatchExpected = directMatch;
         let saveStepOrder     = directMatch ? matchedStep.step_order : null;
         let saveMatchType     = directMatch ? 'direct' : null;
+        let resolvedStep      = directMatch ? matchedStep : null;
 
         if (!directMatch && newDiscoveries.length > 0) {
             // Find the first discovery that credits a step not yet completed
@@ -158,6 +159,7 @@ const executeCommand = async (req, res) => {
                 saveMatchExpected = true;
                 saveStepOrder     = discoveryWithStep.maps_to_step_order;
                 saveMatchType     = 'discovery';
+                resolvedStep      = expectedSteps.find(s => s.step_order === saveStepOrder);
             }
         }
 
@@ -193,12 +195,6 @@ const executeCommand = async (req, res) => {
             }
         }
 
-        // ── Build terminal output ─────────────────────────────────────────────
-        // Pass only visible files (is_hidden=false) to the output builder.
-        // Hidden files are intentionally excluded until revealed.
-        const visibleFiles = virtualFiles.filter(f => !f.is_hidden);
-        const output = buildTerminalOutput(parsed, visibleFiles, current_path, commandHistoryForOutput);
-
         // ── Resolve newly revealed files ──────────────────────────────────────
         // Two revelation systems run in parallel:
         //   reveal_at_step         : revealed when a specific step_order is credited
@@ -209,9 +205,9 @@ const executeCommand = async (req, res) => {
         let newlyRevealedFiles = [];
 
         // Step-based reveals (direct match OR discovery credited the same step)
-        if (directMatch) {
+        if (resolvedStep) {
             newlyRevealedFiles.push(...virtualFiles.filter(
-                f => f.is_hidden && f.reveal_at_step === matchedStep.step_order
+                f => f.is_hidden && f.reveal_at_step === resolvedStep.step_order
             ));
         }
         if (saveMatchType === 'discovery' && saveStepOrder) {
@@ -230,6 +226,24 @@ const executeCommand = async (req, res) => {
                      !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
             ));
         }
+
+        // ── Build terminal output ─────────────────────────────────────────────
+        // The backend is stateless for file visibility; we must dynamically unhide files
+        // that were unlocked either in past turns or in this exact turn.
+        const allDiscoveryKeys = [
+            ...discoveries.filter(d => completedDiscoveryIds.includes(d.discovery_id)).map(d => d.discovery_key),
+            ...newDiscoveryKeys
+        ];
+
+        const visibleFiles = virtualFiles.filter(f => {
+            if (!f.is_hidden) return true;
+            if (f.reveal_at_step && updatedStepOrders.includes(f.reveal_at_step)) return true;
+            if (f.reveal_at_discovery_key && allDiscoveryKeys.includes(f.reveal_at_discovery_key)) return true;
+            // Also include files explicitly pushed to newlyRevealedFiles
+            if (newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)) return true;
+            return false;
+        });
+        const output = buildTerminalOutput(parsed, visibleFiles, current_path, commandHistoryForOutput);
 
         // ── Resolve newly completed objectives ────────────────────────────────
         const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
@@ -282,9 +296,9 @@ const executeCommand = async (req, res) => {
         return response.success(res, 200, MESSAGES.COMMAND_PROCESSED, {
             output,
             matched: directMatch || newDiscoveries.length > 0,
-            matchedStep: directMatch ? {
-                step_order:  matchedStep.step_order,
-                description: matchedStep.description,
+            matchedStep: resolvedStep ? {
+                step_order:  resolvedStep.step_order,
+                description: resolvedStep.description,
             } : null,
             newlyRevealedFiles,
             completedObjectiveIds,
@@ -325,9 +339,27 @@ const getHistory = async (req, res) => {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
 
-        const history = await terminalModel.getCommandHistory(sessionId);
+        const [history, completedDiscoveryIds, virtualFiles] = await Promise.all([
+            terminalModel.getCommandHistory(sessionId),
+            discoveryModel.getSessionDiscoveryIds(sessionId),
+            scenarioModel.getVirtualFilesByScenario(session.scenario_id),
+        ]);
 
-        return response.success(res, 200, MESSAGES.HISTORY_FETCHED, { history });
+        const completedStepOrders = history.filter(h => h.match_type !== null).map(h => h.match_step_order);
+        const discoveries = await discoveryModel.getDiscoveriesWithTriggers(session.scenario_id);
+
+        const completedDiscoveryKeys = discoveries
+            .filter(d => completedDiscoveryIds.includes(d.discovery_id))
+            .map(d => d.discovery_key);
+
+        const revealedFiles = virtualFiles.filter(f => {
+            if (!f.is_hidden) return false; // Already visible by default
+            if (f.reveal_at_step && completedStepOrders.includes(f.reveal_at_step)) return true;
+            if (f.reveal_at_discovery_key && completedDiscoveryKeys.includes(f.reveal_at_discovery_key)) return true;
+            return false;
+        });
+
+        return response.success(res, 200, MESSAGES.HISTORY_FETCHED, { history, revealedFiles });
     } catch (err) {
         console.error('getHistory error:', err);
         return response.error(res, 500, MESSAGES.SERVER_ERROR);

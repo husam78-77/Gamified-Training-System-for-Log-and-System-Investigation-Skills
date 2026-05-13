@@ -337,10 +337,9 @@ export const useTerminal = ({
         const partial = input.slice(lastSpaceIdx + 1);
         const cmdPrefix = input.slice(0, lastSpaceIdx + 1);
 
-        // Command-aware filtering: cd/find → dirs only; cat/strings → files only
+        // Command-aware filtering: cd → dirs only
         const cmdWord = cmdPrefix.trim().split(/\s+/)[0].toLowerCase();
         const dirsOnly = cmdWord === 'cd';
-        const filesOnly = cmdWord === 'cat' || cmdWord === 'strings';
 
         let baseDir, baseName;
         if (partial.includes('/')) {
@@ -356,22 +355,21 @@ export const useTerminal = ({
         const files = virtualFilesRef.current;
         const pfx = baseDir === '/' ? '/' : baseDir + '/';
 
-        // Pass 1 — collect directory names (skip when filesOnly)
+        // Pass 1 — collect directory names
         // Two sources:
         //   a) explicit file_type==='directory' entries directly under baseDir
         //   b) inferred directories — any file nested deeper than one level under baseDir
         const dirNames = new Set();
-        if (!filesOnly) {
-            files.forEach(f => {
-                const fp = normalizeFSPath(f.file_path || '');
-                const parent = getFSParent(fp);
-                const name = fp.slice(fp.lastIndexOf('/') + 1);
+        files.forEach(f => {
+            const fp = normalizeFSPath(f.file_path || '');
+            const parent = getFSParent(fp);
+            const name = fp.slice(fp.lastIndexOf('/') + 1);
 
-                // (a) explicit directory entry immediately under baseDir
-                if (parent === baseDir && name.startsWith(baseName) && f.file_type === 'directory') {
-                    dirNames.add(name);
-                    return;
-                }
+            // (a) explicit directory entry immediately under baseDir
+            if (parent === baseDir && name.startsWith(baseName) && f.file_type === 'directory') {
+                dirNames.add(name);
+                return;
+            }
 
                 // (b) inferred directory — file path that is deeper than one level under baseDir
                 if (fp.startsWith(pfx) && fp.length > pfx.length) {
@@ -382,8 +380,6 @@ export const useTerminal = ({
                     }
                 }
             });
-        }
-
         // Pass 2 — collect direct non-directory file children (skip when dirsOnly)
         const fileNames = new Set();
         if (!dirsOnly) {
@@ -623,7 +619,18 @@ export const useTerminal = ({
         const restore = async () => {
             try {
                 const data = await fetchCommandHistory(sessionId, token);
-                if (data.history.length > 0 && xtermRef.current) {
+                
+                if (data.revealedFiles && data.revealedFiles.length > 0) {
+                    setVirtualFiles(prev => {
+                        const existingIds = prev.map(f => f.virtual_file_id);
+                        const newlyAdded = data.revealedFiles
+                            .filter(f => !existingIds.includes(f.virtual_file_id))
+                            .map(f => ({ ...f, is_hidden: false }));
+                        return [...prev, ...newlyAdded];
+                    });
+                }
+
+                if (data.history && data.history.length > 0 && xtermRef.current) {
                     xtermRef.current.writeln('\r\x1b[2m-- Restoring previous session --\x1b[0m');
                     data.history.forEach(entry => {
                         xtermRef.current.writeln(`\r\x1b[90m> ${entry.command_entered}\x1b[0m`);
@@ -790,6 +797,17 @@ export const useTerminal = ({
                     toDiscover.push(getFSParent(fp));
                 }
             });
+        } else if (command === 'locate') {
+            if (output) {
+                const lines = output.split(/[\r\n]+/);
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('/')) {
+                        toDiscover.push(trimmed);
+                        toDiscover.push(getFSParent(trimmed));
+                    }
+                });
+            }
         }
 
         if (toDiscover.length > 0) discoverPaths(toDiscover);

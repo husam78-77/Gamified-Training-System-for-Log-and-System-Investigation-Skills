@@ -176,6 +176,8 @@ export default function GamingEnvironment() {
     // ── HINT HOOK ─────────────────────────────────────────────────────────
     const hint = useHint(session.sessionId, token);
 
+    const [hasNotifiedCompletion, setHasNotifiedCompletion] = useState(false);
+
     // ── TERMINAL HOOK ─────────────────────────────────────────────────────
     const terminal = useTerminal({
         sessionId: session.sessionId,
@@ -189,12 +191,13 @@ export default function GamingEnvironment() {
     });
 
     useEffect(() => {
-        if (objectives.allRequiredComplete && session.isActive) {
+        if (objectives.allRequiredComplete && session.isActive && !hasNotifiedCompletion) {
             terminal.writeToTerminal(
                 '\x1b[32m[SYSTEM] All objectives complete. Mission ready to finalize.\x1b[0m'
             );
+            setHasNotifiedCompletion(true);
         }
-    }, [objectives.allRequiredComplete, session.isActive, terminal]);
+    }, [objectives.allRequiredComplete, session.isActive, terminal.writeToTerminal, hasNotifiedCompletion]);
 
     useEffect(() => {
         if (session.isCompleted && session.evaluation) {
