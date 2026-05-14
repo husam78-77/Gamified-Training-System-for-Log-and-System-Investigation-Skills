@@ -52,13 +52,7 @@ export default function Sidebar() {
                     <div className="absolute top-2 left-6 w-12 h-12 border-l-2 border-t-2 border-[#00FFFF]/30"></div>
 
                     <div className="flex flex-col gap-6 pt-4 relative z-10">
-                        <div className="w-20 h-20 bg-[#050505] rotate-45 border-2 border-[#00FFFF] overflow-hidden shadow-[0_0_20px_rgba(0,255,255,0.2)] ml-2">
-                            <img
-                                alt="Agent Profile"
-                                className="-rotate-45 scale-[1.7] translate-y-2 grayscale contrast-125 mix-blend-luminosity"
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDkYa08sVOlAGzQ6Gzby1PxLwT7GY1Rf-ExkJcSYkhrZ4WqOx6WGzGq1EzBvC-YC46xBvF08zebkEpv6g82gDSA4DNkAO0r6gaWeLQ4_BsLGc8A27f-5obhZrjrRCgGGTJCOdI8YqTOnc6YxAH5bOzx1sv6dW0GQ1XdeKuZKxJ9RfDOczDNgUB_eU2hXJUiZFrvj7A3MfMDnlykCQBzO8Fdy0BNEuJdsw36Eks_H1oRao4V8V2k05pdDXZcUtIThKyNgjl-VAtrf7Q3"
-                            />
-                        </div>
+
                         <div>
                             <p className="font-mono text-[10px] text-[#00FFFF] tracking-[0.4em] font-bold uppercase mb-1">RANK: {rank}</p>
                             <p className="font-black italic text-3xl tracking-tighter text-white uppercase leading-none drop-shadow-[2px_2px_0px_#FF003C] skew-x-[-5deg] truncate max-w-[180px]">
@@ -99,16 +93,7 @@ export default function Sidebar() {
 
                 {/* Bottom Actions */}
                 <div className="mt-auto px-8 flex flex-col gap-6 pr-14">
-                    <button className="w-full bg-transparent border-2 border-[#00FFFF] text-[#00FFFF] font-black italic text-xl py-4 skew-x-[-10deg] hover:bg-[#00FFFF] hover:text-black hover:shadow-[0_0_20px_rgba(0,255,255,0.4)] transition-all flex items-center justify-center gap-3 group">
-                        <span className="skew-x-[10deg] tracking-tighter">INITIATE BREACH</span>
-                        <span className="material-symbols-outlined skew-x-[10deg] group-hover:rotate-90 transition-transform">bolt</span>
-                    </button>
-
                     <div className="flex flex-col gap-4 border-t border-white/10 pt-6">
-                        <button className="flex items-center gap-3 font-mono font-bold text-[10px] tracking-[0.3em] uppercase text-white/40 hover:text-white transition-colors">
-                            <span className="material-symbols-outlined text-lg">settings</span>
-                            SETTINGS
-                        </button>
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-3 font-mono font-bold text-[10px] tracking-[0.3em] uppercase text-[#FF003C]/70 hover:text-[#FF003C] hover:translate-x-2 transition-all"
