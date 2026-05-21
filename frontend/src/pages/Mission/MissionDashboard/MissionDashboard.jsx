@@ -65,10 +65,10 @@ export default function InvestigationCategories() {
                     </motion.div>
 
                     {/* ASYMMETRICAL PANELS */}
-                    <div className="flex flex-col xl:flex-row gap-12 xl:gap-8 items-stretch justify-between relative z-20">
+                    <div className="flex flex-col xl:flex-row gap-12 xl:gap-4 items-stretch justify-between relative z-20">
 
                         {/* TYPE 1: BRUTE FORCE (The Red Pill) */}
-                        <motion.div variants={slamUp} className="group relative w-full xl:w-[48%] transition-all duration-500 hover:-translate-y-4">
+                        <motion.div variants={slamUp} className="group relative w-full xl:w-[30%] transition-all duration-500 hover:-translate-y-4">
                             {/* Ambient Hover Glow */}
                             <div className="absolute -inset-4 bg-[#FF003C]/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
@@ -124,14 +124,14 @@ export default function InvestigationCategories() {
                         </motion.div>
 
                         {/* Divider for desktop */}
-                        <div className="hidden xl:flex flex-col items-center justify-center w-[4%] opacity-30">
+                        <div className="hidden xl:flex flex-col items-center justify-center w-[2%] opacity-30">
                             <div className="w-[1px] h-32 bg-gradient-to-b from-transparent to-white"></div>
                             <span className="font-mono text-[10px] tracking-[0.3em] uppercase py-4 writing-vertical transform rotate-180">OR</span>
                             <div className="w-[1px] h-32 bg-gradient-to-t from-transparent to-white"></div>
                         </div>
 
                         {/* TYPE 2: SUSPICIOUS SCRIPT (The Blue Pill) */}
-                        <motion.div variants={slamUp} className="group relative w-full xl:w-[48%] xl:mt-16 transition-all duration-500 hover:-translate-y-4">
+                        <motion.div variants={slamUp} className="group relative w-full xl:w-[30%] xl:mt-16 transition-all duration-500 hover:-translate-y-4">
                             {/* Ambient Hover Glow */}
                             <div className="absolute -inset-4 bg-[#00FFFF]/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
 
@@ -184,6 +184,72 @@ export default function InvestigationCategories() {
                                     >
                                         <span className="skew-x-[12deg] block">ANALYZE SCRIPT</span>
                                         <span className="skew-x-[12deg] material-symbols-outlined text-3xl transform group-hover/btn:translate-x-2 transition-transform">code_blocks</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        {/* Divider for desktop */}
+                        <div className="hidden xl:flex flex-col items-center justify-center w-[2%] opacity-30 xl:mt-16">
+                            <div className="w-[1px] h-32 bg-gradient-to-b from-transparent to-white"></div>
+                            <span className="font-mono text-[10px] tracking-[0.3em] uppercase py-4 writing-vertical transform rotate-180">OR</span>
+                            <div className="w-[1px] h-32 bg-gradient-to-t from-transparent to-white"></div>
+                        </div>
+
+                        {/* TYPE 3: SSH FORENSICS (The Green Pill) */}
+                        <motion.div variants={slamUp} className="group relative w-full xl:w-[30%] xl:mt-32 transition-all duration-500 hover:-translate-y-4">
+                            {/* Ambient Hover Glow */}
+                            <div className="absolute -inset-4 bg-[#00FF00]/10 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+                            {/* Floating Metadata Card */}
+                            <div className="absolute -bottom-6 -right-6 bg-[#00FF00] text-black font-mono font-bold px-6 py-2 text-[10px] tracking-[0.2em] skew-x-[-15deg] shadow-[8px_8px_0px_#050505] z-30 transition-transform group-hover:translate-x-2">
+                                <span className="skew-x-[15deg] block uppercase">TYPE: INCIDENT_RESPONSE</span>
+                            </div>
+
+                            {/* Main Container Geometry */}
+                            <div
+                                className="relative bg-[#0A0A0A] h-full shadow-[20px_20px_0px_rgba(5,5,5,0.9)] flex flex-col border border-[#00FF00]/20"
+                                style={{ clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 50px 100%, 0 calc(100% - 50px))" }}
+                            >
+                                {/* Inner Tonal Layer */}
+                                <div className="bg-[#0D0D0D] flex-1 p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
+                                    {/* Accent Geometric Slash */}
+                                    <div className="absolute top-0 right-0 w-[150%] h-32 bg-gradient-to-b from-[#00FF00]/10 to-transparent -rotate-12 translate-x-1/4 -translate-y-1/2 pointer-events-none"></div>
+
+                                    <div>
+                                        <div className="flex justify-between items-start mb-10">
+                                            <span className="font-mono text-[#00FF00] text-[10px] tracking-[0.4em] font-bold uppercase flex items-center gap-2">
+                                                <span className="w-2 h-2 bg-[#00FF00] shadow-[0_0_8px_#00FF00] animate-pulse"></span>
+                                                PROTOCOL // 009-SIGMA
+                                            </span>
+                                            <span className="material-symbols-outlined text-[#00FF00] text-5xl drop-shadow-[0_0_15px_#00FF00]">fingerprint</span>
+                                        </div>
+
+                                        <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
+                                            SSH<br />FORENSICS
+                                        </h2>
+
+                                        <p className="text-white/60 font-sans text-base leading-relaxed max-w-md mb-8">
+                                            Trace unauthorized access and lateral movement through secure shell logs. Analyze <span className="text-[#00FF00] font-bold">session fingerprints</span> and uncover the intrusion origin.
+                                        </p>
+
+                                        <ul className="space-y-3 font-mono text-[10px] text-white/50 uppercase tracking-[0.1em] mb-16">
+                                            <li className="flex items-center gap-3">
+                                                <div className="w-1.5 h-1.5 bg-[#00FF00]"></div> LOG_ANALYSIS_MATRIX
+                                            </li>
+                                            <li className="flex items-center gap-3">
+                                                <div className="w-1.5 h-1.5 bg-[#00FF00]"></div> IP_GEO_TRACING
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    {/* Kinetic Button */}
+                                    <button
+                                        onClick={() => navigate('/sequence/ssh_forensics')}
+                                        className="relative w-full py-6 bg-transparent ring-2 ring-[#00FF00] text-[#00FF00] font-black text-2xl italic tracking-tighter uppercase transition-all hover:bg-[#00FF00] hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-8"
+                                    >
+                                        <span className="skew-x-[12deg] block">INVESTIGATE LOGS</span>
+                                        <span className="skew-x-[12deg] material-symbols-outlined text-3xl transform group-hover/btn:translate-x-2 transition-transform">travel_explore</span>
                                     </button>
                                 </div>
                             </div>

@@ -21,6 +21,14 @@ const TYPE_CONFIG = {
         category: 'PROTOCOL_004',
         bgText: 'ANALYZE',
     },
+    ssh_forensics: {
+        hex: '#00FF00',
+        themeColor: 'text-[#00FF00]',
+        bgTheme: 'bg-[#00FF00]',
+        borderTheme: 'border-[#00FF00]',
+        category: 'PROTOCOL_009',
+        bgText: 'INVESTIGATE',
+    },
 };
 
 const THREAT_COLORS = {

@@ -27,6 +27,17 @@ const TYPE_CONFIG = {
         bgText: 'ANALYZE',
         description: 'Deep-dive malware analysis and shell-script decryption. Trace obfuscated payloads and dismantle lateral movement scripts in real-time.',
     },
+    ssh_forensics: {
+        titleBase: 'SSH',
+        titleHighlight: 'FORENSICS',
+        hex: '#00FF00',
+        themeColor: 'text-[#00FF00]',
+        bgTheme: 'bg-[#00FF00]',
+        borderTheme: 'border-[#00FF00]',
+        category: 'PROTOCOL_009',
+        bgText: 'INVESTIGATE',
+        description: 'Trace unauthorized access and lateral movement through secure shell logs. Analyze session fingerprints and uncover the origin of the intrusion.',
+    },
 };
 
 const DIFF_CONFIG = {

@@ -623,6 +623,7 @@ const handlePs = (parsed) => {
             'root      2048   0.2  1.2  45320 12288 ?        Sl   09:16   0:12 python3 /opt/scripts/monitor.py',
             'root      3127   0.4  0.6   8192  6144 ?        S    09:45   0:05 /bin/sh /tmp/.update.sh',
             'root      4200   0.0  0.0   2784   512 pts/0    R+   10:23   0:00 ps aux',
+            'root      4150   0.0  0.1   5120  1024 pts/1    Ss   02:15   0:00 sshd: developer@pts/1',
         ].join('\r\n');
     }
 
