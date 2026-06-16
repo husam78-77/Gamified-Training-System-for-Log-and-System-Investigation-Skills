@@ -305,7 +305,7 @@ export default function GamingEnvironment() {
                     >
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF003C] to-transparent"></div>
                         <button onClick={() => setActiveLeftPanel(p => p === 'logs' ? null : 'logs')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent hover:bg-white/5 transition-colors cursor-pointer group">
-                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
+                            <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">developer_board</span>
                                 SYSTEM_LOGS
                             </h2>
@@ -314,7 +314,7 @@ export default function GamingEnvironment() {
                             </span>
                         </button>
                         {activeLeftPanel === 'logs' && (
-                            <div className="flex-1 font-label text-[10px] leading-relaxed overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                            <div className="flex-1 font-sans text-[11px] leading-relaxed overflow-y-auto p-4 space-y-4 custom-scrollbar">
                                 {systemLogs.map((log, i) => (
                                     <SystemLogEntry key={i} log={log} />
                                 ))}
@@ -325,7 +325,7 @@ export default function GamingEnvironment() {
                     {/* FILE SYSTEM */}
                     <section className={`bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505] transition-all duration-300 ${activeLeftPanel === 'filesystem' ? 'flex-[2]' : 'flex-none'}`}>
                         <button onClick={() => setActiveLeftPanel(p => p === 'filesystem' ? null : 'filesystem')} className="w-full p-4 border-b border-white/5 flex justify-between items-center bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer group">
-                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
+                            <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">folder_zip</span>
                                 FILE_SYSTEM
                             </h2>
@@ -365,11 +365,11 @@ export default function GamingEnvironment() {
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-[#0A0A0A] border border-white/5 shadow-[5px_5px_0px_#050505]">
                         <div className="flex items-center gap-4">
                             <div className="w-2 h-2 bg-[#00FFFF] animate-pulse shadow-[0_0_8px_#00FFFF]"></div>
-                            <span className="font-label text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
+                            <span className="font-sans text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
                                 {scenarioData?.scenario?.title || 'AWAITING_DATA...'}
                             </span>
                         </div>
-                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-label text-[10px] text-white tracking-[0.2em] uppercase font-bold">
+                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-sans text-[10px] text-white tracking-[0.2em] uppercase font-bold">
                             <span>MODE: <span className="text-white">{mode}</span></span>
                             <span>DIFF: <span className="text-white">{scenarioData?.scenario?.difficulty || '—'}</span></span>
                             <span>STEPS: <span className="text-[#FF003C]">{objectives.completedCount}/{objectives.totalRequired}</span></span>
@@ -396,14 +396,14 @@ export default function GamingEnvironment() {
                         style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%)" }}
                     >
                         <div className="flex items-center justify-between mb-6">
-                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase">
+                            <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase">
                                 OPERATIVE_STATUS
                             </h2>
                             <span className="material-symbols-outlined text-[#00FFFF] text-lg">shield</span>
                         </div>
                         <div className="space-y-6">
                             <div>
-                                <div className="flex justify-between font-label text-[9px] text-white tracking-[0.2em] uppercase mb-2">
+                                <div className="flex justify-between font-sans text-[9px] text-white tracking-[0.2em] uppercase mb-2">
                                     <span>COMPLETION_INDEX</span>
                                     <span className="text-[#FF003C] font-bold">{objectives.completionPercent}%</span>
                                 </div>
@@ -420,7 +420,7 @@ export default function GamingEnvironment() {
                     {/* AI HINT PANEL */}
                     <div className={`bg-[#0A0A0A] border border-white/5 shadow-[10px_10px_0px_#050505] flex flex-col overflow-hidden transition-all duration-300 ${activeRightPanel === 'oracle' ? 'flex-[1.5]' : 'flex-none'}`}>
                         <button onClick={() => setActiveRightPanel(p => p === 'oracle' ? null : 'oracle')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer text-left group">
-                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#00EBF7] uppercase flex items-center gap-3">
+                            <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#00EBF7] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">smart_toy</span>
                                 AI_ORACLE
                             </h2>
@@ -444,7 +444,7 @@ export default function GamingEnvironment() {
                     {/* OBJECTIVES PANEL */}
                     <div className={`bg-[#0D0D0D] border border-white/5 shadow-[10px_10px_0px_#050505] flex flex-col overflow-hidden transition-all duration-300 ${activeRightPanel === 'objectives' ? 'flex-[1.5]' : 'flex-none'}`}>
                         <button onClick={() => setActiveRightPanel(p => p === 'objectives' ? null : 'objectives')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer text-left group">
-                            <h2 className="font-label text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
+                            <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#FF003C] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">crisis_alert</span>
                                 OBJECTIVES
                             </h2>
@@ -503,12 +503,12 @@ function SystemLogEntry({ log }) {
         const style = DISCOVERY_SEVERITY_STYLE[sev] || DISCOVERY_SEVERITY_STYLE.confirmation;
         return (
             <div className={`py-1 ${style.wrapper}`}>
-                <div className={`flex gap-3 text-[10px] uppercase tracking-widest ${style.text}`}>
+                <div className={`flex gap-3 text-xs uppercase tracking-widest ${style.text}`}>
                     <span className="shrink-0 opacity-50">[{log.time}]</span>
                     <span>{log.message}</span>
                 </div>
                 {log.sub && (
-                    <div className="text-[9px] mt-1 text-[#00FFFF]/50 tracking-widest">{log.sub}</div>
+                    <div className="text-[11px] mt-1 text-[#00FFFF]/50 tracking-widest">{log.sub}</div>
                 )}
             </div>
         );
@@ -516,12 +516,12 @@ function SystemLogEntry({ log }) {
 
     return (
         <div className={`py-1 ${isCritical ? 'border-l-2 border-[#FF003C] pl-3 bg-[#FF003C]/5' : isAria ? 'pl-3 italic' : 'pl-3'}`}>
-            <div className={`flex gap-3 text-[10px] tracking-widest uppercase ${isCritical ? 'text-[#FF003C] font-bold' : isAria ? 'text-[#00FFFF]/50' : 'text-white'}`}>
+            <div className={`flex gap-3 text-xs tracking-widest uppercase ${isCritical ? 'text-[#FF003C] font-bold' : isAria ? 'text-[#00FFFF]/50' : 'text-white'}`}>
                 <span className="shrink-0 opacity-50">[{log.time}]</span>
                 <span>{log.message}</span>
             </div>
             {log.sub && (
-                <div className="text-[9px] mt-1 text-[#FF003C]/70 tracking-widest uppercase">{log.sub}</div>
+                <div className="text-[11px] mt-1 text-[#FF003C]/70 tracking-widest uppercase">{log.sub}</div>
             )}
         </div>
     );
@@ -570,8 +570,8 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
 
         return (
             <div key={path}>
-                <div className={`flex items-center gap-2 py-1 font-label text-[10px] uppercase tracking-widest ${isCurrent ? 'text-[#00FFFF] font-bold bg-[#00FFFF]/10' : 'text-white'}`} style={{ paddingLeft: `${indent + 8}px` }}>
-                    <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                <div className={`flex items-center gap-2 py-1 font-sans text-xs uppercase tracking-widest ${isCurrent ? 'text-[#00FFFF] font-bold bg-[#00FFFF]/10' : 'text-white'}`} style={{ paddingLeft: `${indent + 8}px` }}>
+                    <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
                         {isCurrent ? 'folder_open' : 'folder'}
                     </span>
                     <span>{name}</span>
@@ -591,8 +591,8 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
                         const topTag = f.evidence_tags?.[0];
 
                         return (
-                            <div key={f.virtual_file_id} className={`flex items-center gap-2 py-1 pl-3 font-label text-[10px] tracking-widest transition-all ${isRevealed ? 'text-black bg-[#00FFFF] font-bold' : isMalicious ? 'text-[#FF003C]' : isLog ? 'text-yellow-500/80' : isScript ? 'text-[#00FFFF]/80' : 'text-white'}`}>
-                                <span className="material-symbols-outlined text-[12px]">
+                            <div key={f.virtual_file_id} className={`flex items-center gap-2 py-1 pl-3 font-sans text-[11px] tracking-widest transition-all ${isRevealed ? 'text-black bg-[#00FFFF] font-bold' : isMalicious ? 'text-[#FF003C]' : isLog ? 'text-yellow-500/80' : isScript ? 'text-[#00FFFF]/80' : 'text-white'}`}>
+                                <span className="material-symbols-outlined text-[14px]">
                                     {isLog ? 'receipt_long' : isScript ? 'code' : 'draft'}
                                 </span>
                                 <span className="truncate">{fname}</span>
@@ -613,7 +613,7 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
         <div className="space-y-1">
             {renderNode('/')}
             {discovered.size <= 1 && (
-                <div className="font-label text-[9px] text-[#00FFFF]/40 uppercase tracking-widest mt-4 pl-4 animate-pulse">
+                <div className="font-sans text-[11px] text-[#00FFFF]/40 uppercase tracking-widest mt-4 pl-4 animate-pulse">
                     AWAITING_SYSTEM_NAVIGATION...
                 </div>
             )}
@@ -658,18 +658,18 @@ function CompletionOverlay({ evaluation }) {
                 </motion.div>
 
                 <div className="bg-[#0A0A0A] border border-[#00FFFF]/30 p-8 shadow-[15px_15px_0px_#050505] skew-x-[-5deg] min-w-[400px]">
-                    <div className="font-label text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
+                    <div className="font-sans text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
                         FINAL_EVALUATION
                     </div>
                     <div className="font-black italic text-7xl text-white skew-x-[5deg] mb-2">
                         {score}<span className="text-3xl text-white">/100</span>
                     </div>
-                    <div className="font-label text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
+                    <div className="font-sans text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
                         +{xp} XP AWARDED
                     </div>
                 </div>
 
-                <div className="mt-12 font-label text-[10px] text-white tracking-[0.4em] uppercase font-bold animate-pulse">
+                <div className="mt-12 font-sans text-[10px] text-white tracking-[0.4em] uppercase font-bold animate-pulse">
                     RE-ESTABLISHING HUB UPLINK...
                 </div>
             </div>
@@ -690,7 +690,7 @@ function BootScreen() {
                     ></motion.div>
                 ))}
             </div>
-            <span className="font-label font-bold text-[10px] text-[#FF003C] tracking-[0.5em] uppercase animate-pulse">
+            <span className="font-sans font-bold text-[10px] text-[#FF003C] tracking-[0.5em] uppercase animate-pulse">
                 INITIALIZING_BREACH_PROTOCOL...
             </span>
         </div>
@@ -704,7 +704,7 @@ function ErrorScreen({ error, onBack }) {
             <div className="text-5xl font-black italic text-[#FF003C] uppercase tracking-tighter skew-x-[-5deg] mb-6">
                 SYSTEM_FAILURE
             </div>
-            <p className="font-label text-xs text-white tracking-[0.2em] uppercase max-w-lg leading-loose bg-white/5 p-6 border border-white/10 mb-10">
+            <p className="font-sans text-xs text-white tracking-[0.2em] uppercase max-w-lg leading-loose bg-white/5 p-6 border border-white/10 mb-10">
                 {error}
             </p>
             <button onClick={onBack} className="bg-transparent border-2 border-white/20 text-white font-black italic py-4 px-10 text-xl uppercase tracking-tighter skew-x-[-10deg] hover:border-[#00FFFF] hover:text-[#00FFFF] hover:bg-[#00FFFF]/10 transition-all">

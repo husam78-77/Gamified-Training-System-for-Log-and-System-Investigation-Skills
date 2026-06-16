@@ -14,14 +14,14 @@ export default function ObjectivesPanel({
     secretObjectives = [],
 }) {
     return (
-        <section className="bg-surface-container-low/30 p-5 border-l border-white/5 flex flex-col gap-4">
+        <section className="bg-surface-container-low/30 p-5 border-l border-white/5 flex flex-col gap-4 flex-1 h-full overflow-hidden">
 
             {/* Header */}
             <div className="flex items-center justify-between">
-                <h2 className="font-label text-xs font-black tracking-[0.25em] text-white uppercase">
+                <h2 className="font-sans text-xs font-black tracking-[0.25em] text-white uppercase">
                     MISSION_OBJECTIVES
                 </h2>
-                <span className="font-label text-[10px] font-bold text-[#00EBF7] tracking-wider bg-[#00EBF7]/10 px-2 py-0.5">
+                <span className="font-sans text-[10px] font-bold text-[#00EBF7] tracking-wider bg-[#00EBF7]/10 px-2 py-0.5">
                     {completedCount}/{totalRequired}
                 </span>
             </div>
@@ -41,9 +41,9 @@ export default function ObjectivesPanel({
             </div>
 
             {/* Objectives list */}
-            <ul className="space-y-3 flex-1">
+            <ul className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[100px]">
                 {objectives.length === 0 && (
-                    <li className="font-label text-xs text-white italic">
+                    <li className="font-sans text-xs text-white italic">
                         Loading objectives...
                     </li>
                 )}
@@ -60,7 +60,7 @@ export default function ObjectivesPanel({
                             style={{ fontVariationSettings: "'FILL' 1" }}>
                             stars
                         </span>
-                        <span className="font-label text-[10px] font-black text-[#FF003C] tracking-[0.3em] uppercase">
+                        <span className="font-sans text-[10px] font-black text-[#FF003C] tracking-[0.3em] uppercase">
                             Secret_Objectives
                         </span>
                     </div>
@@ -111,8 +111,8 @@ function ObjectiveItem({ objective, isSecret = false }) {
             </div>
 
             {/* Text */}
-            <div className="flex flex-col gap-1 min-w-0">
-                <span className={`font-label text-[11px] font-black tracking-wider uppercase leading-tight ${isCompleted ? 'line-through text-white' :
+            <div className="flex flex-col gap-1.5 min-w-0">
+                <span className={`font-sans text-[13px] font-black tracking-wider uppercase leading-tight ${isCompleted ? 'line-through text-white' :
                         isInProgress ? 'text-[#00EBF7]' :
                             isSecret ? 'text-[#FF003C]/70' :
                                 'text-white'
@@ -121,13 +121,13 @@ function ObjectiveItem({ objective, isSecret = false }) {
                 </span>
 
                 {description && (
-                    <span className={`text-[10px] font-label leading-relaxed text-white`}>
+                    <span className={`text-xs font-sans leading-relaxed text-white/90`}>
                         {isCompleted ? 'OBJECTIVE_COMPLETE' : description}
                     </span>
                 )}
 
                 {isCompleted && objective.xp_reward > 0 && (
-                    <span className="text-[9px] font-label text-green-400/70 font-bold">
+                    <span className="text-[9px] font-sans text-green-400/70 font-bold">
                         +{objective.xp_reward} XP
                     </span>
                 )}

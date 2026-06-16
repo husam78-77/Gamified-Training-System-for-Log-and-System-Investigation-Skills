@@ -63,7 +63,7 @@ export default function HintPanel({
             <div className="relative z-10 flex-1 flex flex-col justify-between gap-4">
 
                 {/* Current hint or placeholder */}
-                <div className={`border-l-2 pl-3 py-1 transition-all duration-500 ${latestHint?.isNew
+                <div className={`border-l-2 pl-3 py-1 transition-all duration-500 overflow-y-auto custom-scrollbar max-h-32 pr-2 ${latestHint?.isNew
                         ? 'border-[#00EBF7] bg-[#00EBF7]/5'
                         : 'border-[#00EBF7]/20'
                     }`}>

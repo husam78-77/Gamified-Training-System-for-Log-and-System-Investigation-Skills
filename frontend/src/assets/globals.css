@@ -217,3 +217,33 @@
     padding: 1.5rem !important;
   }
 }
+
+/* ==========================================================================
+   SCROLLBAR UTILITIES
+   ========================================================================== */
+
+/* Custom Cyber-Themed Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #00FFFF;
+  border-radius: 2px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #FF003C;
+}
+
+/* Firefox Support */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #00FFFF rgba(255, 255, 255, 0.05);
+}
