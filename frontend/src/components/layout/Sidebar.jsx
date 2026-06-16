@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useProgression } from "../../context/ProgressionContext";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, onClose }) {
     const navigate = useNavigate();
     const { logout } = useAuth();
     const { progression } = useProgression();
@@ -20,6 +20,7 @@ export default function Sidebar() {
 
     const handleLogout = () => {
         setIsLoggingOut(true);
+        if (onClose) onClose();
 
         // Wait for the animation to finish smashing the screen before actually leaving
         setTimeout(() => {
@@ -38,10 +39,26 @@ export default function Sidebar() {
 
     return (
         <>
+            {/* Mobile Sidebar Backdrop Overlay */}
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={onClose}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+                    />
+                )}
+            </AnimatePresence>
+
             <aside
                 // Changed pt-16 to pt-[120px] to sit perfectly beneath the 88px Header
                 // Removed the top clip-path to ensure a flush, seamless connection
-                className="fixed left-0 top-0 h-full w-[320px] bg-[#0A0A0A] shadow-[30px_0_60px_rgba(0,0,0,0.9)] z-40 hidden md:flex flex-col pt-[120px] pb-8 border-r border-[#FF003C]/20"
+                // Updated with responsive translation classes
+                className={`fixed left-0 top-0 h-full w-[320px] bg-[#0A0A0A] shadow-[30px_0_60px_rgba(0,0,0,0.9)] z-50 md:z-40 transition-transform duration-300 ease-out
+                    ${isOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0
+                    flex flex-col pt-[120px] pb-8 border-r border-[#FF003C]/20`}
             >
                 {/* Accent Line - starts exactly where the header ends */}
                 <div className="absolute top-[88px] right-0 w-[1px] h-full bg-gradient-to-b from-[#FF003C] via-[#FF003C]/20 to-transparent"></div>
@@ -68,6 +85,7 @@ export default function Sidebar() {
                         <NavLink
                             key={item.path}
                             to={item.path}
+                            onClick={onClose}
                             className={({ isActive }) =>
                                 `relative font-black italic text-xl tracking-tighter px-10 py-4 flex items-center gap-5 transition-all uppercase group
                                 ${isActive

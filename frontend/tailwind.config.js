@@ -91,9 +91,11 @@ module.exports = {
         "full": "9999px"
       },
       fontFamily: {
+        "sans": ["Inter", "sans-serif"],
         "headline": ["Epilogue", "sans-serif"],
         "body": ["Inter", "sans-serif"],
-        "label": ["Space Grotesk", "sans-serif"]
+        "label": ["Space Grotesk", "sans-serif"],
+        "mono": ["JetBrains Mono", "monospace"]
       }
     },
   },

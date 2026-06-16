@@ -241,6 +241,15 @@ export default function GamingEnvironment() {
         setSystemLogs(buildSystemLogs(terminal.virtualFiles, scenarioData.scenario));
     }, [scenarioData?.scenario?.scenario_id, terminal.virtualFiles]);
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (terminal.fit) {
+                terminal.fit();
+            }
+        }, 150);
+        return () => clearTimeout(timer);
+    }, [activeLeftPanel, activeRightPanel, terminal.fit]);
+
 
     // ── Loading & Error Screens ───────────────────────────────────────────
     if (scenarioLoading || (session.isLoading && !session.sessionId)) {
@@ -285,10 +294,10 @@ export default function GamingEnvironment() {
             )}
 
             {/* ── MAIN LAYOUT ───────────────────────────────────────────── */}
-            <motion.main variants={staggerContainer} initial="hidden" animate="show" className="h-screen w-full flex max-w-[1920px] mx-auto p-4 md:p-6 gap-4 relative z-10 pt-20 pb-24 overflow-hidden">
+            <motion.main variants={staggerContainer} initial="hidden" animate="show" className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row max-w-[1920px] mx-auto p-4 md:p-6 gap-4 relative z-10 pt-20 pb-24 overflow-y-auto lg:overflow-hidden">
 
                 {/* LEFT PANEL: Logs & File System */}
-                <motion.aside variants={slamLeft} className="w-[20%] xl:w-[22%] flex flex-col gap-4">
+                <motion.aside variants={slamLeft} className="w-full lg:w-[20%] lg:xl:w-[22%] flex flex-col gap-4">
 
                     {/* SYSTEM LOGS */}
                     <section
@@ -338,7 +347,7 @@ export default function GamingEnvironment() {
                 </motion.aside>
 
                 {/* CENTER: Terminal & Metadata */}
-                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-4">
+                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-4 min-h-[450px] lg:min-h-0">
                     <div
                         className="w-full flex-1 relative min-h-0 bg-[#0A0A0A] border border-[#FF003C]/20 shadow-[0_0_40px_rgba(255,0,60,0.05)]"
                         style={{ clipPath: "polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)" }}
@@ -353,14 +362,14 @@ export default function GamingEnvironment() {
                     </div>
 
                     {/* Scenario Metadata Strip */}
-                    <div className="flex items-center justify-between px-6 py-4 bg-[#0A0A0A] border border-white/5 shadow-[5px_5px_0px_#050505]">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-[#0A0A0A] border border-white/5 shadow-[5px_5px_0px_#050505]">
                         <div className="flex items-center gap-4">
                             <div className="w-2 h-2 bg-[#00FFFF] animate-pulse shadow-[0_0_8px_#00FFFF]"></div>
                             <span className="font-label text-[10px] text-[#00FFFF] font-bold tracking-[0.3em] uppercase">
                                 {scenarioData?.scenario?.title || 'AWAITING_DATA...'}
                             </span>
                         </div>
-                        <div className="flex items-center gap-6 font-label text-[10px] text-white tracking-[0.2em] uppercase font-bold">
+                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 font-label text-[10px] text-white tracking-[0.2em] uppercase font-bold">
                             <span>MODE: <span className="text-white">{mode}</span></span>
                             <span>DIFF: <span className="text-white">{scenarioData?.scenario?.difficulty || '—'}</span></span>
                             <span>STEPS: <span className="text-[#FF003C]">{objectives.completedCount}/{objectives.totalRequired}</span></span>
@@ -369,7 +378,7 @@ export default function GamingEnvironment() {
                             <button
                                 onClick={handleExitClick}
                                 disabled={session.isLoading}
-                                className="ml-4 flex items-center gap-2 bg-[#FF003C]/10 border border-[#FF003C]/30 px-3 py-1 hover:bg-[#FF003C] hover:text-black transition-all duration-300 disabled:opacity-50 group skew-x-[-8deg]"
+                                className="flex items-center gap-2 bg-[#FF003C]/10 border border-[#FF003C]/30 px-3 py-1 hover:bg-[#FF003C] hover:text-black transition-all duration-300 disabled:opacity-50 group skew-x-[-8deg]"
                             >
                                 <span className="skew-x-[8deg] material-symbols-outlined text-[14px] text-[#FF003C] group-hover:text-black">logout</span>
                                 <span className="skew-x-[8deg] text-[#FF003C] group-hover:text-black tracking-widest">EXIT</span>
@@ -379,7 +388,7 @@ export default function GamingEnvironment() {
                 </motion.div>
 
                 {/* RIGHT PANEL: Status, Hints, Objectives */}
-                <motion.aside variants={slamRight} className="w-[22%] xl:w-[24%] flex flex-col gap-4">
+                <motion.aside variants={slamRight} className="w-full lg:w-[22%] lg:xl:w-[24%] flex flex-col gap-4">
 
                     {/* Operative status */}
                     <section

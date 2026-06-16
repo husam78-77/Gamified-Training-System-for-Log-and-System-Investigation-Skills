@@ -221,7 +221,7 @@ export default function InvestigatorProgress() {
     const xpPercent = Math.round(Math.min(100, Math.max(0, (currentXp / targetXp) * 100)));
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white overflow-hidden relative flex flex-col">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white relative flex flex-col">
 
             {/* ==========================================
                 THE VOID: Tactical Background & Grid
@@ -233,7 +233,7 @@ export default function InvestigatorProgress() {
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
             </div>
 
-            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-20 pb-32 overflow-y-auto custom-scrollbar">
+            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-12 md:pt-20 pb-32">
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-24">
 
                     {/* ════════════════════════════════════════════════════
@@ -260,7 +260,7 @@ export default function InvestigatorProgress() {
                                 <p className="font-mono font-bold text-[10px] tracking-[0.35em] text-[#FF003C] uppercase mb-4">
                                     INVESTIGATOR_IDENTITY
                                 </p>
-                                <h1 className="font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-[4px_4px_0px_#FF003C] skew-x-[-6deg] mb-6" style={{ fontSize: 'clamp(3.5rem, 8vw, 6.5rem)' }}>
+                                <h1 className="font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-[4px_4px_0px_#FF003C] skew-x-[-6deg] mb-6" style={{ fontSize: 'clamp(2.5rem, 8vw, 6.5rem)' }}>
                                     {identity.username}
                                 </h1>
 
@@ -332,7 +332,7 @@ export default function InvestigatorProgress() {
                             <div className="h-1 flex-1 bg-gradient-to-r from-[#00FFFF] to-transparent skew-x-[-8deg]"></div>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             <MetricCard label="MISSIONS_COMPLETED" value={`${metrics.missionsCompleted}/${metrics.totalMissions}`} sub={`${metrics.completionRate}% COMPLETION RATE`} icon="task_alt" accent="primary" />
                             <MetricCard label="EVIDENCE_RECOVERED" value={`${metrics.hiddenEvidenceFound}/${metrics.totalHiddenEvidence}`} sub={`${metrics.evidenceRecoveryRate}% RECOVERY RATE`} icon="find_in_page" accent="secondary" />
                             <MetricCard label="INVESTIGATION_ACCURACY" value={metrics.avgScore} sub="AVG SCORE ACROSS MISSIONS" icon="analytics" accent="primary" suffix="%" />
@@ -406,7 +406,7 @@ export default function InvestigatorProgress() {
                             <div className="h-1 flex-1 bg-gradient-to-r from-[#00FFFF] to-transparent skew-x-[-8deg]"></div>
                         </div>
 
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                             {achievements.map((a, i) => (
                                 <AchievementBadge key={a.id} achievement={a} index={i} />
                             ))}

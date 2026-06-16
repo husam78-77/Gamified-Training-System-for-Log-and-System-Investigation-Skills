@@ -107,7 +107,7 @@ export default function OperativeProfile() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white overflow-hidden relative flex flex-col">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#FF003C] selection:text-white relative flex flex-col">
 
             {/* ==========================================
                 THE VOID: Background & Grids
@@ -129,7 +129,7 @@ export default function OperativeProfile() {
             {/* ==========================================
                 MAIN CANVAS
                 ========================================== */}
-            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-12 pb-32 overflow-y-auto custom-scrollbar">
+            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-12 pb-32">
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-12">
 
                     {/* --- SECTION 1: OPERATIVE IDENTITY --- */}
@@ -141,7 +141,7 @@ export default function OperativeProfile() {
                                 </span>
                             </div>
 
-                            <h1 className="font-black text-7xl md:text-8xl lg:text-[7rem] italic text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 tracking-tighter leading-none skew-x-[-8deg] uppercase drop-shadow-[4px_4px_0px_rgba(255,0,60,0.5)]">
+                            <h1 className="font-black text-4xl sm:text-7xl md:text-8xl lg:text-[7rem] italic text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50 tracking-tighter leading-none skew-x-[-8deg] uppercase drop-shadow-[4px_4px_0px_rgba(255,0,60,0.5)]">
                                 {profile.username}
                             </h1>
 
@@ -334,15 +334,6 @@ export default function OperativeProfile() {
                 </motion.div>
             </main>
 
-            {/* Mobile Nav */}
-            <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#050505]/95 backdrop-blur-xl border-t-2 border-[#FF003C] flex justify-around p-5 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.8)]">
-                <span className="material-symbols-outlined text-white/40">grid_view</span>
-                <span className="material-symbols-outlined text-white/40">ads_click</span>
-                <span className="material-symbols-outlined text-white/40">query_stats</span>
-                <span className="material-symbols-outlined text-black text-3xl bg-[#FF003C] p-3 -mt-10 shadow-[0_0_20px_#FF003C] skew-x-[-10deg]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                    <span className="skew-x-[10deg] block">account_circle</span>
-                </span>
-            </nav>
         </div>
     );
 }

@@ -66,8 +66,19 @@ export default function Dashboard() {
         show: { opacity: 1, y: 0, skewX: "0deg", transition: { type: "spring", stiffness: 350, damping: 25 } }
     };
 
+    // --- Derived data from progression ---
+    const metrics = progression?.metrics || {};
+    const identity = progression?.identity || {};
+    const missionArchive = progression?.missionArchive || [];
+    const rankTimeline = progression?.rankTimeline || [];
+    const nextRank = rankTimeline.find(r => r.status === 'locked') || rankTimeline.find(r => r.status === 'active');
+    const nextRankName = nextRank?.rank || 'MAX_RANK';
+    const xpToNextRank = identity.xpTarget ? (identity.xpTarget - (identity.xp || 0)) : 0;
+    const formatNum = (n) => { if (n >= 1000) return `${(n / 1000).toFixed(1)}k`; return String(n); };
+    const recentMissions = missionArchive.slice(0, 4);
+
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#00FFFF] selection:text-black overflow-hidden relative flex flex-col">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-[#00FFFF] selection:text-black relative flex flex-col">
 
             {/* ==========================================
                 THE VOID: Tactical Background & Grid
@@ -102,7 +113,7 @@ export default function Dashboard() {
             {/* ==========================================
                 MAIN CANVAS
                 ========================================== */}
-            <main className="relative z-20 flex-1 w-full max-w-[1800px] mx-auto px-6 md:px-12 pt-12 pb-24 overflow-y-auto custom-scrollbar">
+            <main className="relative z-20 flex-1 w-full max-w-[1800px] mx-auto px-6 md:px-12 pt-12 pb-24">
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col gap-16">
 
                     {/* --- Hero Progress Section --- */}
@@ -113,7 +124,7 @@ export default function Dashboard() {
                                 <div className="absolute -top-6 left-2 bg-white text-black px-4 py-1 font-bold text-xs tracking-[0.3em] uppercase z-20 shadow-[4px_4px_0px_#FF003C]">
                                     CURRENT_LEVEL
                                 </div>
-                                <h2 className="text-9xl md:text-[14rem] font-black italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-[8px_8px_0px_rgba(255,0,60,0.8)]">
+                                <h2 className="text-6xl sm:text-9xl md:text-[14rem] font-black italic leading-none text-transparent bg-clip-text bg-gradient-to-b from-white to-white/40 drop-shadow-[8px_8px_0px_rgba(255,0,60,0.8)]">
                                     {progression?.identity?.level || 1}
                                 </h2>
                             </div>
@@ -122,17 +133,17 @@ export default function Dashboard() {
                             <div className="flex-1 w-full pb-4 lg:pb-8">
                                 <div className="flex items-end justify-between font-mono text-[10px] font-bold text-[#00FFFF] mb-4 uppercase tracking-[0.25em]">
                                     <div className="flex flex-col gap-1">
-                                        <span className="text-white/40">NEXT_UNLOCK: CLOAKING_RIG</span>
+                                        <span className="text-white/40">NEXT_UNLOCK: {nextRankName}</span>
                                         <span className="text-lg text-white">XP_PROGRESSION</span>
                                     </div>
-                                    <span className="text-xl">{progression?.identity?.xp || 0} <span className="text-white/30">/ {(progression?.identity?.level || 1) * 1000} XP</span></span>
+                                    <span className="text-xl">{identity.xp || 0} <span className="text-white/30">/ {identity.xpTarget || ((identity.level || 1) * 1000)} XP</span></span>
                                 </div>
 
                                 {/* Slanted Bar Container */}
                                 <div className="h-12 bg-[#0A0A0A] relative overflow-hidden skew-x-[-15deg] border-b-2 border-white/5 shadow-[0_20px_40px_rgba(0,0,0,0.5)]">
                                     {/* The Fill */}
                                     <div className="h-full bg-gradient-to-r from-[#FF003C] to-[#FF003C]/80 shadow-[0_0_30px_#FF003C] relative overflow-hidden flex items-center border-r-4 border-white"
-                                         style={{ width: `${Math.min(100, Math.max(0, ((progression?.identity?.xp || 0) / ((progression?.identity?.level || 1) * 1000)) * 100))}%` }}>
+                                         style={{ width: `${identity.xpPercent || Math.min(100, Math.max(0, ((identity.xp || 0) / (identity.xpTarget || 1000)) * 100))}%` }}>
                                         {/* Scanline effect */}
                                         <div className="absolute inset-0 w-full h-full bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.3)_50%,transparent_100%)] animate-[scan_2s_ease-in-out_infinite]"></div>
                                     </div>
@@ -149,7 +160,7 @@ export default function Dashboard() {
                         {/* ACTIVE VECTORS (Missions - Takes up 7 columns) */}
                         <div className="xl:col-span-7 space-y-12">
                             <motion.div variants={slamUp} className="flex items-center gap-6">
-                                <h3 className="text-5xl font-black italic uppercase tracking-tighter skew-x-[-8deg] text-white">
+                                <h3 className="text-3xl sm:text-5xl font-black italic uppercase tracking-tighter skew-x-[-8deg] text-white">
                                     ACTIVE_VECTORS
                                 </h3>
                                 <div className="h-2 flex-1 bg-gradient-to-r from-[#FF003C] via-[#FF003C]/20 to-transparent skew-x-[-8deg]"></div>
@@ -166,7 +177,7 @@ export default function Dashboard() {
                                         className="bg-[#0A0A0A] relative flex flex-col md:flex-row h-full shadow-[20px_20px_0px_rgba(5,5,5,0.8)] border border-white/5"
                                         style={{ clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 40px 100%, 0 calc(100% - 40px))" }}
                                     >
-                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[250px]">
+                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[200px] md:min-h-[250px]">
                                             <img
                                                 alt="Server Room Breach"
                                                 className="absolute inset-0 w-full h-full object-cover grayscale contrast-150 opacity-40 group-hover:grayscale-0 group-hover:opacity-90 transition-all duration-700 scale-110 group-hover:scale-100 mix-blend-luminosity"
@@ -174,10 +185,10 @@ export default function Dashboard() {
                                             />
                                             <div className="absolute inset-0 bg-[#FF003C]/20 mix-blend-overlay"></div>
                                         </div>
-                                        <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
+                                        <div className="p-6 sm:p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
                                             <div>
                                                 <p className="font-mono font-bold text-[#00FFFF] text-[10px] tracking-[0.2em] mb-2 uppercase">NODE_EXPLOITATION</p>
-                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">
+                                                <h4 className="text-2xl sm:text-3xl font-black italic leading-tight uppercase text-white mb-4">
                                                     {bruteForceMission ? bruteForceMission.title : "NO NEW MISSIONS"}
                                                 </h4>
                                             </div>
@@ -187,7 +198,7 @@ export default function Dashboard() {
                                                     className="mt-8 w-full bg-white text-black font-black italic text-xl py-4 skew-x-[-10deg] group-hover:bg-[#FF003C] group-hover:text-white transition-all flex items-center justify-between px-6 shadow-[8px_8px_0px_#050505]">
                                                     <span className="skew-x-[10deg] uppercase tracking-tighter">EXECUTE BREACH</span>
                                                     <span className="skew-x-[10deg] material-symbols-outlined text-3xl">arrow_forward</span>
-                                                </button>
+                                                 </button>
                                             )}
                                         </div>
                                     </div>
@@ -203,7 +214,7 @@ export default function Dashboard() {
                                         className="bg-[#0A0A0A] relative flex flex-col md:flex-row h-full shadow-[20px_20px_0px_rgba(5,5,5,0.8)] border border-white/5"
                                         style={{ clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 40px 100%, 0 calc(100% - 40px))" }}
                                     >
-                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[250px]">
+                                        <div className="relative w-full md:w-[45%] overflow-hidden bg-black min-h-[200px] md:min-h-[250px]">
                                             <img
                                                 alt="Digital Circuitry"
                                                 className="absolute inset-0 w-full h-full object-cover grayscale contrast-150 opacity-30 group-hover:opacity-70 transition-all duration-700 scale-110 group-hover:scale-100"
@@ -211,10 +222,10 @@ export default function Dashboard() {
                                             />
                                             <div className="absolute inset-0 bg-[#00FFFF]/10 mix-blend-overlay"></div>
                                         </div>
-                                        <div className="p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
+                                        <div className="p-6 sm:p-8 md:p-10 flex-1 flex flex-col justify-between bg-gradient-to-br from-[#0A0A0A] to-[#050505]">
                                             <div>
                                                 <p className="font-mono font-bold text-white/40 text-[10px] tracking-[0.2em] mb-2 uppercase">SIGNAL_INTERCEPT</p>
-                                                <h4 className="text-3xl font-black italic leading-tight uppercase text-white mb-4">
+                                                <h4 className="text-2xl sm:text-3xl font-black italic leading-tight uppercase text-white mb-4">
                                                     {scriptMission ? scriptMission.title : "NO NEW MISSIONS"}
                                                 </h4>
                                             </div>
@@ -247,23 +258,23 @@ export default function Dashboard() {
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-white/20"></div>
-                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">12</p>
+                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">{metrics.missionsCompleted || 0}</p>
                                         <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Breaches</p>
                                     </div>
                                     <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-white/20"></div>
-                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">84<span className="text-2xl">%</span></p>
+                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">{metrics.avgScore || 0}<span className="text-2xl">%</span></p>
                                         <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Accuracy</p>
                                     </div>
                                     <div className="p-6 bg-[#00FFFF]/5 skew-x-[-5deg] ring-1 ring-[#00FFFF]/30 shadow-[inset_0_0_30px_rgba(0,255,255,0.05)] flex flex-col justify-center relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-[#00FFFF]"></div>
-                                        <p className="font-black italic text-5xl text-[#00FFFF] leading-none skew-x-[5deg] drop-shadow-[0_0_10px_#00FFFF]">2.4<span className="text-2xl text-[#00FFFF]/50">k</span></p>
-                                        <p className="font-mono text-[10px] font-bold text-[#00FFFF]/60 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Nodes Hacked</p>
+                                        <p className="font-black italic text-5xl text-[#00FFFF] leading-none skew-x-[5deg] drop-shadow-[0_0_10px_#00FFFF]">{formatNum(metrics.totalCommandsExecuted || 0)}</p>
+                                        <p className="font-mono text-[10px] font-bold text-[#00FFFF]/60 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Commands Run</p>
                                     </div>
                                     <div className="p-6 bg-[#050505] skew-x-[-5deg] ring-1 ring-white/10 flex flex-col justify-center relative overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-[#FF003C]/50"></div>
-                                        <p className="font-black italic text-5xl text-white/20 leading-none skew-x-[5deg]">0</p>
-                                        <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Flatlines</p>
+                                        <p className="font-black italic text-5xl text-white leading-none skew-x-[5deg]">{metrics.hiddenEvidenceFound || 0}</p>
+                                        <p className="font-mono text-[10px] font-bold text-white/40 mt-3 uppercase tracking-[0.2em] skew-x-[5deg]">Evidence Found</p>
                                     </div>
                                 </div>
                             </motion.div>
@@ -279,22 +290,26 @@ export default function Dashboard() {
                                 </h3>
 
                                 <div className="space-y-6 font-mono text-[11px] tracking-widest uppercase">
-                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
-                                        <span className="text-[#00FFFF] shrink-0 opacity-70">14:22:01</span>
-                                        <p className="text-white/80 leading-relaxed"><span className="text-[#FF003C] font-bold bg-[#FF003C]/10 px-1">[SUCCESS]</span> Firewall bypassed in 0.4s (Tokyo Node). Payload injected.</p>
-                                    </div>
-                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
-                                        <span className="text-[#00FFFF] shrink-0 opacity-70">13:45:33</span>
-                                        <p className="text-white/80 leading-relaxed"><span className="text-[#00FFFF] font-bold bg-[#00FFFF]/10 px-1">[UPDATE]</span> Operative level increased to 42. Skill points allocated.</p>
-                                    </div>
-                                    <div className="flex gap-6 items-start border-b border-white/5 pb-5 hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
-                                        <span className="text-white/30 shrink-0">12:10:14</span>
-                                        <p className="text-white/40 leading-relaxed"><span className="text-white/30">[LOGIN]</span> Terminal access granted from external IP 192.168.X.1</p>
-                                    </div>
-                                    <div className="flex gap-6 items-start hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded">
-                                        <span className="text-[#FF003C] shrink-0 animate-pulse">09:30:00</span>
-                                        <p className="text-[#FF003C] leading-relaxed"><span className="font-bold bg-[#FF003C]/20 px-1">[CRITICAL]</span> Unauthorized breach detected in Sector 7 Training Deck.</p>
-                                    </div>
+                                    {recentMissions.length === 0 ? (
+                                        <div className="flex gap-6 items-start p-2">
+                                            <span className="text-white/30 shrink-0">--:--:--</span>
+                                            <p className="text-white/40 leading-relaxed">[IDLE] No investigation records found. Begin your first mission.</p>
+                                        </div>
+                                    ) : (
+                                        recentMissions.map((m, i) => {
+                                            const t = m.completedAt ? new Date(m.completedAt).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--';
+                                            return (
+                                                <div key={m.sessionId} className={`flex gap-6 items-start ${i < recentMissions.length - 1 ? 'border-b border-white/5 pb-5' : ''} hover:bg-white/[0.02] transition-colors p-2 -mx-2 rounded`}>
+                                                    <span className={`${m.score >= 80 ? 'text-[#00FFFF]' : 'text-white/30'} shrink-0 opacity-70`}>{t}</span>
+                                                    <p className="text-white/80 leading-relaxed">
+                                                        <span className={`font-bold px-1 ${m.missionCompleted ? 'text-[#FF003C] bg-[#FF003C]/10' : 'text-white/30'}`}>[{m.missionCompleted ? 'SUCCESS' : 'ATTEMPTED'}]</span>
+                                                        {' '}{m.scenarioTitle} — {m.score}pts
+                                                        {m.hintsUsed === 0 && <span className="text-[#00FFFF] ml-2">[NO_HINTS]</span>}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </motion.div>
                         </div>
@@ -311,8 +326,8 @@ export default function Dashboard() {
                     style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 20px 100%, 0 calc(100% - 20px))" }}
                 >
                     <div className="absolute right-0 top-0 w-1.5 h-full bg-[#FF003C] shadow-[0_0_15px_#FF003C]"></div>
-                    <p className="font-mono text-[10px] font-bold text-[#FF003C] uppercase tracking-[0.3em] mb-2">Imminent Unlock</p>
-                    <p className="text-3xl font-black italic text-white uppercase tracking-tighter">1,800 XP</p>
+                    <p className="font-mono text-[10px] font-bold text-[#FF003C] uppercase tracking-[0.3em] mb-2">Next Rank</p>
+                    <p className="text-3xl font-black italic text-white uppercase tracking-tighter">{xpToNextRank > 0 ? `${xpToNextRank.toLocaleString()} XP` : 'MAX'}</p>
                 </div>
 
                 {/* Action FAB */}

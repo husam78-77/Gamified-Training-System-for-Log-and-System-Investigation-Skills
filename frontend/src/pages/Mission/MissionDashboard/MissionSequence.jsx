@@ -113,7 +113,7 @@ export default function MissionSequence() {
     };
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-white selection:text-black overflow-hidden relative flex flex-col">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-white selection:text-black relative flex flex-col">
 
             {/* ==========================================
                 THE VOID: Background & Grids
@@ -134,7 +134,7 @@ export default function MissionSequence() {
                 </h1>
             </div>
 
-            <main className="relative z-20 flex-1 w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-24 pb-32 overflow-y-auto custom-scrollbar">
+            <main className="relative z-20 flex-1 w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-24 pb-32">
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col">
 
                     {/* ==========================================
@@ -148,7 +148,7 @@ export default function MissionSequence() {
                             </div>
                         </div>
 
-                        <h1 className="font-black italic text-6xl md:text-8xl lg:text-[10rem] uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
+                        <h1 className="font-black italic text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
                             {config.titleBase}<br />
                             <span style={{ color: config.hex }}>{config.titleHighlight}</span>
                         </h1>
@@ -231,13 +231,13 @@ export default function MissionSequence() {
                                                     )}
 
                                                     {/* Card Content Layer */}
-                                                    <div className="p-8 md:p-10 relative z-20">
+                                                    <div className="p-6 sm:p-8 md:p-10 relative z-20">
                                                         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
                                                             <div>
                                                                 <span className={`font-mono text-[10px] tracking-[0.3em] font-bold block mb-3 uppercase ${isLocked ? 'text-white/30' : config.themeColor}`}>
                                                                     SEQUENCE_{String(index + 1).padStart(3, '0')}
                                                                 </span>
-                                                                <h3 className={`font-black italic text-3xl md:text-5xl uppercase tracking-tighter ${isLocked ? 'text-white/40' : 'text-white'}`}>
+                                                                <h3 className={`font-black italic text-2xl sm:text-3xl md:text-5xl uppercase tracking-tighter ${isLocked ? 'text-white/40' : 'text-white'}`}>
                                                                     {scenario.title}
                                                                 </h3>
                                                             </div>
@@ -284,10 +284,10 @@ export default function MissionSequence() {
                                                                 {/* Deploy CTA */}
                                                                 <button
                                                                     onClick={() => handleDeploy(scenario)}
-                                                                    className={`w-full py-5 ${config.bgTheme} text-black font-black italic text-2xl uppercase tracking-tighter skew-x-[-10deg] shadow-[8px_8px_0px_black] hover:bg-white transition-all group flex items-center justify-between px-8`}
+                                                                    className={`w-full py-4 sm:py-5 ${config.bgTheme} text-black font-black italic text-lg sm:text-2xl uppercase tracking-tighter skew-x-[-10deg] shadow-[8px_8px_0px_black] hover:bg-white transition-all group flex items-center justify-between px-6 sm:px-8`}
                                                                 >
                                                                     <span className="skew-x-[10deg] block">INITIATE DEPLOYMENT</span>
-                                                                    <span className="skew-x-[10deg] material-symbols-outlined text-3xl group-hover:translate-x-2 transition-transform">arrow_forward</span>
+                                                                    <span className="skew-x-[10deg] material-symbols-outlined text-2xl sm:text-3xl group-hover:translate-x-2 transition-transform">arrow_forward</span>
                                                                 </button>
                                                             </div>
                                                         )}

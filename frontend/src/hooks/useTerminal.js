@@ -595,11 +595,19 @@ export const useTerminal = ({
             handleKeyInput(key, domEvent, term);
         });
 
-        const handleResize = () => fitAddon.fit();
+        const handleResize = () => {
+            try {
+                fitAddon.fit();
+            } catch (e) {
+                // Ignore errors if container isn't ready
+            }
+        };
         window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
 
         return () => {
             window.removeEventListener('resize', handleResize);
+            window.removeEventListener('orientationchange', handleResize);
             term.dispose();
             xtermRef.current = null;
         };
@@ -833,6 +841,16 @@ export const useTerminal = ({
         }
     }, []);
 
+    const fit = useCallback(() => {
+        if (fitAddonRef.current) {
+            try {
+                fitAddonRef.current.fit();
+            } catch (e) {
+                // Ignore errors if container isn't ready
+            }
+        }
+    }, []);
+
     return {
         terminalRef,
         currentPath,
@@ -841,6 +859,7 @@ export const useTerminal = ({
         isReady,
         isProcessingState,
         writeToTerminal,
+        fit,
     };
 };
 

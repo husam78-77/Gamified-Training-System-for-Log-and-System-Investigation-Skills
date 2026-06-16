@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { motion, AnimatePresence } from "framer-motion";
@@ -110,8 +111,10 @@ export default function Layout({ children }) {
         }
     };
 
+    const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
     return (
-        <div className="bg-[#050505] min-h-screen text-white font-sans overflow-x-hidden selection:bg-[#00FFFF] selection:text-black relative flex">
+        <div className="bg-[#050505] h-screen text-white font-sans overflow-hidden selection:bg-[#00FFFF] selection:text-black relative flex">
 
             {/* ==========================================
                 GLOBAL VOID: Background Grids
@@ -123,11 +126,11 @@ export default function Layout({ children }) {
             </div>
 
             {/* Persistent Architecture */}
-            <Header />
-            <Sidebar />
+            <Header onToggleMobileSidebar={() => setIsMobileSidebarOpen(prev => !prev)} />
+            <Sidebar isOpen={isMobileSidebarOpen} onClose={() => setIsMobileSidebarOpen(false)} />
 
             {/* Main Content Area - Offsets for Sidebar and Header */}
-            <main className="md:ml-[320px] w-full min-h-screen relative z-10 flex flex-col pt-20">
+            <main className="md:ml-[320px] w-full h-screen relative z-10 flex flex-col pt-20 overflow-y-auto overflow-x-hidden">
                 <AnimatePresence mode="popLayout">
                     <motion.div key={location.pathname} className="flex-1 w-full relative flex flex-col">
 

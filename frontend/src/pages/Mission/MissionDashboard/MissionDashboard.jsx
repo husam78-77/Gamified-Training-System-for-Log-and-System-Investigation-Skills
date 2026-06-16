@@ -45,16 +45,16 @@ export default function InvestigationCategories() {
             </div>
 
             {/* MAIN CONTENT CANVAS */}
-            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-20 pb-24 flex flex-col justify-center">
+            <main className="relative z-20 flex-1 w-full max-w-[1600px] mx-auto px-6 md:px-12 pt-10 md:pt-20 pb-24 flex flex-col justify-center">
 
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="w-full">
 
                     {/* Header Section */}
-                    <motion.div variants={slamLeft} className="mb-20 relative z-30">
+                    <motion.div variants={slamLeft} className="mb-12 md:mb-20 relative z-30">
                         <div className="absolute -top-8 left-2 bg-white text-black px-4 py-1 font-bold text-[10px] tracking-[0.4em] uppercase shadow-[4px_4px_0px_#FF003C] skew-x-[-10deg]">
                             <span className="skew-x-[10deg] block">PHASE 1 // VECTOR_SELECTION</span>
                         </div>
-                        <h1 className="text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white skew-x-[-6deg] mb-4 mix-blend-difference drop-shadow-[4px_4px_0px_#FF003C]">
+                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white skew-x-[-6deg] mb-4 mix-blend-difference drop-shadow-[4px_4px_0px_#FF003C]">
                             SELECT_YOUR_<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF003C] to-[#80001e]">TARGET</span>
                         </h1>
@@ -83,7 +83,7 @@ export default function InvestigationCategories() {
                                 style={{ clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 50px 100%, 0 calc(100% - 50px))" }}
                             >
                                 {/* Inner Tonal Layer */}
-                                <div className="bg-[#0D0D0D] flex-1 p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
+                                <div className="bg-[#0D0D0D] flex-1 p-6 sm:p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
                                     {/* Accent Geometric Slash */}
                                     <div className="absolute top-0 right-0 w-[150%] h-32 bg-gradient-to-b from-[#FF003C]/10 to-transparent -rotate-12 translate-x-1/4 -translate-y-1/2 pointer-events-none"></div>
 
@@ -93,18 +93,18 @@ export default function InvestigationCategories() {
                                                 <span className="w-2 h-2 bg-[#FF003C] animate-pulse"></span>
                                                 PROTOCOL // 001-ALPHA
                                             </span>
-                                            <span className="material-symbols-outlined text-[#FF003C] text-5xl drop-shadow-[0_0_15px_#FF003C]">password</span>
+                                            <span className="material-symbols-outlined text-[#FF003C] text-4xl sm:text-5xl drop-shadow-[0_0_15px_#FF003C]">password</span>
                                         </div>
 
-                                        <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
+                                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
                                             BRUTE FORCE
                                         </h2>
 
-                                        <p className="text-white/60 font-sans text-base leading-relaxed max-w-md mb-8">
+                                        <p className="text-white/60 font-sans text-sm sm:text-base leading-relaxed max-w-md mb-8">
                                             Analyze and execute massive-scale login breaches. Identify weak vectors for <span className="text-[#FF003C] font-bold">credential stuffing</span> and dictionary-based extraction protocols.
                                         </p>
 
-                                        <div className="flex flex-wrap gap-3 mb-16">
+                                        <div className="flex flex-wrap gap-2 sm:gap-3 mb-16">
                                             <span className="px-3 py-1.5 bg-[#050505] border border-white/10 font-mono text-[9px] text-white/50 tracking-[0.1em] uppercase">AUTH_STRESS</span>
                                             <span className="px-3 py-1.5 bg-[#050505] border border-white/10 font-mono text-[9px] text-white/50 tracking-[0.1em] uppercase">DICT_MAPPING</span>
                                             <span className="px-3 py-1.5 bg-[#050505] border border-[#FF003C]/30 font-mono text-[9px] text-[#FF003C] tracking-[0.1em] uppercase">SESSION_HIJACK</span>
@@ -114,10 +114,10 @@ export default function InvestigationCategories() {
                                     {/* Kinetic Button */}
                                     <button
                                         onClick={() => navigate('/sequence/bruteforce')}
-                                        className="relative w-full py-6 bg-[#FF003C] text-white font-black text-2xl italic tracking-tighter uppercase transition-all hover:bg-white hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-8"
+                                        className="relative w-full py-4 sm:py-6 bg-[#FF003C] text-white font-black text-lg sm:text-2xl italic tracking-tighter uppercase transition-all hover:bg-white hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-6 sm:px-8"
                                     >
                                         <span className="skew-x-[12deg] block">INITIATE BREACH</span>
-                                        <span className="skew-x-[12deg] material-symbols-outlined text-3xl transform group-hover/btn:translate-x-2 transition-transform">arrow_forward</span>
+                                        <span className="skew-x-[12deg] material-symbols-outlined text-2xl sm:text-3xl transform group-hover/btn:translate-x-2 transition-transform">arrow_forward</span>
                                     </button>
                                 </div>
                             </div>
@@ -146,7 +146,7 @@ export default function InvestigationCategories() {
                                 style={{ clipPath: "polygon(50px 0, 100% 0, 100% calc(100% - 50px), calc(100% - 50px) 100%, 0 100%, 0 50px)" }}
                             >
                                 {/* Inner Tonal Layer */}
-                                <div className="bg-[#0D0D0D] flex-1 p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
+                                <div className="bg-[#0D0D0D] flex-1 p-6 sm:p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
                                     {/* Accent Geometric Slash */}
                                     <div className="absolute bottom-0 left-0 w-[150%] h-32 bg-gradient-to-t from-[#00FFFF]/5 to-transparent rotate-12 -translate-x-1/4 translate-y-1/2 pointer-events-none"></div>
 
@@ -156,14 +156,14 @@ export default function InvestigationCategories() {
                                                 <span className="w-2 h-2 bg-[#00FFFF] shadow-[0_0_8px_#00FFFF] animate-pulse"></span>
                                                 PROTOCOL // 004-GAMMA
                                             </span>
-                                            <span className="material-symbols-outlined text-[#00FFFF] text-5xl drop-shadow-[0_0_15px_#00FFFF]">terminal</span>
+                                            <span className="material-symbols-outlined text-[#00FFFF] text-4xl sm:text-5xl drop-shadow-[0_0_15px_#00FFFF]">terminal</span>
                                         </div>
 
-                                        <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
-                                            SUSPICIOUS<br />SCRIPT_EXEC
+                                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
+                                            SUSPICIOUS<br />SCRIPT_<wbr />EXEC
                                         </h2>
 
-                                        <p className="text-white/60 font-sans text-base leading-relaxed max-w-md mb-8">
+                                        <p className="text-white/60 font-sans text-sm sm:text-base leading-relaxed max-w-md mb-8">
                                             Deep-dive malware analysis and shell-script decryption. Trace <span className="text-[#00FFFF] font-bold">obfuscated payloads</span> and dismantle lateral movement scripts in real-time.
                                         </p>
 
@@ -180,10 +180,10 @@ export default function InvestigationCategories() {
                                     {/* Kinetic Button (Ghost Style for Secondary) */}
                                     <button
                                         onClick={() => navigate('/sequence/script')}
-                                        className="relative w-full py-6 bg-transparent ring-2 ring-[#00FFFF] text-[#00FFFF] font-black text-2xl italic tracking-tighter uppercase transition-all hover:bg-[#00FFFF] hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-8"
+                                        className="relative w-full py-4 sm:py-6 bg-transparent ring-2 ring-[#00FFFF] text-[#00FFFF] font-black text-lg sm:text-2xl italic tracking-tighter uppercase transition-all hover:bg-[#00FFFF] hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-6 sm:px-8"
                                     >
                                         <span className="skew-x-[12deg] block">ANALYZE SCRIPT</span>
-                                        <span className="skew-x-[12deg] material-symbols-outlined text-3xl transform group-hover/btn:translate-x-2 transition-transform">code_blocks</span>
+                                        <span className="skew-x-[12deg] material-symbols-outlined text-2xl sm:text-3xl transform group-hover/btn:translate-x-2 transition-transform">code_blocks</span>
                                     </button>
                                 </div>
                             </div>
@@ -212,7 +212,7 @@ export default function InvestigationCategories() {
                                 style={{ clipPath: "polygon(0 0, calc(100% - 50px) 0, 100% 50px, 100% 100%, 50px 100%, 0 calc(100% - 50px))" }}
                             >
                                 {/* Inner Tonal Layer */}
-                                <div className="bg-[#0D0D0D] flex-1 p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
+                                <div className="bg-[#0D0D0D] flex-1 p-6 sm:p-10 md:p-14 relative overflow-hidden flex flex-col justify-between">
                                     {/* Accent Geometric Slash */}
                                     <div className="absolute top-0 right-0 w-[150%] h-32 bg-gradient-to-b from-[#00FF00]/10 to-transparent -rotate-12 translate-x-1/4 -translate-y-1/2 pointer-events-none"></div>
 
@@ -222,14 +222,14 @@ export default function InvestigationCategories() {
                                                 <span className="w-2 h-2 bg-[#00FF00] shadow-[0_0_8px_#00FF00] animate-pulse"></span>
                                                 PROTOCOL // 009-SIGMA
                                             </span>
-                                            <span className="material-symbols-outlined text-[#00FF00] text-5xl drop-shadow-[0_0_15px_#00FF00]">fingerprint</span>
+                                            <span className="material-symbols-outlined text-[#00FF00] text-4xl sm:text-5xl drop-shadow-[0_0_15px_#00FF00]">fingerprint</span>
                                         </div>
 
-                                        <h2 className="text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
+                                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
                                             SSH<br />FORENSICS
                                         </h2>
 
-                                        <p className="text-white/60 font-sans text-base leading-relaxed max-w-md mb-8">
+                                        <p className="text-white/60 font-sans text-sm sm:text-base leading-relaxed max-w-md mb-8">
                                             Trace unauthorized access and lateral movement through secure shell logs. Analyze <span className="text-[#00FF00] font-bold">session fingerprints</span> and uncover the intrusion origin.
                                         </p>
 
@@ -246,10 +246,10 @@ export default function InvestigationCategories() {
                                     {/* Kinetic Button */}
                                     <button
                                         onClick={() => navigate('/sequence/ssh_forensics')}
-                                        className="relative w-full py-6 bg-transparent ring-2 ring-[#00FF00] text-[#00FF00] font-black text-2xl italic tracking-tighter uppercase transition-all hover:bg-[#00FF00] hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-8"
+                                        className="relative w-full py-4 sm:py-6 bg-transparent ring-2 ring-[#00FF00] text-[#00FF00] font-black text-lg sm:text-2xl italic tracking-tighter uppercase transition-all hover:bg-[#00FF00] hover:text-black skew-x-[-12deg] shadow-[10px_10px_0px_#050505] group/btn flex items-center justify-between px-6 sm:px-8"
                                     >
                                         <span className="skew-x-[12deg] block">INVESTIGATE LOGS</span>
-                                        <span className="skew-x-[12deg] material-symbols-outlined text-3xl transform group-hover/btn:translate-x-2 transition-transform">travel_explore</span>
+                                        <span className="skew-x-[12deg] material-symbols-outlined text-2xl sm:text-3xl transform group-hover/btn:translate-x-2 transition-transform">travel_explore</span>
                                     </button>
                                 </div>
                             </div>

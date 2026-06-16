@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { fetchScenarioById } from '../../../services/scenarioService';
 import { motion } from 'framer-motion';
-
 // ── Visual config ───────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
     bruteforce: {
@@ -43,7 +42,7 @@ export default function MissionBriefing() {
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') || 'free';
     const type = searchParams.get('type') || '';
-    
+
     // Default to a gray fallback if type is unknown
     const config = TYPE_CONFIG[type?.toLowerCase()] || {
         hex: '#FFFFFF', themeColor: 'text-white', bgTheme: 'bg-white', borderTheme: 'border-white', category: 'UNKNOWN', bgText: 'UNKNOWN'
@@ -97,13 +96,13 @@ export default function MissionBriefing() {
     const threatCfg = THREAT_COLORS[diff] || THREAT_COLORS.easy;
 
     return (
-        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-white selection:text-black overflow-hidden relative flex flex-col">
+        <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-white selection:text-black relative flex flex-col">
 
             {/* THE VOID: Background & Grids */}
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
-                
+
                 {/* Theme-based ambient glow */}
                 <div className={`absolute top-0 right-0 w-[800px] h-[800px] blur-[150px] rounded-full mix-blend-screen opacity-20 pointer-events-none`} style={{ backgroundColor: config.hex }}></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
@@ -116,7 +115,7 @@ export default function MissionBriefing() {
                 </h1>
             </div>
 
-            <main className="relative z-20 flex-1 w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-24 pb-32 overflow-y-auto custom-scrollbar">
+            <main className="relative z-20 flex-1 w-full max-w-[1400px] mx-auto px-6 md:px-12 pt-12 md:pt-24 pb-32">
                 <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col">
 
                     {/* HEADER */}
@@ -128,7 +127,7 @@ export default function MissionBriefing() {
                             </div>
                         </div>
 
-                        <h1 className="font-black italic text-5xl md:text-7xl uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
+                        <h1 className="font-black italic text-3xl sm:text-5xl md:text-7xl uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
                             MISSION_BRIEFING
                         </h1>
                     </motion.header>
@@ -166,8 +165,8 @@ export default function MissionBriefing() {
                             <motion.div variants={slamUp} className="lg:col-span-8 flex flex-col gap-12">
 
                                 {/* Situation Report */}
-                                <div 
-                                    className={`relative bg-[#0A0A0A] border ${config.borderTheme}/30 shadow-[15px_15px_0px_rgba(0,0,0,0.8)] p-10 md:p-14`}
+                                <div
+                                    className={`relative bg-[#0A0A0A] border ${config.borderTheme}/30 shadow-[15px_15px_0px_rgba(0,0,0,0.8)] p-6 sm:p-10 md:p-14`}
                                     style={{ clipPath: "polygon(0 0, calc(100% - 40px) 0, 100% 40px, 100% 100%, 40px 100%, 0 calc(100% - 40px))" }}
                                 >
                                     {/* Abstract watermark */}
@@ -181,13 +180,13 @@ export default function MissionBriefing() {
                                                 {scenario.type?.toUpperCase()} // {scenario.difficulty?.toUpperCase()}
                                             </span>
                                         </div>
-                                        <h2 className="font-black italic text-4xl md:text-5xl uppercase mb-4 text-white tracking-tighter">
+                                        <h2 className="font-black italic text-2xl sm:text-4xl md:text-5xl uppercase mb-4 text-white tracking-tighter">
                                             {scenario.title}
                                         </h2>
                                         <h3 className={`font-mono text-sm font-bold uppercase mb-8 ${config.themeColor} tracking-[0.2em]`}>
                                             SITUATION_REPORT
                                         </h3>
-                                        <p className="font-sans text-lg md:text-xl text-white/80 leading-relaxed font-medium">
+                                        <p className="font-sans text-base sm:text-lg md:text-xl text-white/80 leading-relaxed font-medium">
                                             {scenario.mission_brief}
                                         </p>
                                     </div>
@@ -290,7 +289,7 @@ export default function MissionBriefing() {
 
             {/* FLOATING HUD (Bottom Right) */}
             <div className="fixed bottom-10 right-10 flex flex-col gap-3 items-end z-40 pointer-events-none">
-                <div 
+                <div
                     className="bg-[#050505]/90 backdrop-blur-md px-6 py-3 border border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.8)]"
                     style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%)" }}
                 >

@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useProgression } from '../../context/ProgressionContext';
 
-export default function Header() {
+export default function Header({ onToggleMobileSidebar }) {
     const { progression } = useProgression();
     
     const level = progression?.identity?.level || 1;
@@ -27,18 +27,29 @@ export default function Header() {
                 {/* ==========================================
                     LEFT: Brand & Designation (Sidebar Cap)
                     ========================================== */}
-                {/* Width is 360px at top, slants down to 320px at bottom to perfectly match sidebar width */}
+                {/* Width is 180px on mobile, slants down to 320px on desktop to perfectly match sidebar width */}
                 <div
-                    className="w-[360px] bg-[#FF003C] flex flex-col justify-center pl-8 relative shadow-[10px_0_20px_rgba(255,0,60,0.15)] group cursor-pointer hover:bg-white transition-colors"
-                    style={{ clipPath: "polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%)" }}
+                    className="w-[180px] sm:w-[240px] md:w-[360px] bg-[#FF003C] flex items-center pl-4 md:pl-8 relative shadow-[10px_0_20px_rgba(255,0,60,0.15)] group cursor-pointer hover:bg-white transition-colors"
+                    style={{ clipPath: "polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%)" }}
                 >
-                    <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined text-black text-3xl font-black group-hover:scale-110 transition-transform">
+                    {/* Mobile Menu Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleMobileSidebar();
+                        }}
+                        className="md:hidden mr-2 sm:mr-3 text-black hover:text-[#FF003C] transition-colors flex items-center justify-center pointer-events-auto"
+                    >
+                        <span className="material-symbols-outlined text-2xl font-black">menu</span>
+                    </button>
+
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <span className="material-symbols-outlined text-black text-xl md:text-3xl font-black group-hover:scale-110 transition-transform hidden xs:inline-block">
                             token
                         </span>
-                        <h1 className="text-2xl font-black text-black italic tracking-tighter uppercase leading-none">
+                        <h1 className="text-sm sm:text-lg md:text-2xl font-black text-black italic tracking-tighter uppercase leading-none">
                             KINETIC_BREACH
-                            <span className="block text-[11px] font-mono tracking-[0.3em] font-bold opacity-80 mt-1">V_1.0.4</span>
+                            <span className="hidden md:block text-[11px] font-mono tracking-[0.3em] font-bold opacity-80 mt-1">V_1.0.4</span>
                         </h1>
                     </div>
                 </div>
