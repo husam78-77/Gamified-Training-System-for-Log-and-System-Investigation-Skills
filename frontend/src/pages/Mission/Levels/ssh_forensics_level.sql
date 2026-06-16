@@ -42,7 +42,22 @@
 ║    /tmp/attacker_ip.txt                    HIDDEN → attacker note          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 */
+/*
+# Primary path
+ls /home/developer/.ssh
+cat /home/developer/.ssh/authorized_keys
+grep unknown /home/developer/.ssh/authorized_keys
+cat /var/log/auth.log
+grep 10.0.0.5 /var/log/auth.log
 
+# Bonus
+cat /etc/ssh/sshd_config
+ps aux
+
+# Secret (after bonus)
+cat /home/developer/.ssh/authorized_keys.backup
+cat /tmp/attacker_ip.txt
+*/
 -- =============================================================================
 -- CLEANUP — Remove any existing "Ghost Key" data before re-inserting.
 -- =============================================================================

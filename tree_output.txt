@@ -1,15 +1,11 @@
 ├── .gitignore
-├── CHANGES.md
-├── DISCOVERY_PHASE_SUMMARY.md
 ├── package-lock.json
 ├── package.json
-├── progress.md
 ├── start.bat
-├── system.md
-├── TERMINAL_UX_PHASE_SUMMARY.md
 ├── tree_output.txt
 ├── backend/
 │   ├── .env
+│   ├── generate_hash.js
 │   ├── package-lock.json
 │   ├── package.json
 │   ├── server.js
@@ -97,15 +93,13 @@
 │   │   │   │   ├── Sidebar.jsx
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx
+│   │   │   ├── ProgressionContext.jsx
 │   │   ├── hooks/
-│   │   │   ├── useAuth.js
-│   │   │   ├── useCompiler.js
 │   │   │   ├── useHint.js
 │   │   │   ├── useObjectives.js
 │   │   │   ├── useSession.js
 │   │   │   ├── useTerminal.js
 │   │   ├── pages/
-│   │   │   ├── CodingWorkspace.jsx
 │   │   │   ├── ForgotPasswordPage.jsx
 │   │   │   ├── ResetPasswordPage.jsx
 │   │   │   ├── VerifyEmailPage.jsx
@@ -127,6 +121,7 @@
 │   │   │   │   ├── LoginPage.jsx
 │   │   │   ├── Mission/
 │   │   │   │   ├── Levels/
+│   │   │   │   │   ├── ssh_forensics_level.sql
 │   │   │   │   │   ├── suspicious_script_exec_level.sql
 │   │   │   │   ├── MissionDashboard/
 │   │   │   │   │   ├── MissionBriefing.css
@@ -141,11 +136,11 @@
 │   │   │   ├── Progress/
 │   │   │   │   ├── Progress.css
 │   │   │   │   ├── Progress.jsx
+│   │   │   │   ├── ProgressComponents.jsx
 │   │   │   ├── RegisterPage/
 │   │   │   │   ├── Register.css
 │   │   │   │   ├── RegisterPage.jsx
 │   │   ├── services/
-│   │   │   ├── aiService.js
 │   │   │   ├── authService.js
 │   │   │   ├── hintService.js
 │   │   │   ├── scenarioService.js
@@ -154,3 +149,11 @@
 │   │   ├── utils/
 │   │   │   ├── constants.js
 │   │   │   ├── formatters.js
+├── md FIles for project progression/
+│   ├── CHANGES.md
+│   ├── DISCOVERY_PHASE_SUMMARY.md
+│   ├── Errors_I_Found.md
+│   ├── progress.md
+│   ├── progression_audit.md
+│   ├── system.md
+│   ├── TERMINAL_UX_PHASE_SUMMARY.md

@@ -29,7 +29,7 @@ const pool = require('../config/db');
  * @param {number}  [params.stepOrder]
  * @param {number}  [params.hintLevel=1]
  * @param {Object}  [params.playerState]
- * @param {boolean} [params.cacheHit=false]   ← Phase 3 addition
+ * @param {boolean} [params.cacheHit=false]
  */
 const saveHint = async ({
     sessionId,
