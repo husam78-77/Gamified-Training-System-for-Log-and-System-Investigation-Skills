@@ -40,37 +40,40 @@ export default function ObjectivesPanel({
                 )}
             </div>
 
-            {/* Objectives list */}
-            <ul className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[100px]">
-                {objectives.length === 0 && (
-                    <li className="font-sans text-xs text-white italic">
-                        Loading objectives...
-                    </li>
-                )}
-                {objectives.map(obj => (
-                    <ObjectiveItem key={obj.objective_id} objective={obj} />
-                ))}
-            </ul>
+            {/* Scrollable region — wraps both standard and secret objectives so neither
+                can be clipped by this section's overflow-hidden on short viewports */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[100px]">
+                <ul className="space-y-3">
+                    {objectives.length === 0 && (
+                        <li className="font-sans text-xs text-white italic">
+                            Loading objectives...
+                        </li>
+                    )}
+                    {objectives.map(obj => (
+                        <ObjectiveItem key={obj.objective_id} objective={obj} />
+                    ))}
+                </ul>
 
-            {/* Secret objectives — only when revealed */}
-            {secretObjectives.length > 0 && (
-                <div className="border-t border-[#FF003C]/30 pt-4 mt-1">
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="material-symbols-outlined text-[#FF003C] text-sm"
-                            style={{ fontVariationSettings: "'FILL' 1" }}>
-                            stars
-                        </span>
-                        <span className="font-sans text-[10px] font-black text-[#FF003C] tracking-[0.3em] uppercase">
-                            Secret_Objectives
-                        </span>
+                {/* Secret objectives — only when revealed */}
+                {secretObjectives.length > 0 && (
+                    <div className="border-t border-[#FF003C]/30 pt-4 mt-3">
+                        <div className="flex items-center gap-2 mb-3">
+                            <span className="material-symbols-outlined text-[#FF003C] text-sm"
+                                style={{ fontVariationSettings: "'FILL' 1" }}>
+                                stars
+                            </span>
+                            <span className="font-sans text-[10px] font-black text-[#FF003C] tracking-[0.3em] uppercase">
+                                Secret_Objectives
+                            </span>
+                        </div>
+                        <ul className="space-y-3">
+                            {secretObjectives.map(obj => (
+                                <ObjectiveItem key={obj.objective_id} objective={obj} isSecret />
+                            ))}
+                        </ul>
                     </div>
-                    <ul className="space-y-3">
-                        {secretObjectives.map(obj => (
-                            <ObjectiveItem key={obj.objective_id} objective={obj} isSecret />
-                        ))}
-                    </ul>
-                </div>
-            )}
+                )}
+            </div>
         </section>
     );
 }

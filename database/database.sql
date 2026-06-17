@@ -11,7 +11,7 @@ CREATE TABLE users (
     temp_password_hash TEXT DEFAULT NULL,
     temp_password_expires TIMESTAMP DEFAULT NULL,
 	level INT DEFAULT 1,
-	xp INT DEFAULT 0;
+	xp INT DEFAULT 0
 );
 
 
