@@ -65,3 +65,24 @@ export const fetchCommandHistory = async (sessionId, token) => {
     if (!response.ok) throw new Error(data.message || 'Failed to fetch command history');
     return data.data; // { history }
 };
+
+/**
+ * Fetch the rehydration snapshot for a resumed session: objectives already
+ * completed and hidden files already revealed, computed server-side from
+ * this session's full command/discovery history.
+ *
+ * Used on mount to resync the UI after a page refresh, instead of waiting
+ * for the next command to bring this state back.
+ *
+ * @param {number} sessionId
+ * @param {string} token
+ * @returns {{ completedObjectiveIds: number[], revealedFiles: array }}
+ */
+export const fetchResumeState = async (sessionId, token) => {
+    const response = await fetch(`${API_URL}/api/terminal/resume/${sessionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Failed to fetch session resume state');
+    return data.data; // { completedObjectiveIds, revealedFiles }
+};

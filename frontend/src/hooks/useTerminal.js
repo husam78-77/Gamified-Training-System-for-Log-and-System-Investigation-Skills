@@ -19,7 +19,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
-import { executeCommand, fetchCommandHistory } from '../services/terminalService';
+import { executeCommand, fetchCommandHistory, fetchResumeState } from '../services/terminalService';
 
 // ── Module-level path utilities (pure, no React deps) ────────────────────────
 
@@ -620,25 +620,127 @@ export const useTerminal = ({
         }
     }, [initialFiles]);
 
-    // ── Restore command history on mount ─────────────────────────────────
+    // ── Restore full session state on mount/resume ────────────────────────
+    // On a fresh page load, local state (virtualFiles, discoveredPaths,
+    // currentPath, objectives) always starts from scratch even when the
+    // backend session already has progress. This effect rehydrates all of
+    // it from the backend in one pass, instead of waiting for the next
+    // command to bring it back (the old "type anything and it reappears"
+    // symptom — that happened because executeCommand recomputes the FULL
+    // cumulative state every call, but nothing ever fetched that state
+    // proactively on mount).
+    const restoredRef = useRef(false);
+
     useEffect(() => {
-        if (!sessionId || !token || !isReady) return;
+        if (!sessionId || !token || !isReady || initialFiles.length === 0) return;
+        if (restoredRef.current) return;
+        restoredRef.current = true;
 
         const restore = async () => {
             try {
-                const data = await fetchCommandHistory(sessionId, token);
-                if (data.history.length > 0 && xtermRef.current) {
-                    xtermRef.current.writeln('\r\x1b[2m-- Restoring previous session --\x1b[0m');
-                    data.history.forEach(entry => {
-                        xtermRef.current.writeln(`\r\x1b[90m> ${entry.command_entered}\x1b[0m`);
+                const [historyData, resumeData] = await Promise.all([
+                    fetchCommandHistory(sessionId, token),
+                    fetchResumeState(sessionId, token),
+                ]);
+
+                const history = historyData.history || [];
+                const revealedFiles = resumeData.revealedFiles || [];
+                const completedObjectiveIds = resumeData.completedObjectiveIds || [];
+
+                // ── Merge previously revealed hidden files into local state ──
+                if (revealedFiles.length > 0) {
+                    setVirtualFiles(prev => {
+                        const existingIds = new Set(prev.map(f => f.virtual_file_id));
+                        const toAdd = revealedFiles.filter(f => !existingIds.has(f.virtual_file_id));
+                        return toAdd.length > 0 ? [...prev, ...toAdd] : prev;
                     });
-                    xtermRef.current.write(getPromptInline('/'));
+                }
+
+                // ── Restore objective completion state (and secret reveals) ──
+                if (completedObjectiveIds.length > 0) {
+                    onObjectivesUpdated?.(completedObjectiveIds);
+                }
+
+                // ── Replay history to reconstruct current path + discovered
+                //    file tree, using the same resolution logic live commands
+                //    use — just without re-hitting the backend for each one.
+                const filesForReplay = [...initialFiles, ...revealedFiles];
+                let replayPath = '/';
+                const pathsToDiscover = [];
+
+                history.forEach(entry => {
+                    const cmd = (entry.command_entered || '').trim();
+                    if (!cmd) return;
+                    const tokens = cmd.split(/\s+/);
+                    const command = tokens[0]?.toLowerCase();
+                    const arg = tokens.slice(1).find(t => !t.startsWith('-'));
+                    const resolve = (target) => resolveFSPath(target || null, replayPath || '/');
+
+                    if (command === 'cd') {
+                        if (!arg) return;
+                        const normalized = normalizeFSPath(resolve(arg));
+                        const prefix = normalized === '/' ? '/' : normalized + '/';
+                        const entryAtPath = filesForReplay.find(
+                            f => normalizeFSPath(f.file_path) === normalized
+                        );
+                        const hasChildren = filesForReplay.some(
+                            f => normalizeFSPath(f.file_path).startsWith(prefix)
+                        );
+                        const isValidDir = normalized === '/'
+                            || (entryAtPath ? entryAtPath.file_type === 'directory' : hasChildren);
+                        if (isValidDir) {
+                            replayPath = normalized;
+                            pathsToDiscover.push(normalized, getFSParent(normalized));
+                        }
+                    } else if (command === 'ls') {
+                        const listedPath = resolve(arg || null);
+                        pathsToDiscover.push(listedPath);
+                        filesForReplay.forEach(f => {
+                            const fp = normalizeFSPath(f.file_path);
+                            if (getFSParent(fp) === listedPath) pathsToDiscover.push(fp);
+                        });
+                    } else if (command === 'cat' || command === 'grep') {
+                        const fp = resolve(arg || null);
+                        pathsToDiscover.push(fp, getFSParent(fp));
+                    } else if (command === 'find') {
+                        const searchPath = resolve(arg || null);
+                        const pfx = searchPath === '/' ? '/' : searchPath + '/';
+                        pathsToDiscover.push(searchPath);
+                        filesForReplay.forEach(f => {
+                            const fp = normalizeFSPath(f.file_path);
+                            if (fp.startsWith(pfx) || fp === searchPath) {
+                                pathsToDiscover.push(fp, getFSParent(fp));
+                            }
+                        });
+                    }
+                });
+
+                if (pathsToDiscover.length > 0) discoverPaths(pathsToDiscover);
+
+                setCurrentPath(replayPath);
+                currentPathRef.current = replayPath;
+
+                // ── Replay visible command text, then leave the prompt at the
+                //    restored path (was previously hardcoded to '/') ─────────
+                const hasRestorableState = history.length > 0
+                    || replayPath !== '/'
+                    || revealedFiles.length > 0
+                    || completedObjectiveIds.length > 0;
+
+                if (hasRestorableState && xtermRef.current) {
+                    if (history.length > 0) {
+                        xtermRef.current.writeln('\r\x1b[2m-- Restoring previous session --\x1b[0m');
+                        history.forEach(entry => {
+                            xtermRef.current.writeln(`\r\x1b[90m> ${entry.command_entered}\x1b[0m`);
+                        });
+                    }
+                    xtermRef.current.write(getPromptInline(replayPath));
                 }
             } catch (_) { }
         };
 
         restore();
-    }, [sessionId, token, isReady]);
+    }, [sessionId, token, isReady, initialFiles]);
 
     // ── Submit command to backend ─────────────────────────────────────────
     const submitCommand = useCallback(async (cmd, term) => {

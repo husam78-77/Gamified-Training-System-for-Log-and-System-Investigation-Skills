@@ -12,4 +12,7 @@ router.post('/execute', terminalController.executeCommand);
 // GET /api/terminal/history/:sessionId — get command history for a session
 router.get('/history/:sessionId', terminalController.getHistory);
 
+// GET /api/terminal/resume/:sessionId — read-only rehydration snapshot (objectives + revealed files)
+router.get('/resume/:sessionId', terminalController.getResumeState);
+
 module.exports = router;

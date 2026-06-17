@@ -348,6 +348,77 @@ const getHistory = async (req, res) => {
     }
 };
 
+/**
+ * GET /api/terminal/resume/:sessionId
+ * Read-only rehydration snapshot for an in-progress session.
+ *
+ * Why this exists: hidden virtual_files (path + content) are intentionally
+ * never sent to the client until the engine reveals them (see
+ * getFullScenarioData — hidden rows are redacted to {virtual_file_id,
+ * reveal_at_step} only). That's correct anti-cheat behavior, but it means
+ * the frontend has no data of its own to reconstruct "which hidden files
+ * has this session already earned" after a page refresh. Objective
+ * completion has the same gap: it's derived from the full command_history
+ * table, which the frontend never receives in aggregate form.
+ *
+ * This endpoint runs the exact same reveal/completion rules executeCommand
+ * uses (resolveCompletedObjectives + the is_hidden/reveal_at_step/
+ * reveal_at_discovery_key filter), just without processing a new command or
+ * writing anything. It only returns what this session has already
+ * legitimately unlocked — no new capability, no spoilers.
+ */
+const getResumeState = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const sessionId = parseInt(req.params.sessionId, 10);
+
+        if (isNaN(sessionId)) {
+            return response.error(res, 400, MESSAGES.INVALID_INPUT);
+        }
+
+        const session = await sessionModel.getSessionById(sessionId, userId);
+        if (!session) {
+            return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
+        }
+
+        const [virtualFiles, objectives, discoveries, matchedHistory, completedDiscoveryIds] =
+            await Promise.all([
+                scenarioModel.getVirtualFilesByScenario(session.scenario_id),
+                scenarioModel.getObjectivesByScenario(session.scenario_id),
+                discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
+                terminalModel.getMatchedCommands(sessionId),
+                discoveryModel.getSessionDiscoveryIds(sessionId),
+            ]);
+
+        const matchedStepOrders = matchedHistory.map(c => c.match_step_order);
+        const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
+            objectives,
+            matchedStepOrders
+        );
+
+        const unlockedDiscoveryKeys = discoveries
+            .filter(d => completedDiscoveryIds.includes(d.discovery_id))
+            .map(d => d.discovery_key);
+
+        // Same rule executeCommand uses to build visibleFiles — a hidden file
+        // is earned once its credited step or discovery key has been reached.
+        const revealedFiles = virtualFiles.filter(f =>
+            f.is_hidden && (
+                (f.reveal_at_step && matchedStepOrders.includes(f.reveal_at_step)) ||
+                (f.reveal_at_discovery_key && unlockedDiscoveryKeys.includes(f.reveal_at_discovery_key))
+            )
+        );
+
+        return response.success(res, 200, MESSAGES.RESUME_STATE_FETCHED, {
+            completedObjectiveIds,
+            revealedFiles,
+        });
+    } catch (err) {
+        console.error('getResumeState error:', err);
+        return response.error(res, 500, MESSAGES.SERVER_ERROR);
+    }
+};
+
 // =============================================================================
 // TERMINAL OUTPUT BUILDER
 // Simulates a real Linux filesystem from virtual_files rows.
@@ -741,4 +812,5 @@ const resolvePath = (target, currentPath) => {
 module.exports = {
     executeCommand,
     getHistory,
+    getResumeState,
 };

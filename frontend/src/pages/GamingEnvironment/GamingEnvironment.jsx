@@ -297,11 +297,11 @@ export default function GamingEnvironment() {
             <motion.main variants={staggerContainer} initial="hidden" animate="show" className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row max-w-[1920px] mx-auto p-4 md:p-6 gap-4 relative z-10 pt-20 pb-24 overflow-y-auto lg:overflow-hidden">
 
                 {/* LEFT PANEL: Logs & File System */}
-                <motion.aside variants={slamLeft} className="w-full lg:w-[20%] lg:xl:w-[22%] flex flex-col gap-4">
+                <motion.aside variants={slamLeft} className="w-full lg:w-[20%] lg:xl:w-[22%] flex flex-col gap-4 lg:min-h-0">
 
                     {/* SYSTEM LOGS */}
                     <section
-                        className={`bg-[#0A0A0A] flex flex-col overflow-hidden relative shadow-[10px_10px_0px_#050505] border border-white/5 transition-all duration-300 ${activeLeftPanel === 'logs' ? 'flex-1' : 'flex-none'}`}
+                        className={`bg-[#0A0A0A] flex flex-col overflow-hidden relative shadow-[10px_10px_0px_#050505] border border-white/5 transition-all duration-300 lg:min-h-0 ${activeLeftPanel === 'logs' ? 'flex-1' : 'flex-none'}`}
                     >
                         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF003C] to-transparent"></div>
                         <button onClick={() => setActiveLeftPanel(p => p === 'logs' ? null : 'logs')} className="w-full flex justify-between items-center p-4 border-b border-white/5 bg-gradient-to-b from-white/[0.02] to-transparent hover:bg-white/5 transition-colors cursor-pointer group">
@@ -323,7 +323,7 @@ export default function GamingEnvironment() {
                     </section>
 
                     {/* FILE SYSTEM */}
-                    <section className={`bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505] transition-all duration-300 ${activeLeftPanel === 'filesystem' ? 'flex-[2]' : 'flex-none'}`}>
+                    <section className={`bg-[#0D0D0D] flex flex-col border border-white/5 border-l-4 border-l-[#00FFFF] shadow-[10px_10px_0px_#050505] transition-all duration-300 lg:min-h-0 ${activeLeftPanel === 'filesystem' ? 'flex-[2]' : 'flex-none'}`}>
                         <button onClick={() => setActiveLeftPanel(p => p === 'filesystem' ? null : 'filesystem')} className="w-full p-4 border-b border-white/5 flex justify-between items-center bg-[#050505] hover:bg-white/5 transition-colors cursor-pointer group">
                             <h2 className="font-sans text-[10px] font-bold tracking-[0.3em] text-[#00FFFF] uppercase flex items-center gap-3">
                                 <span className="material-symbols-outlined text-[14px]">folder_zip</span>

@@ -27,6 +27,7 @@ module.exports = {
     // ── Terminal ──────────────────────────────────────────
     COMMAND_PROCESSED: 'Command processed',
     HISTORY_FETCHED: 'Command history retrieved',
+    RESUME_STATE_FETCHED: 'Session resume state retrieved',
 
     // ── Hints ─────────────────────────────────────────────
     HINT_GENERATED: 'Hint generated',
