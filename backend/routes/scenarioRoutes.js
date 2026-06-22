@@ -4,13 +4,13 @@ const scenarioController = require('../controllers/scenarioController');
 const verifyToken = require('../middleware/authMiddleware');
 
 // GET /api/scenarios — all active scenarios (dashboard)
-router.get('/', scenarioController.getAllScenarios);
+router.get('/', verifyToken, scenarioController.getAllScenarios);
 
 // GET /api/scenarios/type/:type — levels by type (sequence page)
-router.get('/type/:type', scenarioController.getScenariosByType);
+router.get('/type/:type', verifyToken, scenarioController.getScenariosByType);
 
 // GET /api/scenarios/:scenarioId — single scenario meta + objectives (briefing)
-router.get('/:scenarioId', scenarioController.getScenarioById);
+router.get('/:scenarioId', verifyToken, scenarioController.getScenarioById);
 
 // GET /api/scenarios/:scenarioId/full — full data to boot GamingEnvironment (protected)
 router.get('/:scenarioId/full', verifyToken, scenarioController.getFullScenarioData);

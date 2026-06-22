@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { fetchScenarioById } from '../../../services/scenarioService';
+import { useAuth } from '../../../context/AuthContext';
 import { motion } from 'framer-motion';
 // ── Visual config ───────────────────────────────────────────────────────────
 const TYPE_CONFIG = {
@@ -38,6 +39,7 @@ const THREAT_COLORS = {
 
 export default function MissionBriefing() {
     const navigate = useNavigate();
+    const { token } = useAuth();
     const { scenario_id } = useParams();
     const [searchParams] = useSearchParams();
     const mode = searchParams.get('mode') || 'free';
@@ -70,12 +72,12 @@ export default function MissionBriefing() {
     };
 
     useEffect(() => {
-        if (!scenario_id) return;
+        if (!scenario_id || !token) return;
         const load = async () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchScenarioById(scenario_id);
+                const data = await fetchScenarioById(scenario_id, token);
                 setScenario(data.scenario);
                 setObjectives(data.objectives);
             } catch (err) {
@@ -86,7 +88,7 @@ export default function MissionBriefing() {
         };
 
         load();
-    }, [scenario_id]);
+    }, [scenario_id, token]);
 
     const handleStart = () => {
         navigate(`/game/${scenario_id}?mode=${mode}`);

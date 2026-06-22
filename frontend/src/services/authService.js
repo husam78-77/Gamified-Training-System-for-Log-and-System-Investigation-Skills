@@ -32,3 +32,20 @@ export const forgotPasswordRequest = async (email) => {
     if (!response.ok) throw new Error(data.message || 'Request failed');
     return data;
 };
+
+/**
+ * Trade a one-time Google OAuth exchange code (from the /auth/callback
+ * redirect) for the actual JWT + user payload. The code is single-use and
+ * expires in 60s — the real token is only ever returned in this JSON body,
+ * never in a URL.
+ */
+export const exchangeOAuthCode = async (code) => {
+    const response = await fetch(`${API_URL}/api/auth/google/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'OAuth exchange failed');
+    return data.data; // { token, user }
+};

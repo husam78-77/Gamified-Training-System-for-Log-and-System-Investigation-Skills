@@ -3,6 +3,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useProgression } from '../../context/ProgressionContext';
 import { motion } from 'framer-motion';
 import './Progress.css';
+
+// ─── Google Font: Rajdhani (readable, clear, military-tech) ──────────────────
+const rajdhaniLink = document.createElement('link');
+rajdhaniLink.rel = 'stylesheet';
+rajdhaniLink.href = 'https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap';
+document.head.appendChild(rajdhaniLink);
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 const getGrade = (score) => {
@@ -45,14 +51,14 @@ const MetricCard = ({ label, value, sub, icon, accent, suffix = '' }) => (
     <motion.div variants={slamUp} className="bg-[#0A0A0A] p-6 relative flex flex-col justify-between border border-white/5 shadow-[5px_5px_0px_rgba(0,0,0,0.5)] group" style={{ clipPath: "polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%)" }}>
         <div className={`absolute top-0 left-0 w-1 h-full ${accent === 'primary' ? 'bg-[#FF003C]' : 'bg-[#00FFFF]'} opacity-50 group-hover:opacity-100 transition-opacity`}></div>
         <div className="flex justify-between items-start mb-6">
-            <span className="font-mono text-[9px] text-white/50 tracking-[0.2em] font-bold uppercase">{label}</span>
+            <span style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 600 }} className="text-[11px] text-white/70 tracking-[0.18em] uppercase">{label}</span>
             <span className={`material-symbols-outlined text-2xl ${accent === 'primary' ? 'text-[#FF003C]' : 'text-[#00FFFF]'} drop-shadow-[0_0_8px_currentColor]`}>{icon}</span>
         </div>
         <div>
-            <div className="font-black italic text-4xl text-white tracking-tighter skew-x-[-5deg] mb-1">
+            <div style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }} className="text-4xl text-white tracking-wide mb-1">
                 {value}<span className="text-xl text-white/40 ml-1">{suffix}</span>
             </div>
-            <div className="font-mono text-[8px] text-white/30 tracking-widest uppercase">{sub}</div>
+            <div style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }} className="text-[11px] text-white/50 tracking-widest uppercase">{sub}</div>
         </div>
     </motion.div>
 );
@@ -68,10 +74,10 @@ const AchievementBadge = ({ achievement, index }) => {
             <div className={`w-14 h-14 flex items-center justify-center mb-4 skew-x-[-10deg] ${unlocked ? 'bg-[#00FFFF]/10 text-[#00FFFF] border border-[#00FFFF]/50 shadow-[0_0_15px_#00FFFF]' : 'bg-white/5 text-white/20 border border-white/10'}`}>
                 <span className="material-symbols-outlined text-3xl skew-x-[10deg]">{unlocked ? icon : 'lock'}</span>
             </div>
-            <div className={`font-black italic text-sm uppercase tracking-tighter mb-2 ${unlocked ? 'text-white' : 'text-white/40'}`}>
+            <div style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }} className={`text-sm uppercase tracking-wide mb-2 ${unlocked ? 'text-white' : 'text-white/40'}`}>
                 {unlocked ? name : '██████_███████'}
             </div>
-            <div className="font-mono text-[9px] text-white/40 tracking-widest uppercase leading-relaxed">
+            <div style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }} className="text-[11px] text-white/50 tracking-wide uppercase leading-relaxed">
                 {unlocked ? description : 'REQUIREMENTS NOT MET'}
             </div>
         </motion.div>
@@ -97,19 +103,19 @@ const TimelineMilestone = ({ milestone, index }) => {
             {/* Content — alternates left/right on desktop */}
             <div className={`ml-14 md:ml-0 md:w-[44%] w-full ${isRight ? 'md:pl-16 md:ml-auto text-left' : 'md:pr-16 md:text-right'}`}>
                 <div className={`bg-[#0A0A0A] p-6 border transition-all duration-300 ${status === 'active' ? 'border-[#FF003C] shadow-[10px_10px_0px_#050505]' : status === 'completed' ? 'border-[#00FFFF]/30 hover:border-[#00FFFF]/60' : 'border-white/5 opacity-60'}`} style={{ clipPath: isRight ? "polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%)" : "polygon(15px 0, 100% 0, 100% 100%, 0 100%, 0 15px)" }}>
-                    <p className={`font-mono font-bold text-[9px] tracking-[0.3em] uppercase mb-2 ${status === 'active' ? 'text-[#FF003C]' : status === 'completed' ? 'text-[#00FFFF]' : 'text-white/20'}`}>
+                    <p className={`font-tag font-bold text-[9px] tracking-[0.3em] uppercase mb-2 ${status === 'active' ? 'text-[#FF003C]' : status === 'completed' ? 'text-[#00FFFF]' : 'text-white/20'}`}>
                         {status === 'completed' ? 'COMPLETED' : status === 'active' ? 'ACTIVE_PHASE' : '[ CLASSIFIED ]'}
                     </p>
 
-                    <h4 className={`font-black italic text-3xl uppercase tracking-tighter mb-2 ${status === 'locked' ? 'text-white/10' : 'text-white'}`}>
+                    <h4 style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 700 }} className={`text-3xl uppercase tracking-wide mb-2 ${status === 'locked' ? 'text-white/10' : 'text-white'}`}>
                         {status === 'locked' ? '████████' : rank}
                     </h4>
 
-                    <p className="font-mono text-[10px] text-white/40 tracking-widest mb-3">
+                    <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }} className="text-[12px] text-white/50 tracking-widest mb-3">
                         {xpRequired.toLocaleString()} XP REQUIRED
                     </p>
 
-                    <p className={`font-mono text-[10px] leading-relaxed uppercase tracking-widest ${status === 'locked' ? 'text-white/10' : 'text-white/50'}`}>
+                    <p style={{ fontFamily: "'Rajdhani', sans-serif", fontWeight: 500 }} className={`text-[12px] leading-relaxed uppercase tracking-wide ${status === 'locked' ? 'text-white/10' : 'text-white/60'}`}>
                         {status === 'locked' ? 'CLASSIFIED UNTIL RANK ACHIEVED' : description}
                     </p>
                 </div>
@@ -129,10 +135,10 @@ const MissionArchiveCard = ({ mission }) => {
 
             {/* Left: codename + title + difficulty */}
             <div className="flex-1 p-6 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-white/5 bg-gradient-to-r from-white/[0.02] to-transparent">
-                <p className="font-mono text-[10px] text-white/40 tracking-[0.2em] uppercase mb-1">{mission.codename}</p>
+                <p className="font-tag text-[10px] text-white/40 tracking-[0.2em] uppercase mb-1">{mission.codename}</p>
                 <p className="font-black italic text-xl text-white uppercase tracking-tighter truncate mb-2">{mission.scenarioTitle}</p>
                 <div>
-                    <span className={`inline-block font-mono text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest ${mission.difficulty === 'hard' ? 'bg-[#FF003C]/20 text-[#FF003C]' : 'bg-white/10 text-white/60'}`}>
+                    <span className={`inline-block font-tag text-[9px] font-bold px-2 py-0.5 uppercase tracking-widest ${mission.difficulty === 'hard' ? 'bg-[#FF003C]/20 text-[#FF003C]' : 'bg-white/10 text-white/60'}`}>
                         {mission.difficulty?.toUpperCase()}
                     </span>
                 </div>
@@ -141,26 +147,26 @@ const MissionArchiveCard = ({ mission }) => {
             {/* Centre: stats row */}
             <div className="flex-[2] grid grid-cols-2 md:grid-cols-5 gap-4 p-6 bg-[#050505]/50 items-center">
                 <div className="flex flex-col justify-center">
-                    <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase mb-1">GRADE</span>
+                    <span className="font-tag text-[9px] text-white/30 tracking-widest uppercase mb-1">GRADE</span>
                     <span className={`font-black italic text-3xl skew-x-[-10deg] ${gradeColor} drop-shadow-[0_0_8px_currentColor]`}>{grade}</span>
                 </div>
                 <div className="flex flex-col justify-center">
-                    <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase mb-1">SCORE</span>
-                    <span className="font-mono font-bold text-white tracking-widest text-lg">{mission.score}</span>
+                    <span className="font-tag text-[9px] text-white/30 tracking-widest uppercase mb-1">SCORE</span>
+                    <span className="font-sans font-bold text-white tracking-widest text-lg">{mission.score}</span>
                 </div>
                 <div className="flex flex-col justify-center">
-                    <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase mb-1">EVIDENCE</span>
-                    <span className="font-mono font-bold text-white tracking-widest text-lg">{evidencePct}%</span>
+                    <span className="font-tag text-[9px] text-white/30 tracking-widest uppercase mb-1">EVIDENCE</span>
+                    <span className="font-sans font-bold text-white tracking-widest text-lg">{evidencePct}%</span>
                 </div>
                 <div className="flex flex-col justify-center">
-                    <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase mb-1">TIME</span>
-                    <span className="font-mono font-bold text-white tracking-widest text-lg">
+                    <span className="font-tag text-[9px] text-white/30 tracking-widest uppercase mb-1">TIME</span>
+                    <span className="font-sans font-bold text-white tracking-widest text-lg">
                         {mission.completionTimeMinutes ? `${Math.round(mission.completionTimeMinutes)}m` : '—'}
                     </span>
                 </div>
                 <div className="flex flex-col justify-center">
-                    <span className="font-mono text-[9px] text-white/30 tracking-widest uppercase mb-1">HINTS</span>
-                    <span className={`font-mono font-bold tracking-widest text-lg ${mission.hintsUsed === 0 ? 'text-[#00FFFF]' : 'text-white'}`}>
+                    <span className="font-tag text-[9px] text-white/30 tracking-widest uppercase mb-1">HINTS</span>
+                    <span className={`font-sans font-bold tracking-widest text-lg ${mission.hintsUsed === 0 ? 'text-[#00FFFF]' : 'text-white'}`}>
                         {mission.hintsUsed}
                     </span>
                 </div>
@@ -168,7 +174,7 @@ const MissionArchiveCard = ({ mission }) => {
 
             {/* Right: completion badge */}
             <div className="px-6 py-4 lg:py-0 flex items-center justify-center bg-[#0D0D0D]">
-                <div className={`font-mono font-bold text-[10px] tracking-[0.2em] uppercase px-4 py-2 border ${mission.missionCompleted ? 'border-[#00FFFF] text-[#00FFFF] shadow-[inset_0_0_10px_rgba(0,255,255,0.2)]' : 'border-[#FF003C] text-[#FF003C] bg-[#FF003C]/10'}`}>
+                <div className={`font-tag font-bold text-[10px] tracking-[0.2em] uppercase px-4 py-2 border ${mission.missionCompleted ? 'border-[#00FFFF] text-[#00FFFF] shadow-[inset_0_0_10px_rgba(0,255,255,0.2)]' : 'border-[#FF003C] text-[#FF003C] bg-[#FF003C]/10'}`}>
                     {mission.missionCompleted ? 'COMPLETE' : 'PARTIAL'}
                 </div>
             </div>
@@ -179,7 +185,7 @@ const MissionArchiveCard = ({ mission }) => {
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
 
 const LoadingState = () => (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white font-mono">
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white font-sans">
         <span className="material-symbols-outlined text-6xl text-[#00FFFF] animate-spin mb-4">settings</span>
         <p className="text-[10px] tracking-[0.4em] text-[#00FFFF] uppercase font-bold animate-pulse">DECRYPTING_DOSSIER...</p>
     </div>
@@ -203,7 +209,7 @@ export default function InvestigatorProgress() {
 
     if (error || !data) {
         return (
-            <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white font-mono">
+            <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-white font-sans">
                 <span className="material-symbols-outlined text-6xl text-[#FF003C] mb-4">warning</span>
                 <p className="text-[10px] tracking-[0.4em] text-[#FF003C] uppercase font-bold">{error || 'SIGNAL_LOST'}</p>
             </div>
@@ -244,11 +250,11 @@ export default function InvestigatorProgress() {
                         <div className="flex justify-between items-center mb-10 relative z-10">
                             <div className="flex items-center gap-3">
                                 <span className="w-2 h-2 bg-white animate-pulse" />
-                                <span className="font-mono font-bold text-[10px] tracking-[0.3em] text-white/40 uppercase">
+                                <span className="font-tag font-bold text-[10px] tracking-[0.3em] text-white/40 uppercase">
                                     CLASSIFIED_DOSSIER
                                 </span>
                             </div>
-                            <div className={`font-mono text-[10px] font-bold px-4 py-1.5 uppercase tracking-widest skew-x-[-10deg] ${identity.operationalStatus === 'ACTIVE_DUTY' ? 'bg-[#00FFFF] text-black shadow-[4px_4px_0px_#050505]' : 'bg-white/10 text-white'}`}>
+                            <div className={`font-tag text-[10px] font-bold px-4 py-1.5 uppercase tracking-widest skew-x-[-10deg] ${identity.operationalStatus === 'ACTIVE_DUTY' ? 'bg-[#00FFFF] text-black shadow-[4px_4px_0px_#050505]' : 'bg-white/10 text-white'}`}>
                                 <span className="skew-x-[10deg] block">{identity.operationalStatus}</span>
                             </div>
                         </div>
@@ -257,7 +263,7 @@ export default function InvestigatorProgress() {
                         <div className="relative z-10 flex flex-col lg:flex-row lg:items-end justify-between gap-12">
                             {/* ── Left: username + rank ── */}
                             <div className="flex-1">
-                                <p className="font-mono font-bold text-[10px] tracking-[0.35em] text-[#FF003C] uppercase mb-4">
+                                <p className="font-tag font-bold text-[10px] tracking-[0.35em] text-[#FF003C] uppercase mb-4">
                                     INVESTIGATOR_IDENTITY
                                 </p>
                                 <h1 className="font-black italic uppercase tracking-tighter leading-none text-white drop-shadow-[4px_4px_0px_#FF003C] skew-x-[-6deg] mb-6" style={{ fontSize: 'clamp(2.5rem, 8vw, 6.5rem)' }}>
@@ -267,7 +273,7 @@ export default function InvestigatorProgress() {
                                 <div className="flex flex-wrap items-center gap-4">
                                     {/* Rank badge */}
                                     <div className="inline-flex items-center gap-3 px-5 py-2 border bg-[#0A0A0A] skew-x-[-10deg]" style={{ borderColor: `${rankColor}40` }}>
-                                        <span className="font-mono font-bold text-[9px] tracking-[0.2em] text-white/40 uppercase skew-x-[10deg]">
+                                        <span className="font-tag font-bold text-[9px] tracking-[0.2em] text-white/40 uppercase skew-x-[10deg]">
                                             RANK:
                                         </span>
                                         <span className="font-black italic text-2xl uppercase tracking-tighter skew-x-[10deg]" style={{ color: rankColor, textShadow: `0 0 14px ${rankColor}66` }}>
@@ -277,7 +283,7 @@ export default function InvestigatorProgress() {
 
                                     {/* Clearance */}
                                     <div className="px-5 py-2 border border-[#00FFFF]/20 bg-[#00FFFF]/5 skew-x-[-10deg]">
-                                        <span className="font-mono font-bold text-[9px] tracking-[0.2em] text-white/40 uppercase skew-x-[10deg] mr-2">
+                                        <span className="font-tag font-bold text-[9px] tracking-[0.2em] text-white/40 uppercase skew-x-[10deg] mr-2">
                                             CLEARANCE:
                                         </span>
                                         <span className="font-black italic text-xl text-[#00FFFF] uppercase tracking-tighter skew-x-[10deg]">
@@ -290,7 +296,7 @@ export default function InvestigatorProgress() {
                             {/* ── Right: Level + XP bar ── */}
                             <div className="w-full lg:w-[450px] shrink-0">
                                 <div className="flex items-baseline gap-3 mb-4">
-                                    <span className="font-mono font-bold text-[10px] tracking-[0.2em] text-white/40 uppercase">LVL</span>
+                                    <span className="font-tag font-bold text-[10px] tracking-[0.2em] text-white/40 uppercase">LVL</span>
                                     <span className="font-black italic leading-none tracking-tighter" style={{ fontSize: 'clamp(3.5rem, 6vw, 5rem)', color: '#FF003C', textShadow: '0 0 30px rgba(255,0,60,0.45)' }}>
                                         {identity.level}
                                     </span>
@@ -298,7 +304,7 @@ export default function InvestigatorProgress() {
 
                                 {/* XP block */}
                                 <div>
-                                    <div className="flex justify-between items-end mb-3 font-mono font-bold text-[10px] tracking-[0.2em] uppercase">
+                                    <div className="flex justify-between items-end mb-3 font-tag font-bold text-[10px] tracking-[0.2em] uppercase">
                                         <span className="text-white/40">XP_PROGRESSION</span>
                                         <span style={{ color: rankColor }}>{xpPercent}%</span>
                                     </div>
@@ -313,7 +319,7 @@ export default function InvestigatorProgress() {
                                         </div>
                                     </div>
 
-                                    <div className="flex justify-between font-mono font-bold text-[9px] tracking-[0.15em] uppercase">
+                                    <div className="flex justify-between font-tag font-bold text-[9px] tracking-[0.15em] uppercase">
                                         <span className="text-white/30">0 XP</span>
                                         <span className="text-white">{currentXp.toLocaleString()} XP</span>
                                         <span className="text-white/30">{targetXp.toLocaleString()} XP</span>
@@ -352,7 +358,7 @@ export default function InvestigatorProgress() {
                             {/* Investigation Style Card — 2/3 width */}
                             <div className="lg:col-span-2 bg-[#0A0A0A] border border-white/5 p-8 md:p-12 shadow-[15px_15px_0px_rgba(0,0,0,0.8)] relative" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)" }}>
                                 <div className="absolute top-0 right-0 w-24 h-1 bg-[#00FFFF]"></div>
-                                <p className="font-mono font-bold text-[10px] tracking-[0.3em] text-[#00FFFF] uppercase mb-4">
+                                <p className="font-tag font-bold text-[10px] tracking-[0.3em] text-[#00FFFF] uppercase mb-4">
                                     INVESTIGATOR_PROFILE
                                 </p>
                                 <div className="font-black italic uppercase tracking-tighter leading-none text-white text-5xl md:text-6xl mb-3 drop-shadow-[2px_2px_0px_#00FFFF]">
@@ -366,27 +372,27 @@ export default function InvestigatorProgress() {
                                 </p>
                                 <div className="flex flex-wrap gap-3">
                                     {investigationStyle.traits.map(t => (
-                                        <span key={t} className="font-mono text-[9px] uppercase tracking-[0.2em] border border-white/10 bg-white/5 px-4 py-2 text-white/70">{t}</span>
+                                        <span key={t} className="font-tag text-[9px] uppercase tracking-[0.2em] border border-white/10 bg-white/5 px-4 py-2 text-white/70">{t}</span>
                                     ))}
                                 </div>
                             </div>
 
                             {/* Rank Card — 1/3 width */}
                             <div className="bg-[#050505] p-8 md:p-12 border-t-8 shadow-[15px_15px_0px_rgba(0,0,0,0.8)] flex flex-col justify-center" style={{ borderColor: rankColor }}>
-                                <p className="font-mono font-bold text-[10px] tracking-[0.3em] text-white/40 uppercase mb-4">
+                                <p className="font-tag font-bold text-[10px] tracking-[0.3em] text-white/40 uppercase mb-4">
                                     CURRENT_RANK
                                 </p>
                                 <div className="font-black italic uppercase tracking-tighter text-4xl leading-none mb-6" style={{ color: rankColor, textShadow: `0 0 18px ${rankColor}55` }}>
                                     {identity.rank}
                                 </div>
                                 <div className="flex items-baseline gap-3 mb-6">
-                                    <span className="font-mono font-bold text-xs tracking-[0.2em] text-white/40 uppercase">LVL</span>
+                                    <span className="font-tag font-bold text-xs tracking-[0.2em] text-white/40 uppercase">LVL</span>
                                     <span className="font-black italic text-6xl leading-none text-white tracking-tighter">
                                         {identity.level}
                                     </span>
                                 </div>
                                 <div className="inline-block px-4 py-2 border border-[#00FFFF]/30 bg-[#00FFFF]/10 skew-x-[-10deg] self-start">
-                                    <span className="font-mono font-bold text-[10px] tracking-[0.2em] text-[#00FFFF] uppercase skew-x-[10deg] block">
+                                    <span className="font-tag font-bold text-[10px] tracking-[0.2em] text-[#00FFFF] uppercase skew-x-[10deg] block">
                                         {identity.clearanceTier}
                                     </span>
                                 </div>
@@ -400,7 +406,7 @@ export default function InvestigatorProgress() {
                     <motion.section variants={slamUp}>
                         <div className="flex items-center gap-4 mb-10">
                             <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter text-white skew-x-[-8deg]">CLASSIFIED_ACHIEVEMENTS</h2>
-                            <span className="font-mono font-bold text-[10px] tracking-[0.2em] text-[#00FFFF] uppercase bg-[#00FFFF]/10 border border-[#00FFFF]/30 px-3 py-1 skew-x-[-8deg]">
+                            <span className="font-tag font-bold text-[10px] tracking-[0.2em] text-[#00FFFF] uppercase bg-[#00FFFF]/10 border border-[#00FFFF]/30 px-3 py-1 skew-x-[-8deg]">
                                 <span className="skew-x-[8deg] block">{unlockedCount}/{achievements.length} UNLOCKED</span>
                             </span>
                             <div className="h-1 flex-1 bg-gradient-to-r from-[#00FFFF] to-transparent skew-x-[-8deg]"></div>
@@ -440,7 +446,7 @@ export default function InvestigatorProgress() {
                     <motion.section variants={slamUp}>
                         <div className="flex items-center gap-4 mb-10">
                             <h2 className="text-3xl md:text-4xl font-black italic uppercase tracking-tighter text-white skew-x-[-8deg]">MISSION_ARCHIVE</h2>
-                            <span className="font-mono font-bold text-[10px] tracking-[0.2em] text-white/40 uppercase bg-[#0A0A0A] border border-white/5 px-3 py-1 skew-x-[-8deg]">
+                            <span className="font-tag font-bold text-[10px] tracking-[0.2em] text-white/40 uppercase bg-[#0A0A0A] border border-white/5 px-3 py-1 skew-x-[-8deg]">
                                 <span className="skew-x-[8deg] block">{missionArchive.length} OPERATION{missionArchive.length !== 1 ? 'S' : ''} LOGGED</span>
                             </span>
                             <div className="h-1 flex-1 bg-gradient-to-r from-white/20 to-transparent skew-x-[-8deg]"></div>
@@ -449,7 +455,7 @@ export default function InvestigatorProgress() {
                         {missionArchive.length === 0 ? (
                             <div className="flex flex-col items-center justify-center gap-4 py-24 bg-[#0A0A0A] border border-white/5 shadow-[10px_10px_0px_#050505]">
                                 <span className="material-symbols-outlined text-6xl text-white/10">folder_open</span>
-                                <p className="font-mono font-bold text-xs tracking-[0.3em] text-[#FF003C] uppercase">
+                                <p className="font-tag font-bold text-xs tracking-[0.3em] text-[#FF003C] uppercase">
                                     NO_OPERATIONS_LOGGED
                                 </p>
                                 <p className="font-sans text-sm text-white/40">

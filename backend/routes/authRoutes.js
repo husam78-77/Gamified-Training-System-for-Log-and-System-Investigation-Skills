@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
-const { register, login, forgotPassword } = require('../controllers/authController');
+const { register, login, forgotPassword, createOAuthExchangeCode, exchangeOAuthCode } = require('../controllers/authController');
 const { registerValidationRules, loginValidationRules, validate } = require('../middleware/validateRequest');
 
 router.post('/register', registerValidationRules, validate, register);
@@ -20,17 +20,24 @@ router.get('/google/callback',
                 process.env.JWT_SECRET,
                 { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
             );
-            const userData = encodeURIComponent(JSON.stringify({
+            const userData = {
                 user_id: user.user_id,
                 username: user.username,
                 email: user.email,
                 role: user.role,
-            }));
-            res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}&user=${userData}`);
+            };
+            // The JWT never goes in the URL — only a short-lived, single-use
+            // exchange code does. The frontend trades it for the token via
+            // POST /api/auth/google/exchange.
+            const code = createOAuthExchangeCode({ token, user: userData });
+            res.redirect(`${process.env.FRONTEND_URL}/auth/callback?code=${code}`);
         } else {
             res.redirect(`${process.env.FRONTEND_URL}/register?email=${encodeURIComponent(email)}`);
         }
     }
 );
+
+// POST /api/auth/google/exchange — trade a one-time OAuth code for the JWT
+router.post('/google/exchange', exchangeOAuthCode);
 
 module.exports = router;

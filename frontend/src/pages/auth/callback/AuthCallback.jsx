@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import { exchangeOAuthCode } from '../../../services/authService';
 
 export default function AuthCallback() {
     const navigate = useNavigate();
@@ -12,20 +13,23 @@ export default function AuthCallback() {
         processed.current = true;
 
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
-        const userRaw = params.get('user');
+        const code = params.get('code');
 
-        if (token && userRaw) {
-            try {
-                const user = JSON.parse(decodeURIComponent(userRaw));
+        if (!code) {
+            navigate('/login', { replace: true });
+            return;
+        }
+
+        // The redirect only carries a one-time exchange code — trade it for
+        // the real token + user payload here, never in the URL itself.
+        exchangeOAuthCode(code)
+            .then(({ token, user }) => {
                 login(user, token);
                 navigate('/dashboard', { replace: true });
-            } catch {
+            })
+            .catch(() => {
                 navigate('/login', { replace: true });
-            }
-        } else {
-            navigate('/login', { replace: true });
-        }
+            });
     }, []);
 
     return (

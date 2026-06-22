@@ -9,10 +9,14 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 /**
  * Fetch all active scenarios grouped by type.
  * Used by MissionDashboard to render type cards.
- * No auth required.
+ * Auth required.
+ *
+ * @param {string} token - JWT from AuthContext
  */
-export const fetchAllScenarios = async () => {
-    const response = await fetch(`${API_URL}/api/scenarios`);
+export const fetchAllScenarios = async (token) => {
+    const response = await fetch(`${API_URL}/api/scenarios`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Failed to fetch scenarios');
     return data.data; // { grouped, total }
@@ -21,12 +25,15 @@ export const fetchAllScenarios = async () => {
 /**
  * Fetch all scenarios of a specific type.
  * Used by MissionSequence to render level cards.
- * No auth required.
+ * Auth required.
  *
  * @param {string} type - e.g. 'bruteforce', 'script'
+ * @param {string} token - JWT from AuthContext
  */
-export const fetchScenariosByType = async (type) => {
-    const response = await fetch(`${API_URL}/api/scenarios/type/${type}`);
+export const fetchScenariosByType = async (type, token) => {
+    const response = await fetch(`${API_URL}/api/scenarios/type/${type}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Failed to fetch scenarios');
     return data.data; // { scenarios: [] }
@@ -35,12 +42,15 @@ export const fetchScenariosByType = async (type) => {
 /**
  * Fetch a single scenario's meta + visible objectives.
  * Used by MissionBriefing.
- * No auth required.
+ * Auth required.
  *
  * @param {number} scenarioId
+ * @param {string} token - JWT from AuthContext
  */
-export const fetchScenarioById = async (scenarioId) => {
-    const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}`);
+export const fetchScenarioById = async (scenarioId, token) => {
+    const response = await fetch(`${API_URL}/api/scenarios/${scenarioId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
     const data = await response.json();
     if (!response.ok) throw new Error(data.message || 'Failed to fetch scenario');
     return data.data; // { scenario, objectives }

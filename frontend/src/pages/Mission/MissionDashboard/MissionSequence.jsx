@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchScenariosByType } from '../../../services/scenarioService';
+import { useAuth } from '../../../context/AuthContext';
 import { motion } from 'framer-motion';
 
 // ── Visual config per type ──────────────────────────────────────────────────
@@ -49,6 +50,7 @@ const DIFF_CONFIG = {
 export default function MissionSequence() {
     const { type } = useParams();
     const navigate = useNavigate();
+    const { token } = useAuth();
     const config = TYPE_CONFIG[type?.toLowerCase()];
 
     const [scenarios, setScenarios] = useState([]);
@@ -75,13 +77,13 @@ export default function MissionSequence() {
 
     // ── Fetch levels for this type ──────────────────────────────────────────
     useEffect(() => {
-        if (!config) return;
+        if (!config || !token) return;
 
         const load = async () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchScenariosByType(type);
+                const data = await fetchScenariosByType(type, token);
                 setScenarios(data.scenarios);
 
                 const defaults = {};
@@ -94,7 +96,7 @@ export default function MissionSequence() {
             }
         };
         load();
-    }, [type, config]);
+    }, [type, config, token]);
 
     if (!config) return null;
 

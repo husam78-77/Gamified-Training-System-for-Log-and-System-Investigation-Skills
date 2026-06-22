@@ -95,7 +95,8 @@ module.exports = {
         "headline": ["Epilogue", "sans-serif"],
         "body": ["Inter", "sans-serif"],
         "label": ["Space Grotesk", "sans-serif"],
-        "mono": ["JetBrains Mono", "monospace"]
+        "mono": ["JetBrains Mono", "monospace"],
+        "tag": ["Rajdhani", "sans-serif"]
       }
     },
   },

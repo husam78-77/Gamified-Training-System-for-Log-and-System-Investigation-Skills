@@ -6,12 +6,15 @@ const { sendWelcomeEmail, sendTempPasswordEmail } = require('../utils/emailSende
 
 const SALT_ROUNDS = 12;
 
-const registerUser = async ({ username, email, password, role }) => {
+// Public self-registration. role is NOT a parameter here on purpose —
+// every self-registered account is a 'student', full stop. There is no
+// path through this function for a client to request a different role.
+const registerUser = async ({ username, email, password }) => {
     const existingUser = await userModel.findByUsernameOrEmail(username, email);
     if (existingUser) return { conflict: true };
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-    const newUser = await userModel.createUser({ username, email, passwordHash, role });
+    const newUser = await userModel.createUser({ username, email, passwordHash, role: 'student' });
     await sendWelcomeEmail(email, username);
 
     return { conflict: false, user: newUser };
