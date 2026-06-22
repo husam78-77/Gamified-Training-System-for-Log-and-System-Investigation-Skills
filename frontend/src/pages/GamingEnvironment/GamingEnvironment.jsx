@@ -29,6 +29,7 @@ import TerminalPanel from '../../components/TerminalPanel';
 import ObjectivesPanel from '../../components/ObjectivesPanel';
 import HintPanel from '../../components/HintPanel';
 import TimerDisplay from '../../components/TimerDisplay';
+import MissionReport, { computeReportData } from '../../components/MissionReport';
 
 // --- Kinetic Animation Variants ---
 const staggerContainer = {
@@ -199,16 +200,15 @@ export default function GamingEnvironment() {
         }
     }, [objectives.allRequiredComplete, session.isActive, terminal.writeToTerminal, hasNotifiedCompletion]);
 
-    useEffect(() => {
-        if (session.isCompleted && session.evaluation) {
-            const timer = setTimeout(() => {
-                navigate('/mission', {
-                    state: { evaluation: session.evaluation },
-                });
-            }, 3000);
-            return () => clearTimeout(timer);
-        }
-    }, [session.isCompleted, session.evaluation, navigate]);
+    // Mission Report stays on screen until the player presses NEXT — no more
+    // auto-redirect. Completion itself (XP, progress, unlocks) already
+    // happened server-side the moment session.complete() resolved; this is
+    // purely about when we navigate away from the report.
+    const handleReportNext = useCallback(() => {
+        navigate('/dashboard', {
+            state: { evaluation: session.evaluation },
+        });
+    }, [navigate, session.evaluation]);
 
     useEffect(() => {
         if (session.isAbandoned) {
@@ -216,12 +216,11 @@ export default function GamingEnvironment() {
         }
     }, [session.isAbandoned, navigate]);
 
+    // EXIT always warns first and only ever abandons — it never completes
+    // the session or shows the Mission Report, regardless of mode. The
+    // report only ever appears via FINALIZE_MISSION (all objectives done).
     const handleExitClick = () => {
-        if (mode === 'timed') {
-            setShowExitModal(true);
-        } else {
-            session.complete();
-        }
+        setShowExitModal(true);
     };
 
     const handleConfirmAbandon = async () => {
@@ -474,8 +473,16 @@ export default function GamingEnvironment() {
                         onCancel={() => setShowExitModal(false)}
                     />
                 )}
-                {session.isCompleted && (
-                    <CompletionOverlay evaluation={session.evaluation} />
+                {session.isCompleted && session.evaluation && (
+                    <MissionReport
+                        data={computeReportData({
+                            evaluationData: session.evaluation,
+                            scenarioTitle: scenarioData?.scenario?.title,
+                            objectivesTotal: objectives.totalRequired,
+                            hintsUsed: hint.hints.length,
+                        })}
+                        onNext={handleReportNext}
+                    />
                 )}
             </AnimatePresence>
         </div>
@@ -631,7 +638,7 @@ function ExitModal({ onConfirm, onCancel }) {
                     ABORT_SESSION?
                 </h2>
                 <p className="font-body text-white leading-relaxed mb-10">
-                    You are in <span className="text-[#FF003C] font-bold">TIMED MODE</span>. Terminating the uplink now will discard all temporary data. No score or XP will be awarded for this session.
+                    Terminating the uplink now will discard all progress for this session. <span className="text-[#FF003C] font-bold">No score or XP will be awarded.</span> Press FINALIZE_MISSION instead once all objectives are complete to receive credit.
                 </p>
                 <div className="flex flex-col gap-4">
                     <button onClick={onConfirm} className="w-full bg-[#FF003C] text-black font-black italic py-5 text-xl uppercase tracking-tighter skew-x-[-10deg] hover:bg-white transition-all shadow-[8px_8px_0px_#050505]">
@@ -642,37 +649,6 @@ function ExitModal({ onConfirm, onCancel }) {
                     </button>
                 </div>
             </motion.div>
-        </motion.div>
-    );
-}
-
-function CompletionOverlay({ evaluation }) {
-    const score = evaluation?.evaluation?.totalWeightedScore ?? 0;
-    const xp = evaluation?.xpAwarded ?? 0;
-
-    return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/95 backdrop-blur-xl">
-            <div className="text-center flex flex-col items-center">
-                <motion.div initial={{ scale: 1.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 200, damping: 20 }} className="font-black text-[8rem] md:text-[12rem] italic text-transparent bg-clip-text bg-gradient-to-b from-white to-white/20 uppercase tracking-tighter leading-none skew-x-[-8deg] drop-shadow-[10px_10px_0px_rgba(0,255,255,0.2)] mb-4">
-                    CLEARED
-                </motion.div>
-
-                <div className="bg-[#0A0A0A] border border-[#00FFFF]/30 p-8 shadow-[15px_15px_0px_#050505] skew-x-[-5deg] min-w-[400px]">
-                    <div className="font-sans text-[10px] text-[#00FFFF] font-bold tracking-[0.4em] uppercase mb-4 skew-x-[5deg]">
-                        FINAL_EVALUATION
-                    </div>
-                    <div className="font-black italic text-7xl text-white skew-x-[5deg] mb-2">
-                        {score}<span className="text-3xl text-white">/100</span>
-                    </div>
-                    <div className="font-sans text-sm text-[#00FFFF] tracking-widest font-bold skew-x-[5deg] bg-[#00FFFF]/10 py-2 mt-4">
-                        +{xp} XP AWARDED
-                    </div>
-                </div>
-
-                <div className="mt-12 font-sans text-[10px] text-white tracking-[0.4em] uppercase font-bold animate-pulse">
-                    RE-ESTABLISHING HUB UPLINK...
-                </div>
-            </div>
         </motion.div>
     );
 }
