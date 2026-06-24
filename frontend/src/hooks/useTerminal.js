@@ -19,6 +19,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { WebglAddon } from '@xterm/addon-webgl';
 import { executeCommand, fetchCommandHistory, fetchResumeState } from '../services/terminalService';
 
 // ── Module-level path utilities (pure, no React deps) ────────────────────────
@@ -583,6 +584,19 @@ export const useTerminal = ({
         term.loadAddon(fitAddon);
         term.open(terminalRef.current);
         fitAddon.fit();
+
+        // GPU-accelerated rendering — the default DOM renderer redraws every
+        // cell as real DOM nodes, which gets visibly janky during heavy
+        // output (boot sequence, history replay) and compounds with page
+        // transitions running at the same time. Falls back silently to the
+        // DOM renderer if WebGL isn't available (e.g. some sandboxed envs).
+        try {
+            const webglAddon = new WebglAddon();
+            webglAddon.onContextLoss(() => webglAddon.dispose());
+            term.loadAddon(webglAddon);
+        } catch (e) {
+            // WebGL unsupported — xterm already fell back to the DOM renderer
+        }
 
         xtermRef.current = term;
         fitAddonRef.current = fitAddon;

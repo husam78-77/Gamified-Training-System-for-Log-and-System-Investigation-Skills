@@ -115,7 +115,7 @@ export default function OperativeProfile() {
             <div className="fixed inset-0 z-0 pointer-events-none">
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff03_1px,transparent_1px),linear-gradient(to_bottom,#ffffff03_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
-                <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-[#FF003C]/5 blur-[120px] rounded-full mix-blend-screen"></div>
+                <div className="absolute -top-40 -left-40 w-[600px] h-[600px] bg-[#FF003C]/5 blur-[120px] rounded-full"></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
             </div>
 

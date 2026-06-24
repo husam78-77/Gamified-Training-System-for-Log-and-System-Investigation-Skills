@@ -76,7 +76,7 @@ export default function OperativeEnlistment() {
       </div>
 
       {/* Top Navigation Bar */}
-      <header className="fixed top-0 flex justify-between items-center w-full px-8 py-6 bg-[#0A0A0A]/80 backdrop-blur-xl z-50">
+      <header className="fixed top-0 flex justify-between items-center w-full px-8 py-6 bg-[#0A0A0A]/95 z-50">
         <div className="text-3xl italic font-black text-[#FF003C] drop-shadow-[0_0_15px_rgba(255,0,60,0.5)] font-headline uppercase tracking-tighter">
           KINETIC BREACH
         </div>

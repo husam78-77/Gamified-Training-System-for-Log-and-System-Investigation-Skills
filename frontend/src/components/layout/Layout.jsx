@@ -147,7 +147,7 @@ export default function Layout({ children }) {
                                     exit={{ x: "-150%", opacity: 0 }}
                                     transition={{ duration: 0.6, ease: p5Ease }}
                                     className="fixed inset-y-0 w-[150vw] bg-[#050505] z-[100] pointer-events-none"
-                                    style={{ left: "-10vw", top: "-10vh", height: "120vh" }}
+                                    style={{ left: "-10vw", top: "-10vh", height: "120vh", willChange: "transform" }}
                                 />
                                 {/* The Primary Red Sweep */}
                                 <motion.div
@@ -156,7 +156,7 @@ export default function Layout({ children }) {
                                     exit={{ x: "-150%", opacity: 0 }}
                                     transition={{ duration: 0.6, ease: p5Ease, delay: 0.1 }}
                                     className="fixed inset-y-0 w-[150vw] bg-[#FF003C] z-[90] pointer-events-none shadow-[20px_0_60px_rgba(255,0,60,0.5)]"
-                                    style={{ left: "-10vw", top: "-10vh", height: "120vh" }}
+                                    style={{ left: "-10vw", top: "-10vh", height: "120vh", willChange: "transform" }}
                                 />
                             </>
                         )}

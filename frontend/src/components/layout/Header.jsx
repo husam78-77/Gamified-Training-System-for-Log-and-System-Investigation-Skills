@@ -4,7 +4,7 @@ import { useProgression } from '../../context/ProgressionContext';
 
 export default function Header({ onToggleMobileSidebar }) {
     const { progression } = useProgression();
-    
+
     const level = progression?.identity?.level || 1;
     const xpPercent = progression?.identity?.xpPercent || 0;
     const username = progression?.identity?.username || 'UNKNOWN';
@@ -22,7 +22,7 @@ export default function Header({ onToggleMobileSidebar }) {
                 initial="hidden"
                 animate="show"
                 // Changed from floating pill to a flush, full-width top bar
-                className="w-full h-[88px] bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-[#FF003C]/20 shadow-[0_10px_30px_rgba(0,0,0,0.8)] pointer-events-auto flex items-stretch justify-between"
+                className="w-full h-[88px] bg-[#0A0A0A]/95 border-b border-[#FF003C]/20 shadow-[0_10px_30px_rgba(0,0,0,0.8)] pointer-events-auto flex items-stretch justify-between"
             >
                 {/* ==========================================
                     LEFT: Brand & Designation (Sidebar Cap)
@@ -77,12 +77,12 @@ export default function Header({ onToggleMobileSidebar }) {
                         <span className="font-mono text-[10px] text-[#00FFFF] font-bold tracking-[0.2em] uppercase">SYSTEM_STABLE</span>
                     </div>
 
-                    <div className="w-px h-6 bg-white/10 skew-x-[-12deg]"></div>
+                    {/* <div className="w-px h-6 bg-white/10 skew-x-[-12deg]"></div> */}
 
-                    <div className="flex items-center gap-2 text-[#FF003C]">
+                    {/* <div className="flex items-center gap-2 text-[#FF003C]">
                         <span className="material-symbols-outlined text-sm animate-pulse">timer</span>
                         <span className="font-mono font-bold text-sm tracking-widest">00:14:59</span>
-                    </div>
+                    </div> */}
                 </nav>
 
                 {/* ==========================================

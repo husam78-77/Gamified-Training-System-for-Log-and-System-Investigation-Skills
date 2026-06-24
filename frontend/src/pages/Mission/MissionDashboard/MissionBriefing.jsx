@@ -106,7 +106,7 @@ export default function MissionBriefing() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
 
                 {/* Theme-based ambient glow */}
-                <div className={`absolute top-0 right-0 w-[800px] h-[800px] blur-[150px] rounded-full mix-blend-screen opacity-20 pointer-events-none`} style={{ backgroundColor: config.hex }}></div>
+                <div className={`absolute top-0 right-0 w-[800px] h-[800px] blur-[150px] rounded-full opacity-20 pointer-events-none`} style={{ backgroundColor: config.hex }}></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
             </div>
 
@@ -129,7 +129,7 @@ export default function MissionBriefing() {
                             </div>
                         </div>
 
-                        <h1 className="font-black italic text-3xl sm:text-5xl md:text-7xl uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
+                        <h1 className="font-black italic text-3xl sm:text-5xl md:text-7xl uppercase tracking-tighter skew-x-[-6deg] leading-none drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
                             MISSION_BRIEFING
                         </h1>
                     </motion.header>
@@ -270,7 +270,7 @@ export default function MissionBriefing() {
                                 >
                                     <div className="absolute inset-0 bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.4)_50%,transparent_100%)] -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
                                     <span className="skew-x-[10deg] flex items-center justify-center gap-3 relative z-10">
-                                        START_INVESTIGATION
+                                        START
                                         <span className="material-symbols-outlined text-4xl group-hover:translate-x-2 transition-transform">bolt</span>
                                     </span>
                                 </button>

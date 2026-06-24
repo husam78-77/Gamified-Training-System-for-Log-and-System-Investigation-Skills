@@ -119,7 +119,7 @@ export default function PhantomLogin() {
       {/* ========== FORGOT PASSWORD MODAL ========== */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-[#050505]/90 backdrop-blur-md" onClick={closeForgotModal} />
+          <div className="absolute inset-0 bg-[#050505]/95" onClick={closeForgotModal} />
           <motion.div
             initial={{ opacity: 0, scale: 1.1, rotate: 2 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -194,7 +194,7 @@ export default function PhantomLogin() {
         >
           {/* Breaking the Box: Overlapping Title */}
           <div className="relative z-30 ml-4 mb-[-24px] transform rotate-[-2deg] pointer-events-none">
-            <h1 className="font-black italic text-6xl md:text-7xl text-white tracking-tighter mix-blend-difference drop-shadow-[4px_4px_0px_#FF003C]">
+            <h1 className="font-black italic text-6xl md:text-7xl text-white tracking-tighter drop-shadow-[4px_4px_0px_#FF003C]">
               PHANTOM
               <br />
               PROTOCOL

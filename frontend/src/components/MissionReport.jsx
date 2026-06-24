@@ -139,7 +139,7 @@ export default function MissionReport({ data, onNext }) {
             initial="hidden"
             animate="show"
             exit="hidden"
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/95 backdrop-blur-xl p-4 md:p-8 overflow-y-auto"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/95 p-4 md:p-8 overflow-y-auto"
         >
             {/* Scanline texture, matches the rest of the app's HUD chrome */}
             <div
@@ -150,7 +150,7 @@ export default function MissionReport({ data, onNext }) {
             <motion.div
                 variants={panelVariants}
                 className="relative w-full max-w-2xl bg-[#0A0A0A] border border-white/10 shadow-[20px_20px_0px_rgba(0,0,0,0.7)] my-auto"
-                style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%)' }}
+                style={{ clipPath: 'polygon(0 0, 100% 0, 100% calc(100% - 40px), calc(100% - 40px) 100%, 0 100%)', willChange: 'transform, opacity' }}
             >
                 {/* Top accent bar */}
                 <div className="absolute top-0 left-0 w-full h-1.5" style={{ background: `linear-gradient(90deg, ${statusColor}, transparent)` }} />

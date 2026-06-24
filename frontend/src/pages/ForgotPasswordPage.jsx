@@ -66,8 +66,8 @@ const ForgotPasswordPage = () => {
     <div className="bg-surface font-body text-on-surface min-h-screen flex flex-col relative overflow-hidden">
       
       {/* Background Graphic (Subtle AI/Tech nodes) */}
-      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-secondary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none"></div>
-      <div className="absolute bottom-[-10%] right-[-5%] w-72 h-72 bg-primary/10 rounded-full mix-blend-multiply filter blur-3xl opacity-50 pointer-events-none"></div>
+      <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-secondary/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-5%] w-72 h-72 bg-primary/10 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
       {/* Simplified Navbar */}
       <header className="w-full px-8 py-6 flex justify-between items-center z-50 max-w-screen-2xl mx-auto absolute top-0 left-0 right-0">

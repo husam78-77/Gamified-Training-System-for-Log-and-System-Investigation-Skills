@@ -125,7 +125,7 @@ export default function MissionSequence() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
 
                 {/* Theme-based ambient glow */}
-                <div className={`absolute top-0 right-0 w-[800px] h-[800px] blur-[150px] rounded-full mix-blend-screen opacity-20 pointer-events-none`} style={{ backgroundColor: config.hex }}></div>
+                <div className={`absolute top-0 right-0 w-[800px] h-[800px] blur-[150px] rounded-full opacity-20 pointer-events-none`} style={{ backgroundColor: config.hex }}></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#050505] via-transparent to-[#050505] opacity-90"></div>
             </div>
 
@@ -150,7 +150,7 @@ export default function MissionSequence() {
                             </div>
                         </div>
 
-                        <h1 className="font-black italic text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] uppercase tracking-tighter skew-x-[-6deg] leading-none mix-blend-difference drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
+                        <h1 className="font-black italic text-4xl sm:text-6xl md:text-8xl lg:text-[10rem] uppercase tracking-tighter skew-x-[-6deg] leading-none drop-shadow-[4px_4px_0px_rgba(255,255,255,0.1)]">
                             {config.titleBase}<br />
                             <span style={{ color: config.hex }}>{config.titleHighlight}</span>
                         </h1>

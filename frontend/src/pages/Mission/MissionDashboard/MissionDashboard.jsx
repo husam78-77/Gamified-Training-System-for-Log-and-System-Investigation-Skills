@@ -40,8 +40,8 @@ export default function InvestigationCategories() {
                 <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:8rem_8rem]"></div>
 
                 {/* Asymmetric Ambient Glows */}
-                <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#FF003C]/5 blur-[120px] rounded-full mix-blend-screen"></div>
-                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#00FFFF]/5 blur-[100px] rounded-full mix-blend-screen"></div>
+                <div className="absolute -top-40 -right-40 w-[600px] h-[600px] bg-[#FF003C]/5 blur-[120px] rounded-full"></div>
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-[#00FFFF]/5 blur-[100px] rounded-full"></div>
             </div>
 
             {/* MAIN CONTENT CANVAS */}
@@ -54,7 +54,7 @@ export default function InvestigationCategories() {
                         <div className="absolute -top-8 left-2 bg-white text-black px-4 py-1 font-bold text-[10px] tracking-[0.4em] uppercase shadow-[4px_4px_0px_#FF003C] skew-x-[-10deg]">
                             <span className="skew-x-[10deg] block">PHASE 1 // VECTOR_SELECTION</span>
                         </div>
-                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white skew-x-[-6deg] mb-4 mix-blend-difference drop-shadow-[4px_4px_0px_#FF003C]">
+                        <h1 className="text-4xl sm:text-6xl md:text-8xl font-black italic uppercase tracking-tighter text-white skew-x-[-6deg] mb-4 drop-shadow-[4px_4px_0px_#FF003C]">
                             SELECT_YOUR_<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF003C] to-[#80001e]">TARGET</span>
                         </h1>
@@ -159,7 +159,7 @@ export default function InvestigationCategories() {
                                             <span className="material-symbols-outlined text-[#00FFFF] text-4xl sm:text-5xl drop-shadow-[0_0_15px_#00FFFF]">terminal</span>
                                         </div>
 
-                                        <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
+                                        <h2 className="text-2xl sm:text-4xl lg:text-4xl font-black italic uppercase tracking-tighter text-white mb-6 skew-x-[-8deg] drop-shadow-[2px_2px_0px_black]">
                                             SUSPICIOUS<br />SCRIPT_<wbr />EXEC
                                         </h2>
 

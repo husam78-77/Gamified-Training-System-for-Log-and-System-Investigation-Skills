@@ -296,7 +296,7 @@ export default function GamingEnvironment() {
             <motion.main variants={staggerContainer} initial="hidden" animate="show" className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row max-w-[1920px] mx-auto p-4 md:p-6 gap-4 relative z-10 pt-20 pb-24 overflow-y-auto lg:overflow-hidden">
 
                 {/* LEFT PANEL: Logs & File System */}
-                <motion.aside variants={slamLeft} className="w-full lg:w-[20%] lg:xl:w-[22%] flex flex-col gap-4 lg:min-h-0">
+                <motion.aside variants={slamLeft} className="w-full lg:w-[20%] lg:xl:w-[22%] flex flex-col gap-4 lg:min-h-0" style={{ willChange: 'transform, opacity' }}>
 
                     {/* SYSTEM LOGS */}
                     <section
@@ -346,7 +346,7 @@ export default function GamingEnvironment() {
                 </motion.aside>
 
                 {/* CENTER: Terminal & Metadata */}
-                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-4 min-h-[450px] lg:min-h-0">
+                <motion.div variants={slamUp} className="flex-1 flex flex-col gap-4 min-h-[450px] lg:min-h-0" style={{ willChange: 'transform, opacity' }}>
                     <div
                         className="w-full flex-1 relative min-h-0 bg-[#0A0A0A] border border-[#FF003C]/20 shadow-[0_0_40px_rgba(255,0,60,0.05)]"
                         style={{ clipPath: "polygon(20px 0, 100% 0, 100% 100%, 0 100%, 0 20px)" }}
@@ -387,7 +387,7 @@ export default function GamingEnvironment() {
                 </motion.div>
 
                 {/* RIGHT PANEL: Status, Hints, Objectives */}
-                <motion.aside variants={slamRight} className="w-full lg:w-[22%] lg:xl:w-[24%] flex flex-col gap-4">
+                <motion.aside variants={slamRight} className="w-full lg:w-[22%] lg:xl:w-[24%] flex flex-col gap-4" style={{ willChange: 'transform, opacity' }}>
 
                     {/* Operative status */}
                     <section
@@ -630,8 +630,8 @@ function FileTree({ files, currentPath, discoveredPaths, newlyRevealedFilePaths 
 
 function ExitModal({ onConfirm, onCancel }) {
     return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/90 backdrop-blur-md">
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#0A0A0A] border border-[#FF003C]/30 p-12 max-w-lg w-full relative shadow-[20px_20px_0px_rgba(255,0,60,0.15)]" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)" }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/95">
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="bg-[#0A0A0A] border border-[#FF003C]/30 p-12 max-w-lg w-full relative shadow-[20px_20px_0px_rgba(255,0,60,0.15)]" style={{ clipPath: "polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%)", willChange: "transform, opacity" }}>
                 <div className="absolute top-0 right-0 w-32 h-2 bg-[#FF003C]"></div>
 
                 <h2 className="text-4xl font-black italic text-[#FF003C] uppercase mb-6 tracking-tighter skew-x-[-5deg]">
