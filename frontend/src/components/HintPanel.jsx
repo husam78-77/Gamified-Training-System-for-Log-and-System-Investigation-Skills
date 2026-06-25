@@ -1,10 +1,9 @@
 /**
  * HintPanel.jsx
- * The AI_ORACLE panel. Shows the latest hint and hint history.
+ * The AI_ORACLE panel. Shows the selected hint with numbered navigation.
  * Handles loading, limit-reached, and error states.
  *
  * Props:
- *   latestHint      - { text, isNew } | null
  *   hints           - full hint array
  *   hintsRemaining  - number (0–5)
  *   limitReached    - bool
@@ -13,10 +12,9 @@
  *   onRequestHint   - function → calls useHint.getHint()
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function HintPanel({
-    latestHint = null,
     hints = [],
     hintsRemaining = 5,
     limitReached = false,
@@ -24,8 +22,16 @@ export default function HintPanel({
     error = null,
     onRequestHint,
 }) {
-    const [showHistory, setShowHistory] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(hints.length > 0 ? hints.length - 1 : 0);
 
+    // Auto-select the newest hint whenever a new one is added
+    useEffect(() => {
+        if (hints.length > 0) {
+            setSelectedIndex(hints.length - 1);
+        }
+    }, [hints.length]);
+
+    const selectedHint = hints.length > 0 ? hints[selectedIndex] : null;
     const canRequest = !limitReached && !isLoading;
 
     return (
@@ -63,24 +69,43 @@ export default function HintPanel({
             <div className="relative z-10 flex-1 flex flex-col justify-between gap-4">
 
                 {/* Current hint or placeholder */}
-                <div className={`border-l-2 pl-3 py-1 transition-all duration-500 overflow-y-auto custom-scrollbar max-h-32 pr-2 ${latestHint?.isNew
+                <div className={`border-l-2 pl-3 py-1 transition-all duration-500 overflow-y-auto custom-scrollbar max-h-32 pr-2 ${selectedHint?.isNew
                         ? 'border-[#00EBF7] bg-[#00EBF7]/5'
                         : 'border-[#00EBF7]/20'
                     }`}>
                     {isLoading ? (
                         <LoadingState />
+                    ) : selectedHint ? (
+                        <p className="font-body text-xs leading-relaxed text-on-surface/90 italic">
+                            "{selectedHint.text}"
+                        </p>
                     ) : limitReached ? (
                         <LimitReachedState />
                     ) : error ? (
                         <ErrorState error={error} />
-                    ) : latestHint ? (
-                        <p className="font-body text-xs leading-relaxed text-on-surface/90 italic">
-                            "{latestHint.text}"
-                        </p>
                     ) : (
                         <PlaceholderState />
                     )}
                 </div>
+
+                {/* Numbered hint navigation — only visible when hints exist */}
+                {hints.length > 0 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        {hints.map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setSelectedIndex(i)}
+                                className={`w-7 h-7 font-label text-[9px] font-bold tracking-wide transition-all duration-200 border flex items-center justify-center ${
+                                    i === selectedIndex
+                                        ? 'bg-[#00EBF7] border-[#00EBF7] text-black'
+                                        : 'bg-transparent border-[#00EBF7]/30 text-[#00EBF7]/60 hover:border-[#00EBF7]/60 hover:text-[#00EBF7] cursor-pointer'
+                                }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Request hint button */}
                 <button
@@ -109,36 +134,6 @@ export default function HintPanel({
                         </>
                     )}
                 </button>
-
-                {/* Hint history toggle — only shows if more than 1 hint */}
-                {hints.length > 1 && (
-                    <div>
-                        <button
-                            onClick={() => setShowHistory(h => !h)}
-                            className="flex items-center gap-1.5 font-label text-[9px] text-white hover:text-white transition-colors uppercase tracking-wider"
-                        >
-                            <span className="material-symbols-outlined text-xs">
-                                {showHistory ? 'expand_less' : 'history'}
-                            </span>
-                            {showHistory ? 'Hide' : 'Show'} history ({hints.length})
-                        </button>
-
-                        {showHistory && (
-                            <div className="mt-3 space-y-3 max-h-40 overflow-y-auto custom-scrollbar">
-                                {hints.slice(0, -1).map((hint, i) => (
-                                    <div key={hint.id} className="border-l border-white/10 pl-3">
-                                        <span className="font-label text-[8px] text-white block mb-1">
-                                            HINT_{String(i + 1).padStart(2, '0')}
-                                        </span>
-                                        <p className="font-body text-[10px] text-white italic leading-relaxed">
-                                            "{hint.text}"
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
             </div>
 
             {/* Bottom status line */}

@@ -429,7 +429,6 @@ export default function GamingEnvironment() {
                         </button>
                         {activeRightPanel === 'oracle' && (
                             <HintPanel
-                                latestHint={hint.latestHint}
                                 hints={hint.hints}
                                 hintsRemaining={hint.hintsRemaining}
                                 limitReached={hint.limitReached}
