@@ -1,0 +1,9 @@
+{
+    "id": "ssh_bruteforce",
+    "title": "SSH Brute Force Investigation",
+    "category": "Authentication",
+    "difficulty": "Beginner",
+    "template": "ubuntu_server",
+    "estimated_time": 20,
+    "xp": 250
+}

@@ -32,6 +32,7 @@ const { parseCommand, buildErrorOutput } = require('../utils/terminalParser');
 const evaluationService = require('../services/evaluationService');
 const { matchDiscoveries } = require('../services/discoveryService');
 const { evaluateAutoTrigger, generateAutoHint } = require('../services/autoTriggerService');
+const { buildEnvironment } = require('../services/environment/environmentEngine');
 const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
@@ -99,12 +100,15 @@ const executeCommand = async (req, res) => {
         }
 
         // ── Load all scenario data in parallel ────────────────────────────────
-        const [expectedSteps, virtualFiles, objectives, discoveries] = await Promise.all([
+        const [expectedSteps, objectives, discoveries] = await Promise.all([
             scenarioModel.getExpectedStepsByScenario(session.scenario_id),
-            scenarioModel.getVirtualFilesByScenario(session.scenario_id),
             scenarioModel.getObjectivesByScenario(session.scenario_id),
             discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
         ]);
+
+        // ── Virtual filesystem source: template + evidence injection ─────────
+        const environment = await buildEnvironment("ssh_bruteforce");
+        const virtualFiles = environment.virtualFiles;
 
         // ── Current progress state ────────────────────────────────────────────
         const [matchedHistory, completedDiscoveryIds] = await Promise.all([

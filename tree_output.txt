@@ -1,13 +1,14 @@
-├── .gitignore
-├── package-lock.json
+﻿├── .gitignore
 ├── package.json
+├── package-lock.json
 ├── start.bat
+├── system_problems.md
 ├── tree_output.txt
 ├── backend/
 │   ├── .env
 │   ├── generate_hash.js
-│   ├── package-lock.json
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── server.js
 │   ├── config/
 │   │   ├── db.js
@@ -15,6 +16,17 @@
 │   ├── constants/
 │   │   ├── messages.js
 │   │   ├── promptConstants.js
+│   ├── content/
+│   │   ├── incidents/
+│   │   │   ├── ssh_bruteforce/
+│   │   │   │   ├── alerts.json
+│   │   │   │   ├── aria.txt
+│   │   │   │   ├── emails.json
+│   │   │   │   ├── incident.json
+│   │   │   │   ├── review.json
+│   │   │   │   ├── assets/
+│   │   │   ├── ssh_forensics/
+│   │   │   ├── suspicious_script/
 │   ├── controllers/
 │   │   ├── authController.js
 │   │   ├── hintController.js
@@ -52,6 +64,13 @@
 │   │   ├── hintLevelService.js
 │   │   ├── hintService.js
 │   │   ├── playerStateAnalyzer.js
+│   │   ├── environment/
+│   │   │   ├── alertBuilder.js
+│   │   │   ├── emailBuilder.js
+│   │   │   ├── environmentEngine.js
+│   │   │   ├── filesystemBuilder.js
+│   │   │   ├── gameStateBuilder.js
+│   │   │   ├── index.js
 │   ├── utils/
 │   │   ├── emailSender.js
 │   │   ├── responseHelper.js
@@ -61,14 +80,15 @@
 │   ├── database.sql
 │   ├── discovery_based_progression_refactor.sql
 │   ├── fix_discovery_triggers_reveals.sql
+│   ├── fix_ssh_forensics_locate_and_secret.sql
 │   ├── phase1_player_state.sql
 │   ├── phase2_hint_levels.sql
 │   ├── phase3_hint_cache.sql
 ├── frontend/
 │   ├── .env
 │   ├── index.html
-│   ├── package-lock.json
 │   ├── package.json
+│   ├── package-lock.json
 │   ├── postcss.config.js
 │   ├── tailwind.config.js
 │   ├── vercel.json
@@ -82,6 +102,7 @@
 │   │   │   ├── images/
 │   │   ├── components/
 │   │   │   ├── HintPanel.jsx
+│   │   │   ├── MissionReport.jsx
 │   │   │   ├── ObjectivesPanel.jsx
 │   │   │   ├── TerminalPanel.jsx
 │   │   │   ├── TimerDisplay.jsx
@@ -112,7 +133,6 @@
 │   │   │   ├── GamingEnvironment/
 │   │   │   │   ├── GamingEnvironment.css
 │   │   │   │   ├── GamingEnvironment.jsx
-│   │   │   │   ├── oldGamingEnviroments.jsx
 │   │   │   ├── LandingPage/
 │   │   │   │   ├── Landing.css
 │   │   │   │   ├── LandingPage.jsx
@@ -150,10 +170,18 @@
 │   │   │   ├── constants.js
 │   │   │   ├── formatters.js
 ├── md FIles for project progression/
+│   ├── backend_problems.md
 │   ├── CHANGES.md
+│   ├── conceptual_database_design.md
+│   ├── database_relationship.md
+│   ├── detailed_design_analysis.md
 │   ├── DISCOVERY_PHASE_SUMMARY.md
 │   ├── Errors_I_Found.md
+│   ├── flowchart_blueprint.md
+│   ├── frontend_problems.md
+│   ├── gaming_environment_presentation.md
+│   ├── presentation_prep.md
 │   ├── progress.md
 │   ├── progression_audit.md
-│   ├── system.md
+│   ├── system2.md
 │   ├── TERMINAL_UX_PHASE_SUMMARY.md

@@ -1,0 +1,15 @@
+{
+    "id": "ubuntu_server",
+    "name": "Ubuntu Server",
+    "version": "22.04",
+    "hostname": "server01",
+    "users": [
+        "root",
+        "ubuntu",
+        "john"
+    ],
+    "services": [
+        "ssh"
+    ],
+    "default_shell": "/bin/bash"
+}
