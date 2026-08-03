@@ -1,4 +1,4 @@
-﻿├── .gitignore
+├── .gitignore
 ├── package.json
 ├── package-lock.json
 ├── start.bat
@@ -17,6 +17,10 @@
 │   │   ├── messages.js
 │   │   ├── promptConstants.js
 │   ├── content/
+│   │   ├── desktop/
+│   │   │   ├── applications.json
+│   │   │   ├── desktop.json
+│   │   │   ├── wallpaper.jpg
 │   │   ├── incidents/
 │   │   │   ├── ssh_bruteforce/
 │   │   │   │   ├── alerts.json
@@ -25,8 +29,35 @@
 │   │   │   │   ├── incident.json
 │   │   │   │   ├── review.json
 │   │   │   │   ├── assets/
+│   │   │   │   │   ├── create/
+│   │   │   │   │   ├── deleted/
+│   │   │   │   │   ├── log/
+│   │   │   │   │   ├── replace/
+│   │   │   │   │   │   ├── var/
+│   │   │   │   │   │   │   ├── log/
+│   │   │   │   │   │   │   │   ├── auth.log
+│   │   │   │   ├── desktop/
+│   │   │   │   │   ├── desktop.json
 │   │   │   ├── ssh_forensics/
 │   │   │   ├── suspicious_script/
+│   │   ├── templates/
+│   │   │   ├── ubuntu_server/
+│   │   │   │   ├── metadata.json
+│   │   │   │   ├── filesystem/
+│   │   │   │   │   ├── bin/
+│   │   │   │   │   ├── etc/
+│   │   │   │   │   │   ├── hosts
+│   │   │   │   │   │   ├── passwd
+│   │   │   │   │   │   ├── shadow
+│   │   │   │   │   ├── home/
+│   │   │   │   │   │   ├── john/
+│   │   │   │   │   ├── opt/
+│   │   │   │   │   ├── tmp/
+│   │   │   │   │   ├── usr/
+│   │   │   │   │   ├── var/
+│   │   │   │   │   │   ├── log/
+│   │   │   │   │   │   │   ├── auth.log
+│   │   │   │   │   │   │   ├── syslog
 │   ├── controllers/
 │   │   ├── authController.js
 │   │   ├── hintController.js
@@ -64,10 +95,18 @@
 │   │   ├── hintLevelService.js
 │   │   ├── hintService.js
 │   │   ├── playerStateAnalyzer.js
+│   │   ├── desktop/
+│   │   │   ├── applicationBuilder.js
+│   │   │   ├── desktopBuilder.js
+│   │   │   ├── desktopEngine.js
+│   │   │   ├── index.js
+│   │   │   ├── notificationBuilder.js
 │   │   ├── environment/
 │   │   │   ├── alertBuilder.js
 │   │   │   ├── emailBuilder.js
 │   │   │   ├── environmentEngine.js
+│   │   │   ├── environmentLoader.js
+│   │   │   ├── evidenceInjector.js
 │   │   │   ├── filesystemBuilder.js
 │   │   │   ├── gameStateBuilder.js
 │   │   │   ├── index.js
@@ -115,6 +154,19 @@
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx
 │   │   │   ├── ProgressionContext.jsx
+│   │   ├── desktop/
+│   │   │   ├── components/
+│   │   │   │   ├── Desktop.jsx
+│   │   │   │   ├── DesktopIcon.jsx
+│   │   │   │   ├── Taskbar.jsx
+│   │   │   │   ├── Window.jsx
+│   │   │   ├── hooks/
+│   │   │   │   ├── useDesktop.js
+│   │   │   ├── pages/
+│   │   │   │   ├── DesktopPage.jsx
+│   │   │   ├── services/
+│   │   │   │   ├── desktopService.js
+│   │   │   ├── types/
 │   │   ├── hooks/
 │   │   │   ├── useHint.js
 │   │   │   ├── useObjectives.js

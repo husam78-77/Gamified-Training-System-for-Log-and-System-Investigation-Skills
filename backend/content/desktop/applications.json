@@ -1,0 +1,8 @@
+[
+    { "id": "terminal", "name": "Terminal" },
+    { "id": "email", "name": "Email" },
+    { "id": "browser", "name": "Browser" },
+    { "id": "files", "name": "Files" },
+    { "id": "alerts", "name": "Alerts" },
+    { "id": "aria", "name": "ARIA" }
+]

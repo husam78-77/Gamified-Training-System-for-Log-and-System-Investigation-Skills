@@ -11,6 +11,7 @@ const scenarioRoutes = require('./routes/scenarioRoutes');
 const sessionRoutes = require('./routes/sessionRoutes');
 const terminalRoutes = require('./routes/terminalRoutes');
 const hintRoutes = require('./routes/hintRoutes');
+const desktopRoutes = require('./routes/desktopRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -39,6 +40,7 @@ app.use('/api/scenarios', scenarioRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/terminal', terminalRoutes);
 app.use('/api/hints', hintRoutes);
+app.use('/api/desktop', desktopRoutes);
 
 
 app.listen(PORT, () => {

@@ -33,4 +33,7 @@ module.exports = {
     HINT_GENERATED: 'Hint generated',
     HINT_LOG_FETCHED: 'Hint log retrieved',
     HINT_LIMIT_REACHED: 'Hint limit reached for this session',
+
+    // ── Desktop ───────────────────────────────────────────
+    DESKTOP_FETCHED: 'Desktop workspace retrieved',
 };
