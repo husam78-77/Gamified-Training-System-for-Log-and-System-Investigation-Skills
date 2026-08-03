@@ -18,6 +18,7 @@ import Briefing from './pages/Mission/MissionDashboard/MissionBriefing';
 import Game from './pages/GamingEnvironment/GamingEnvironment';
 import Profile from './pages/Profile/Profile';
 import Progress from './pages/Progress/Progress'
+import Desktop from './desktop/pages/DesktopPage'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuth();
@@ -26,68 +27,72 @@ const ProtectedRoute = ({ children }) => {
 
 function App() {
   return (
+
     <AuthProvider>
       <ProgressionProvider>
+
         <Router>
-        <div className="App">
-          <Routes>
-            {/* ── Public routes ──────────────────────────── */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
+          <div className="App">
+            <Routes>
+              {/* ── Public routes ──────────────────────────── */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/desktop" element={<Desktop />} />
 
-            {/* ── Protected routes ───────────────────────── */}
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Layout><Dashboard /></Layout>
-              </ProtectedRoute>
-            } />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
 
-            <Route path="/mission" element={
-              <ProtectedRoute>
-                <Layout><Mission /></Layout>
-              </ProtectedRoute>
-            } />
+              {/* ── Protected routes ───────────────────────── */}
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Layout><Dashboard /></Layout>
+                </ProtectedRoute>
+              } />
 
-            {/* Type param: /sequence/bruteforce, /sequence/script, etc. */}
-            <Route path="/sequence/:type" element={
-              <ProtectedRoute>
-                <Layout><Sequence /></Layout>
-              </ProtectedRoute>
-            } />
+              <Route path="/mission" element={
+                <ProtectedRoute>
+                  <Layout><Mission /></Layout>
+                </ProtectedRoute>
+              } />
 
-            {/* Receives state: { scenario_id, mode, type } from Sequence */}
-            <Route path="/briefing/:scenario_id" element={
-              <ProtectedRoute>
-                <Layout><Briefing /></Layout>
-              </ProtectedRoute>
-            } />
+              {/* Type param: /sequence/bruteforce, /sequence/script, etc. */}
+              <Route path="/sequence/:type" element={
+                <ProtectedRoute>
+                  <Layout><Sequence /></Layout>
+                </ProtectedRoute>
+              } />
 
-            {/* Full screen — no Layout wrapper (game owns the full viewport) */}
-            {/* Receives state: { scenario_id, mode } from Briefing */}
-            <Route path="/game/:scenario_id" element={
-              <ProtectedRoute>
-                <Game />
-              </ProtectedRoute>
-            } />
+              {/* Receives state: { scenario_id, mode, type } from Sequence */}
+              <Route path="/briefing/:scenario_id" element={
+                <ProtectedRoute>
+                  <Layout><Briefing /></Layout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Layout><Profile /></Layout>
-              </ProtectedRoute>
-            } />
+              {/* Full screen — no Layout wrapper (game owns the full viewport) */}
+              {/* Receives state: { scenario_id, mode } from Briefing */}
+              <Route path="/game/:scenario_id" element={
+                <ProtectedRoute>
+                  <Game />
+                </ProtectedRoute>
+              } />
 
-            <Route path="/progress" element={
-              <ProtectedRoute>
-                <Layout><Progress /></Layout>
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </div>
+              <Route path="/profile" element={
+                <ProtectedRoute>
+                  <Layout><Profile /></Layout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/progress" element={
+                <ProtectedRoute>
+                  <Layout><Progress /></Layout>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </div>
         </Router>
       </ProgressionProvider>
     </AuthProvider>

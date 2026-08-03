@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const session = require('express-session');
 require('dotenv').config({ path: __dirname + '/.env' });
@@ -21,6 +22,9 @@ app.use(cors({
     credentials: true,
 }));
 app.use(express.json());
+
+// Serve backend/content statically (wallpapers, icons, and other desktop assets)
+app.use('/content', express.static(path.join(__dirname, 'content')));
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
