@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import Wallpaper from './Wallpaper';
 import DesktopIcon from './DesktopIcon';
 import WindowManager from './WindowManager';
+import { Taskbar } from './Taskbar';
 import '../styles/desktop.css';
 
 // Each newly opened window cascades slightly from the last so they
@@ -71,6 +72,7 @@ const Desktop = ({ desktop }) => {
                 onClose={closeApplication}
                 onFocus={focusApplication}
             />
+            <Taskbar openedApplications={openedApplications} />
         </div>
     );
 };

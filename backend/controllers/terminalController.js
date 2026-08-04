@@ -33,6 +33,7 @@ const evaluationService = require('../services/evaluationService');
 const { matchDiscoveries } = require('../services/discoveryService');
 const { evaluateAutoTrigger, generateAutoHint } = require('../services/autoTriggerService');
 const { buildEnvironment } = require('../services/environment/environmentEngine');
+const { resolveIncidentId } = require('../services/environment/incidentResolver');
 const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
@@ -100,14 +101,17 @@ const executeCommand = async (req, res) => {
         }
 
         // ── Load all scenario data in parallel ────────────────────────────────
-        const [expectedSteps, objectives, discoveries] = await Promise.all([
+        const [scenario, expectedSteps, objectives, discoveries] = await Promise.all([
+            scenarioModel.getScenarioById(session.scenario_id),
             scenarioModel.getExpectedStepsByScenario(session.scenario_id),
             scenarioModel.getObjectivesByScenario(session.scenario_id),
             discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
         ]);
 
         // ── Virtual filesystem source: template + evidence injection ─────────
-        const environment = await buildEnvironment("ssh_bruteforce");
+        // incidentId is resolved from this session's own scenario — never
+        // trusted from the client, never hardcoded.
+        const environment = await buildEnvironment(resolveIncidentId(scenario.type));
         const virtualFiles = environment.virtualFiles;
 
         // ── Current progress state ────────────────────────────────────────────
@@ -272,10 +276,7 @@ const executeCommand = async (req, res) => {
             });
 
             if (triggerResult.shouldTrigger) {
-                const [previousHintRows, scenario] = await Promise.all([
-                    hintModel.getHintsBySession(sessionId),
-                    scenarioModel.getScenarioById(session.scenario_id),
-                ]);
+                const previousHintRows = await hintModel.getHintsBySession(sessionId);
                 const previousHints = previousHintRows.map(h => h.hint_returned);
 
                 autoHint = await generateAutoHint({

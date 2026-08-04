@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { fetchScenariosByType } from '../../../services/scenarioService';
+import { startSession } from '../../../services/sessionService';
 import { useAuth } from '../../../context/AuthContext';
 import { motion } from 'framer-motion';
 
@@ -100,11 +101,20 @@ export default function MissionSequence() {
 
     if (!config) return null;
 
-    const handleDeploy = (scenario) => {
+    // Session creation now happens here, at Deploy time, instead of on the
+    // Briefing page's Start button. Briefing is skipped entirely — the
+    // player lands straight in the Desktop once the session exists.
+    const handleDeploy = async (scenario) => {
         if (isNavigating) return;
         setIsNavigating(true);
         const mode = selectedMode[scenario.scenario_id] || 'free';
-        navigate(`/briefing/${scenario.scenario_id}?mode=${mode}&type=${type}`);
+        try {
+            await startSession(mode, token, scenario.scenario_id);
+            navigate('/desktop');
+        } catch (err) {
+            setIsNavigating(false);
+            console.error('Failed to start session:', err.message);
+        }
     };
 
     const toggleMode = (scenarioId) => {

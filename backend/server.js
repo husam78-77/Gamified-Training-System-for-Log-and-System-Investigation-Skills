@@ -13,6 +13,10 @@ const sessionRoutes = require('./routes/sessionRoutes');
 const terminalRoutes = require('./routes/terminalRoutes');
 const hintRoutes = require('./routes/hintRoutes');
 const desktopRoutes = require('./routes/desktopRoutes');
+const emailRoutes = require('./services/email/routes/emailRoutes');
+const filesRoutes = require('./services/files/routes/filesRoutes');
+const investigationRoutes = require('./services/investigation/routes/investigationRoutes');
+const browserRoutes = require('./services/browser/routes/browserRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,6 +49,10 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/terminal', terminalRoutes);
 app.use('/api/hints', hintRoutes);
 app.use('/api/desktop', desktopRoutes);
+app.use('/api/email', emailRoutes);
+app.use('/api/files', filesRoutes);
+app.use('/api/investigation', investigationRoutes);
+app.use('/api/browser', browserRoutes);
 
 
 app.listen(PORT, () => {

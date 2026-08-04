@@ -1,1 +1,1 @@
-export { default } from './FilesApp';
+export { default } from './components/FilesApp';

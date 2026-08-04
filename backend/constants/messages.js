@@ -36,4 +36,17 @@ module.exports = {
 
     // ── Desktop ───────────────────────────────────────────
     DESKTOP_FETCHED: 'Desktop workspace retrieved',
+
+    // ── Email ─────────────────────────────────────────────
+    EMAILS_FETCHED: 'Emails retrieved successfully',
+
+    // ── Files ─────────────────────────────────────────────
+    FILES_FETCHED: 'Virtual filesystem retrieved successfully',
+
+    // ── Browser ───────────────────────────────────────────
+    BROWSER_FETCHED: 'Browser content retrieved successfully',
+
+    // ── Investigation ─────────────────────────────────────
+    INVESTIGATION_FETCHED: 'Current investigation retrieved successfully',
+    INVESTIGATION_NOT_FOUND: 'No active investigation for this user',
 };

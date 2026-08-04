@@ -23,20 +23,38 @@
     align-content: flex-start;
     gap: 20px;
     padding: 24px;
+    padding-top: 64px;
     height: 100%;
 }
 
 .desktop-status {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
     width: 100vw;
     height: 100vh;
-    color: #000000;
+    color: #ffffff;
     font-size: 1.1rem;
     background-color: #0a0a0a;
+    text-align: center;
+    padding: 0 24px;
 }
 
 .desktop-status--error {
     color: #ff4d4d;
+}
+
+.desktop-status__link {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    font-size: 0.85rem;
+    padding: 8px 20px;
+    cursor: pointer;
+}
+
+.desktop-status__link:hover {
+    border-color: #ffffff;
 }

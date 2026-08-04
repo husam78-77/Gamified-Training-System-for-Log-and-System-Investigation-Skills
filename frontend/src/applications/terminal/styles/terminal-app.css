@@ -1,0 +1,43 @@
+.terminal-app {
+    height: 460px;
+    margin: -16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-app__panel {
+    flex: 1;
+    min-height: 0;
+}
+
+.terminal-app__footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px 10px;
+    background: #141414;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminal-app__exit {
+    background: rgba(255, 0, 60, 0.15);
+    border: 1px solid rgba(255, 0, 60, 0.4);
+    color: #FF003C;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    cursor: pointer;
+}
+
+.terminal-app__exit:hover {
+    background: #FF003C;
+    color: #000000;
+}
+
+.terminal-app__exit:disabled {
+    opacity: 0.5;
+    cursor: default;
+}

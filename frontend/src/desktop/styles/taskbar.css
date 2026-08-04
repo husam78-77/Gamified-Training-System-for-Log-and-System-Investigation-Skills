@@ -1,0 +1,62 @@
+.taskbar {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding: 0 12px;
+    background: #141414;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    font-size: 0.8rem;
+}
+
+.taskbar-left,
+.taskbar-center,
+.taskbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.taskbar-left__brand {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.running-applications {
+    display: flex;
+    gap: 8px;
+}
+
+.running-applications__item {
+    padding: 4px 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+}
+
+.clock {
+    font-variant-numeric: tabular-nums;
+}
+
+.notification-center__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 9px;
+    background: rgba(255, 255, 255, 0.12);
+    font-size: 0.7rem;
+}
+
+.system-status {
+    display: flex;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.7);
+}

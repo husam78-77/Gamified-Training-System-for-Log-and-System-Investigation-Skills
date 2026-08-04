@@ -1,1 +1,1 @@
-export { default } from './BrowserApp';
+export { default } from './components/BrowserApp';

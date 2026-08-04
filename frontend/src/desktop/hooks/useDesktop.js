@@ -12,7 +12,11 @@ import { useState, useEffect } from 'react';
 import { getDesktop } from '../services/desktopService';
 import { useAuth } from '../../context/AuthContext';
 
-export const useDesktop = () => {
+/**
+ * @param {string} incidentId - from the current investigation (InvestigationContext).
+ *                              Fetch waits until this is known.
+ */
+export const useDesktop = (incidentId) => {
     const { token } = useAuth();
 
     const [desktop, setDesktop] = useState(null);
@@ -20,13 +24,13 @@ export const useDesktop = () => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!token) return;
+        if (!token || !incidentId) return;
 
         const fetchDesktop = async () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getDesktop(token);
+                const data = await getDesktop(token, incidentId);
                 setDesktop(data);
             } catch (err) {
                 setError(err.message);
@@ -36,7 +40,7 @@ export const useDesktop = () => {
         };
 
         fetchDesktop();
-    }, [token]);
+    }, [token, incidentId]);
 
     return { desktop, loading, error };
 };

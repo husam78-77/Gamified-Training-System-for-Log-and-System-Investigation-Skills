@@ -12,15 +12,17 @@ const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
 /**
- * GET /api/desktop
- * Returns the full desktop workspace for the player's current incident.
- *
- * incidentId is temporarily hardcoded — once sessions carry an incident
- * reference, resolve it from req.user → session → incidentId instead.
+ * GET /api/desktop?incidentId=...
+ * Returns the full desktop workspace for the given incident. incidentId
+ * comes from the frontend's Investigation Context (GET /api/investigation/current).
  */
 const getDesktop = async (req, res) => {
     try {
-        const incidentId = "ssh_bruteforce";
+        const { incidentId } = req.query;
+
+        if (!incidentId) {
+            return response.error(res, 400, MESSAGES.INVALID_INPUT);
+        }
 
         const desktop = await buildDesktopWorkspace(incidentId);
 

@@ -41,6 +41,21 @@ const getActiveSession = async (userId, scenarioId) => {
 };
 
 /**
+ * Get the most recent in_progress session for a user, regardless of scenario.
+ * Used to resolve "the current investigation" for the Desktop.
+ */
+const getActiveSessionForUser = async (userId) => {
+    const result = await pool.query(
+        `SELECT * FROM sessions
+         WHERE user_id = $1 AND status = 'in_progress'
+         ORDER BY start_time DESC
+         LIMIT 1`,
+        [userId]
+    );
+    return result.rows[0] || null;
+};
+
+/**
  * Close a session — called on mission complete or forced exit
  * Sets end_time, final_score, and status
  */
@@ -79,6 +94,7 @@ module.exports = {
     createSession,
     getSessionById,
     getActiveSession,
+    getActiveSessionForUser,
     closeSession,
     abandonSession,
 };

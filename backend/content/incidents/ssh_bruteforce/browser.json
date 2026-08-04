@@ -1,0 +1,40 @@
+{
+    "homePage": "knowledge",
+    "pages": [
+        {
+            "id": "knowledge",
+            "title": "Knowledge Base",
+            "type": "menu",
+            "items": [
+                "openssh",
+                "auth_log",
+                "bruteforce",
+                "mitre"
+            ]
+        },
+        {
+            "id": "openssh",
+            "title": "OpenSSH Documentation",
+            "type": "article",
+            "content": "..."
+        },
+        {
+            "id": "auth_log",
+            "title": "Linux auth.log",
+            "type": "article",
+            "content": "..."
+        },
+        {
+            "id": "bruteforce",
+            "title": "SSH Brute Force Attacks",
+            "type": "article",
+            "content": "..."
+        },
+        {
+            "id": "mitre",
+            "title": "MITRE ATT&CK",
+            "type": "article",
+            "content": "..."
+        }
+    ]
+}
