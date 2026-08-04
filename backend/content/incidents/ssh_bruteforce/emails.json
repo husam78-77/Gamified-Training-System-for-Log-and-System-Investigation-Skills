@@ -1,32 +1,20 @@
-{
-    "emails": [
-        {
-            "id": "briefing",
-            "order": 1,
-            "category": "briefing",
-            "from": {
-                "name": "David Miller",
-                "email": "d.miller@kineticbreach.local"
-            },
-            "subject": "SSH Brute Force Investigation",
-            "timestamp": "2026-08-04T09:15:00",
-            "read": false,
-            "important": true,
-            "body": "Good morning,\n\nOur monitoring systems have detected suspicious SSH authentication attempts on one of our production servers. At this stage we do not know whether the attacker successfully gained access. Please investigate the system and determine what happened.\n\nOnce your investigation is complete, submit your findings to me.\n\nGood luck.\n\nDavid Miller"
-        },
-        {
-            "id": "requirements",
-            "order": 2,
-            "category": "requirements",
-            "from": {
-                "name": "David Miller",
-                "email": "d.miller@kineticbreach.local"
-            },
-            "subject": "Investigation Deliverables",
-            "timestamp": "2026-08-04T09:16:00",
-            "read": false,
-            "important": true,
-            "body": "Before closing this incident, please make sure your investigation includes the following:\n\n• Identify the attacker's IP address.\n• Determine whether the SSH login was successful.\n• Collect any compromised or suspicious files.\n• Submit the required evidence.\n• Finally, send your terminal history together with your report.\n\nYour terminal history is required before the investigation can be reviewed."
-        }
-    ]
-}
+[
+    {
+        "id": "incident_brief",
+        "order": 1,
+        "category": "mission",
+        "from": "Sarah Mitchell",
+        "subject": "URGENT: Investigation Request – Suspicious SSH Activity",
+        "timestamp": "2026-07-17 09:20",
+        "body": "Good morning,\n\nOur monitoring systems detected an unusual increase in SSH authentication attempts against one of our production Linux servers during the early hours of this morning.\n\nAt this stage we cannot confirm whether the activity represents an unsuccessful brute force attempt or a successful compromise.\n\nYour task is to perform an initial investigation before any containment actions are taken.\n\nPlease analyze the available system artifacts and determine what occurred.\n\nDo not make assumptions.\n\nSupport every conclusion with evidence collected from the system.\n\nFurther instructions will follow in a separate email.\n\nRegards,\n\nSarah Mitchell\nSecurity Operations Center"
+    },
+    {
+        "id": "submission_requirements",
+        "order": 2,
+        "category": "instructions",
+        "from": "David Carter",
+        "subject": "Investigation Deliverables",
+        "timestamp": "2026-07-17 09:25",
+        "body": "Investigator,\n\nYour initial investigation has been approved.\n\nPlease proceed with a detailed analysis of the affected system and prepare an investigation report.\n\nYour objective is to determine what happened, support your findings with evidence, and provide a clear explanation of your conclusions.\n\nThe investigation report should contain:\n\n• A summary of the incident.\n\n• Your findings.\n\n• Supporting evidence collected during the investigation.\n\n• Any observations you consider relevant.\n\nPlease save your report in:\n\n/home/investigator/investigation_report.txt\n\nOnce your investigation is complete, submit:\n\n• Investigation Report\n• Terminal History\n\nYour final assessment will consider both the accuracy of your conclusions and the methodology used during your investigation.\n\nGood luck.\n\nDavid Carter\nIncident Response Lead"
+    }
+]

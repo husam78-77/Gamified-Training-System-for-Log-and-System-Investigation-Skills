@@ -1,4 +1,4 @@
-├── .gitignore
+﻿├── .gitignore
 ├── package.json
 ├── package-lock.json
 ├── start.bat
@@ -25,19 +25,23 @@
 │   │   │   ├── ssh_bruteforce/
 │   │   │   │   ├── alerts.json
 │   │   │   │   ├── aria.txt
+│   │   │   │   ├── browser.json
+│   │   │   │   ├── design.md
+│   │   │   │   ├── desktop.json
 │   │   │   │   ├── emails.json
 │   │   │   │   ├── incident.json
+│   │   │   │   ├── references.md
 │   │   │   │   ├── review.json
 │   │   │   │   ├── assets/
 │   │   │   │   │   ├── create/
 │   │   │   │   │   ├── deleted/
 │   │   │   │   │   ├── log/
 │   │   │   │   │   ├── replace/
+│   │   │   │   │   │   ├── etc/
+│   │   │   │   │   │   │   ├── passwd
 │   │   │   │   │   │   ├── var/
 │   │   │   │   │   │   │   ├── log/
 │   │   │   │   │   │   │   │   ├── auth.log
-│   │   │   │   ├── desktop/
-│   │   │   │   │   ├── desktop.json
 │   │   │   ├── ssh_forensics/
 │   │   │   ├── suspicious_script/
 │   │   ├── templates/
@@ -60,6 +64,7 @@
 │   │   │   │   │   │   │   ├── syslog
 │   ├── controllers/
 │   │   ├── authController.js
+│   │   ├── desktopController.js
 │   │   ├── hintController.js
 │   │   ├── scenarioController.js
 │   │   ├── sessionController.js
@@ -79,6 +84,7 @@
 │   │   ├── userModel.js
 │   ├── routes/
 │   │   ├── authRoutes.js
+│   │   ├── desktopRoutes.js
 │   │   ├── healthRoutes.js
 │   │   ├── hintRoutes.js
 │   │   ├── scenarioRoutes.js
@@ -95,12 +101,26 @@
 │   │   ├── hintLevelService.js
 │   │   ├── hintService.js
 │   │   ├── playerStateAnalyzer.js
+│   │   ├── browser/
+│   │   │   ├── browserBuilder.js
+│   │   │   ├── browserEngine.js
+│   │   │   ├── controllers/
+│   │   │   │   ├── browserController.js
+│   │   │   ├── routes/
+│   │   │   │   ├── browserRoutes.js
 │   │   ├── desktop/
 │   │   │   ├── applicationBuilder.js
 │   │   │   ├── desktopBuilder.js
 │   │   │   ├── desktopEngine.js
 │   │   │   ├── index.js
 │   │   │   ├── notificationBuilder.js
+│   │   ├── email/
+│   │   │   ├── emailBuilder.js
+│   │   │   ├── emailEngine.js
+│   │   │   ├── controllers/
+│   │   │   │   ├── emailController.js
+│   │   │   ├── routes/
+│   │   │   │   ├── emailRoutes.js
 │   │   ├── environment/
 │   │   │   ├── alertBuilder.js
 │   │   │   ├── emailBuilder.js
@@ -109,7 +129,20 @@
 │   │   │   ├── evidenceInjector.js
 │   │   │   ├── filesystemBuilder.js
 │   │   │   ├── gameStateBuilder.js
+│   │   │   ├── incidentResolver.js
 │   │   │   ├── index.js
+│   │   ├── files/
+│   │   │   ├── filesEngine.js
+│   │   │   ├── controllers/
+│   │   │   │   ├── filesController.js
+│   │   │   ├── routes/
+│   │   │   │   ├── filesRoutes.js
+│   │   ├── investigation/
+│   │   │   ├── investigationEngine.js
+│   │   │   ├── controllers/
+│   │   │   │   ├── investigationController.js
+│   │   │   ├── routes/
+│   │   │   │   ├── investigationRoutes.js
 │   ├── utils/
 │   │   ├── emailSender.js
 │   │   ├── responseHelper.js
@@ -136,6 +169,56 @@
 │   ├── src/
 │   │   ├── App.jsx
 │   │   ├── main.jsx
+│   │   ├── applications/
+│   │   │   ├── applicationRegistry.js
+│   │   │   ├── alerts/
+│   │   │   │   ├── AlertsApp.jsx
+│   │   │   │   ├── index.js
+│   │   │   ├── aria/
+│   │   │   │   ├── AriaApp.jsx
+│   │   │   │   ├── index.js
+│   │   │   ├── browser/
+│   │   │   │   ├── index.js
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── BrowserApp.jsx
+│   │   │   │   │   ├── BrowserSidebar.jsx
+│   │   │   │   │   ├── BrowserViewer.jsx
+│   │   │   │   ├── hooks/
+│   │   │   │   │   ├── useBrowser.js
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── browserService.js
+│   │   │   │   ├── styles/
+│   │   │   │   │   ├── browser.css
+│   │   │   ├── email/
+│   │   │   │   ├── EmailApp.jsx
+│   │   │   │   ├── index.js
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── EmailList.jsx
+│   │   │   │   │   ├── EmailReader.jsx
+│   │   │   │   ├── hooks/
+│   │   │   │   │   ├── useEmails.js
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── emailService.js
+│   │   │   │   ├── styles/
+│   │   │   │   │   ├── email.css
+│   │   │   ├── files/
+│   │   │   │   ├── index.js
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── Breadcrumb.jsx
+│   │   │   │   │   ├── FilesApp.jsx
+│   │   │   │   │   ├── FileTree.jsx
+│   │   │   │   │   ├── FileViewer.jsx
+│   │   │   │   ├── hooks/
+│   │   │   │   │   ├── useFiles.js
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── fileService.js
+│   │   │   │   ├── styles/
+│   │   │   │   │   ├── files.css
+│   │   │   ├── terminal/
+│   │   │   │   ├── index.js
+│   │   │   │   ├── TerminalApp.jsx
+│   │   │   │   ├── styles/
+│   │   │   │   │   ├── terminal-app.css
 │   │   ├── assets/
 │   │   │   ├── globals.css
 │   │   │   ├── images/
@@ -153,20 +236,45 @@
 │   │   │   │   ├── Sidebar.jsx
 │   │   ├── context/
 │   │   │   ├── AuthContext.jsx
+│   │   │   ├── InvestigationContext.jsx
 │   │   │   ├── ProgressionContext.jsx
 │   │   ├── desktop/
 │   │   │   ├── components/
 │   │   │   │   ├── Desktop.jsx
 │   │   │   │   ├── DesktopIcon.jsx
-│   │   │   │   ├── Taskbar.jsx
-│   │   │   │   ├── Window.jsx
+│   │   │   │   ├── index.js
+│   │   │   │   ├── Wallpaper.jsx
+│   │   │   │   ├── WindowManager.jsx
+│   │   │   │   ├── Taskbar/
+│   │   │   │   │   ├── Clock.jsx
+│   │   │   │   │   ├── index.js
+│   │   │   │   │   ├── NotificationCenter.jsx
+│   │   │   │   │   ├── RunningApplications.jsx
+│   │   │   │   │   ├── SystemStatus.jsx
+│   │   │   │   │   ├── Taskbar.jsx
+│   │   │   │   │   ├── TaskbarCenter.jsx
+│   │   │   │   │   ├── TaskbarLeft.jsx
+│   │   │   │   │   ├── TaskbarRight.jsx
+│   │   │   │   ├── Window/
+│   │   │   │   │   ├── index.js
+│   │   │   │   │   ├── Window.jsx
+│   │   │   │   │   ├── WindowBody.jsx
+│   │   │   │   │   ├── WindowControls.jsx
+│   │   │   │   │   ├── WindowHeader.jsx
 │   │   │   ├── hooks/
 │   │   │   │   ├── useDesktop.js
 │   │   │   ├── pages/
 │   │   │   │   ├── DesktopPage.jsx
 │   │   │   ├── services/
 │   │   │   │   ├── desktopService.js
+│   │   │   ├── styles/
+│   │   │   │   ├── desktop.css
+│   │   │   │   ├── icons.css
+│   │   │   │   ├── taskbar.css
+│   │   │   │   ├── window.css
 │   │   │   ├── types/
+│   │   │   ├── utils/
+│   │   │   │   ├── appIcons.js
 │   │   ├── hooks/
 │   │   │   ├── useHint.js
 │   │   │   ├── useObjectives.js
@@ -215,6 +323,7 @@
 │   │   ├── services/
 │   │   │   ├── authService.js
 │   │   │   ├── hintService.js
+│   │   │   ├── investigationService.js
 │   │   │   ├── scenarioService.js
 │   │   │   ├── sessionService.js
 │   │   │   ├── terminalService.js

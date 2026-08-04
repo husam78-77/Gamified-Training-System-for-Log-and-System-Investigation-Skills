@@ -1,0 +1,35 @@
+[
+    {
+        "id": "investigation_summary",
+        "title": "Determine what happened.",
+        "description": "Analyze the available evidence to determine the nature of the suspicious SSH activity.",
+        "requiredDiscoveries": [
+            "FAILED_LOGIN_PATTERN_FOUND",
+            "SUCCESSFUL_AUTHENTICATION_CONFIRMED"
+        ]
+    },
+    {
+        "id": "identify_source",
+        "title": "Identify the source of the suspicious activity.",
+        "description": "Determine the origin of the suspicious authentication attempts.",
+        "requiredDiscoveries": [
+            "ATTACK_SOURCE_IDENTIFIED"
+        ]
+    },
+    {
+        "id": "identify_account",
+        "title": "Determine which account was affected.",
+        "description": "Identify the account involved in the successful authentication.",
+        "requiredDiscoveries": [
+            "COMPROMISED_ACCOUNT_IDENTIFIED"
+        ]
+    },
+    {
+        "id": "prepare_report",
+        "title": "Prepare an investigation report.",
+        "description": "Document your findings and support every conclusion with evidence collected during the investigation.",
+        "requiredDiscoveries": [
+            "INVESTIGATION_REPORT_COMPLETED"
+        ]
+    }
+]

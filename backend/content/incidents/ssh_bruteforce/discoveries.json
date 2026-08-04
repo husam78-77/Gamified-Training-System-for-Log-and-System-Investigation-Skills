@@ -1,0 +1,56 @@
+[
+  {
+    "key": "FAILED_LOGIN_PATTERN_FOUND",
+    "title": "Repeated Failed Login Attempts",
+    "description": "The investigator identified repeated failed SSH authentication attempts indicating a potential brute force attack.",
+    "category": "authentication",
+    "weight": 15,
+    "required": true,
+    "trigger": {}
+  },
+  {
+    "key": "ATTACK_SOURCE_IDENTIFIED",
+    "title": "Attack Source Identified",
+    "description": "The investigator identified the source IP address responsible for the suspicious authentication activity.",
+    "category": "authentication",
+    "weight": 20,
+    "required": true,
+    "trigger": {}
+  },
+  {
+    "key": "SUCCESSFUL_AUTHENTICATION_CONFIRMED",
+    "title": "Successful Authentication Confirmed",
+    "description": "The investigator confirmed that one authentication attempt succeeded.",
+    "category": "authentication",
+    "weight": 20,
+    "required": true,
+    "trigger": {}
+  },
+  {
+    "key": "COMPROMISED_ACCOUNT_IDENTIFIED",
+    "title": "Compromised Account Identified",
+    "description": "The investigator identified the compromised user account.",
+    "category": "authentication",
+    "weight": 20,
+    "required": true,
+    "trigger": {}
+  },
+  {
+    "key": "POST_LOGIN_ACTIVITY_CONFIRMED",
+    "title": "Post-Login Activity Confirmed",
+    "description": "The investigator found evidence that commands were executed after successful authentication.",
+    "category": "post_authentication",
+    "weight": 15,
+    "required": false,
+    "trigger": {}
+  },
+  {
+    "key": "INVESTIGATION_REPORT_COMPLETED",
+    "title": "Investigation Report Completed",
+    "description": "The investigator completed the investigation report before submission.",
+    "category": "reporting",
+    "weight": 10,
+    "required": true,
+    "trigger": {}
+  }
+]
