@@ -1,22 +1,40 @@
+/* =========================================================================
+   taskbar.css — the system bar and the two surfaces that drop out of it
+   (the launcher menu on the left, the notification panel on the right).
+   ========================================================================= */
+
 .taskbar {
     position: absolute;
     left: 0;
     right: 0;
     top: 0;
-    z-index: 1000;
+    z-index: var(--db-z-taskbar, 1000);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 44px;
-    padding: 0 14px;
-    background: rgba(8, 10, 13, 0.82);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(0, 255, 255, 0.18);
-    box-shadow: 0 1px 0 rgba(0, 255, 255, 0.06), 0 6px 24px rgba(0, 0, 0, 0.35);
+    gap: 16px;
+    height: var(--db-bar, 46px);
+    padding: 0 12px;
+    background: linear-gradient(180deg, rgba(9, 13, 17, 0.94) 0%, rgba(6, 9, 12, 0.88) 100%);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 1px 0 rgba(0, 229, 255, 0.07), 0 10px 30px rgba(0, 0, 0, 0.45);
     color: var(--db-text, #ffffff);
     font-family: var(--db-mono, monospace);
-    font-size: 0.78rem;
+    font-size: 0.76rem;
+}
+
+/* Accent hairline under the whole bar. */
+.taskbar::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0, 229, 255, 0.5), transparent 30%, transparent 70%, rgba(0, 229, 255, 0.5));
+    pointer-events: none;
 }
 
 .taskbar-left,
@@ -24,37 +42,79 @@
 .taskbar-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-/* --- Left: brand --- */
+.taskbar-left,
+.taskbar-right {
+    flex-shrink: 0;
+}
+
+.taskbar-center {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+}
+
+/* =========================================================================
+   Left — brand / launcher
+   ========================================================================= */
 
 .taskbar-left {
+    position: relative;
+    gap: 0;
+}
+
+.taskbar-left__launcher {
+    display: flex;
+    align-items: center;
     gap: 8px;
-    color: var(--db-cyan, #00FFFF);
+    height: 32px;
+    padding: 0 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--db-cyan, #00E5FF);
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.taskbar-left__launcher:hover,
+.taskbar-left__launcher--open {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.28);
 }
 
 .taskbar-left__icon {
-    color: var(--db-cyan, #00FFFF);
-    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+    color: var(--db-cyan, #00E5FF);
+    filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.6));
 }
 
 .taskbar-left__brand {
-    font-family: var(--db-tag, inherit);
+    font-family: var(--db-tag, sans-serif);
     font-weight: 700;
-    font-size: 0.85rem;
-    letter-spacing: 0.12em;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.45);
+    font-size: 0.86rem;
+    letter-spacing: 0.14em;
+    text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
 }
 
 .taskbar-left__live {
     width: 6px;
     height: 6px;
-    margin-left: 2px;
     border-radius: 50%;
-    background: var(--db-cyan, #00FFFF);
-    box-shadow: 0 0 6px var(--db-cyan, #00FFFF);
+    background: var(--db-cyan, #00E5FF);
+    box-shadow: 0 0 7px var(--db-cyan, #00E5FF);
     animation: taskbar-live-pulse 1.8s ease-in-out infinite;
+}
+
+.taskbar-left__caret {
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.35));
+    transition: transform 0.18s ease;
+}
+
+.taskbar-left__launcher--open .taskbar-left__caret {
+    transform: rotate(180deg);
 }
 
 @keyframes taskbar-live-pulse {
@@ -69,29 +129,292 @@
     }
 }
 
-/* --- Center: running applications --- */
+/* --- Launcher menu --- */
 
-.running-applications {
-    display: flex;
-    gap: 6px;
+.launcher {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: var(--db-z-panel, 1100);
+    width: 348px;
+    padding: 14px;
+    background: rgba(9, 13, 18, 0.98);
+    border: 1px solid var(--db-line, rgba(255, 255, 255, 0.09));
+    border-top: 1px solid var(--db-line-bright, rgba(0, 229, 255, 0.28));
+    box-shadow: var(--db-shadow-lift, 0 26px 70px rgba(0, 0, 0, 0.72));
+    clip-path: var(--db-clip);
+    animation: panel-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.running-applications__item {
-    --accent: #00FFFF;
+.launcher__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--db-line, rgba(255, 255, 255, 0.09));
+}
 
+.launcher__avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    background: rgba(0, 229, 255, 0.1);
+    border: 1px solid rgba(0, 229, 255, 0.3);
+    color: var(--db-cyan, #00E5FF);
+    clip-path: var(--db-clip);
+}
+
+.launcher__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.launcher__operator {
+    color: var(--db-text, #fff);
+    font-family: var(--db-tag, sans-serif);
+    font-size: 0.94rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.launcher__case {
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.67rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.launcher__difficulty {
+    margin-left: auto;
+    padding: 2px 7px;
+    border: 1px solid rgba(255, 179, 71, 0.4);
+    color: var(--db-amber, #FFB347);
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.launcher__section-label {
+    padding: 12px 2px 8px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+}
+
+.launcher__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 46vh;
+    overflow-y: auto;
+}
+
+.launcher__app {
+    --accent: #00E5FF;
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.14s ease, border-color 0.14s ease;
+}
+
+.launcher__app:hover,
+.launcher__app:focus-visible {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+.launcher__app-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    color: var(--accent);
+    transition: border-color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.launcher__app:hover .launcher__app-icon {
+    border-color: var(--accent);
+    box-shadow: 0 0 14px -4px var(--accent);
+}
+
+.launcher__app-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.launcher__app-name {
+    color: var(--db-text, #fff);
+    font-family: var(--db-tag, sans-serif);
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+.launcher__app-tagline {
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.65rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.launcher__app-dot {
+    margin-left: auto;
+    width: 5px;
+    height: 5px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 7px var(--accent);
+}
+
+.launcher__footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--db-line, rgba(255, 255, 255, 0.09));
+}
+
+.launcher__action {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 5px 12px 5px 9px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: 2px solid transparent;
+    flex: 1 1 44%;
+    padding: 7px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 3px;
-    color: var(--db-text, #ffffff);
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
+    font: inherit;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+
+.launcher__action:hover {
+    background: rgba(0, 229, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.3);
+    color: var(--db-text, #fff);
+}
+
+.launcher__action--exit:hover {
+    background: rgba(255, 59, 92, 0.14);
+    border-color: rgba(255, 59, 92, 0.4);
+    color: #FFB3BF;
+}
+
+.launcher__action kbd {
+    margin-left: auto;
+    padding: 1px 4px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 2px;
+    font-size: 0.58rem;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+}
+
+/* =========================================================================
+   Center — palette entry point + running applications
+   ========================================================================= */
+
+.taskbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 28px;
+    padding: 0 10px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font: inherit;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.taskbar-search:hover {
+    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.3);
+    color: var(--db-text, #fff);
+}
+
+.taskbar-search__key {
+    padding: 1px 5px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 3px;
+    font-family: var(--db-mono, monospace);
+    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+}
+
+.running-applications {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.running-applications__divider {
+    width: 1px;
+    height: 18px;
+    margin: 0 6px;
+    background: rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+}
+
+.running-applications__item {
+    --accent: #00E5FF;
+    --accent-rgb: 0, 229, 255;
+
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    max-width: 170px;
+    padding: 5px 11px 6px 9px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
     font: inherit;
     letter-spacing: 0.02em;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+    overflow: hidden;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
 }
 
 .running-applications__icon {
@@ -99,92 +422,330 @@
     flex-shrink: 0;
 }
 
+.running-applications__label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Accent underline that grows in when the window is focused. */
+.running-applications__bar {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 0;
+    height: 2px;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    transform: translateX(-50%);
+    transition: width 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .running-applications__item:hover {
-    background: rgba(255, 255, 255, 0.09);
+    background: rgba(255, 255, 255, 0.075);
+    color: var(--db-text, #fff);
+}
+
+.running-applications__item:hover .running-applications__bar {
+    width: 40%;
 }
 
 .running-applications__item--active {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.18);
-    border-bottom-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.32);
+    color: var(--db-text, #fff);
+}
+
+.running-applications__item--active .running-applications__bar {
+    width: 100%;
 }
 
 .running-applications__item--minimized {
-    opacity: 0.5;
+    opacity: 0.45;
 }
 
-/* --- Right: status, notifications, clock --- */
+.running-applications__item--minimized .running-applications__bar {
+    width: 0;
+}
+
+/* =========================================================================
+   Right — status, notifications, clock
+   ========================================================================= */
 
 .system-status {
     display: flex;
-    gap: 12px;
-    color: var(--db-text-dim, rgba(255, 255, 255, 0.7));
+    gap: 10px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
 }
 
 .system-status__item {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
+    padding: 3px 7px;
+    border: 1px solid transparent;
+    border-radius: 3px;
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.system-status__item:hover {
+    border-color: rgba(255, 255, 255, 0.09);
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
 }
 
 .system-status__item svg {
-    color: var(--db-cyan, #00FFFF);
-    opacity: 0.85;
+    color: var(--db-cyan, #00E5FF);
+    opacity: 0.8;
+}
+
+.system-status__item--warn {
+    color: var(--db-amber, #FFB347);
+}
+
+.system-status__item--warn svg {
+    color: var(--db-amber, #FFB347);
+    opacity: 1;
+}
+
+.system-status__item--secure svg {
+    color: var(--db-green, #3BE8B0);
 }
 
 .notification-center {
     position: relative;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    color: var(--db-text-dim, rgba(255, 255, 255, 0.75));
-    border-radius: 3px;
-    cursor: default;
-    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
-.notification-center:hover {
+.notification-center__button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.notification-center__button:hover,
+.notification-center__button--open {
     background: rgba(255, 255, 255, 0.06);
-    color: var(--db-text, #ffffff);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: var(--db-text, #fff);
 }
 
 .notification-center__count {
     position: absolute;
-    top: 1px;
-    right: 1px;
+    top: -3px;
+    right: -3px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 3px;
-    border-radius: 7px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: 8px;
     background: var(--db-red, #FF3B5C);
-    box-shadow: 0 0 6px rgba(255, 59, 92, 0.7);
+    box-shadow: 0 0 8px rgba(255, 59, 92, 0.7);
     color: #ffffff;
-    font-size: 0.62rem;
+    font-size: 0.6rem;
     font-weight: 700;
+}
+
+.notification-panel {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: -8px;
+    z-index: var(--db-z-panel, 1100);
+    width: 330px;
+    background: rgba(9, 13, 18, 0.98);
+    border: 1px solid var(--db-line, rgba(255, 255, 255, 0.09));
+    border-top: 1px solid var(--db-line-bright, rgba(0, 229, 255, 0.28));
+    box-shadow: var(--db-shadow-lift, 0 26px 70px rgba(0, 0, 0, 0.72));
+    animation: panel-in 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.notification-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 12px;
+    border-bottom: 1px solid var(--db-line, rgba(255, 255, 255, 0.09));
+}
+
+.notification-panel__title {
+    color: var(--db-text, #fff);
+    font-family: var(--db-tag, sans-serif);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.notification-panel__tools {
+    display: flex;
+    gap: 2px;
+}
+
+.notification-panel__tools button {
+    display: flex;
+    padding: 5px;
+    background: transparent;
+    border: none;
+    border-radius: 3px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    cursor: pointer;
+    transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.notification-panel__tools button:hover {
+    background: rgba(255, 255, 255, 0.07);
+    color: var(--db-cyan, #00E5FF);
+}
+
+.notification-panel__list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.notification-panel__empty {
+    margin: 0;
+    padding: 26px 16px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.notification-item:hover {
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.notification-item__marker {
+    width: 2px;
+    align-self: stretch;
+    flex-shrink: 0;
+    background: var(--db-cyan, #00E5FF);
+    opacity: 0.65;
+}
+
+.notification-item--muted .notification-item__marker {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.notification-item--success .notification-item__marker {
+    background: var(--db-green, #3BE8B0);
+}
+
+.notification-item--alert .notification-item__marker {
+    background: var(--db-red, #FF3B5C);
+}
+
+.notification-item__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+}
+
+.notification-item__title {
+    color: var(--db-text, #fff);
+    font-size: 0.74rem;
+    letter-spacing: 0.02em;
+}
+
+.notification-item__detail {
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.67rem;
+    line-height: 1.4;
+}
+
+.notification-item__time {
+    flex-shrink: 0;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.62rem;
+    white-space: nowrap;
 }
 
 .clock {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    padding-left: 4px;
     line-height: 1.15;
 }
 
 .clock__time {
+    color: var(--db-text, #ffffff);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
-    letter-spacing: 0.03em;
-    color: var(--db-text, #ffffff);
+    font-size: 0.82rem;
+    letter-spacing: 0.04em;
+}
+
+.clock__seconds {
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.7rem;
 }
 
 .clock__date {
-    font-size: 0.66rem;
-    color: var(--db-text-dim, rgba(255, 255, 255, 0.5));
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-size: 0.63rem;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
+}
+
+@keyframes panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =========================================================================
+   Narrow screens — drop the labels the bar can afford to lose first
+   ========================================================================= */
+
+@media (max-width: 1180px) {
+    .taskbar-search__label {
+        display: none;
+    }
+}
+
+@media (max-width: 960px) {
+    .system-status__item--secure {
+        display: none;
+    }
+
+    .running-applications__label {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .taskbar-left__live,
+    .launcher,
+    .notification-panel {
+        animation: none;
+    }
 }

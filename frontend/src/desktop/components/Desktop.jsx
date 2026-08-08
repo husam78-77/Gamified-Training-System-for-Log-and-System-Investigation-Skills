@@ -1,187 +1,311 @@
-import React, { useState, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+    Search, Keyboard, LayoutGrid, Layers, Minimize2, XCircle, LogOut, PanelsTopLeft, Play, Minus,
+} from 'lucide-react';
 import Wallpaper from './Wallpaper';
 import DesktopIcon from './DesktopIcon';
 import WindowManager from './WindowManager';
+import SnapPreview from './SnapPreview';
+import CaseHud from './CaseHud';
+import BootSequence from './BootSequence';
+import CommandPalette from './CommandPalette';
+import WindowSwitcher from './WindowSwitcher';
+import ShortcutsOverlay from './ShortcutsOverlay';
+import ContextMenu from './ContextMenu';
+import Toasts from './Toasts';
 import { Taskbar } from './Taskbar';
-import { useAuth } from '../../context/AuthContext';
-import { logEvent } from '../../services/investigationService';
+import { useWindowSession } from '../hooks/useWindowSession';
+import { useSystemFeed } from '../hooks/useSystemFeed';
+import { useHotkeys } from '../hooks/useHotkeys';
+import { useInvestigation } from '../../context/InvestigationContext';
+import { comboFor } from '../utils/shortcuts';
+import { getSnapLabel } from '../utils/snapping';
 import '../styles/desktop.css';
-
-// Each newly opened window cascades slightly from the last so they
-// don't all land in exactly the same spot (e.g. 120,80 → 150,110 → 180,140).
-const WINDOW_ORIGIN = { x: 70, y: 64 };
-const WINDOW_CASCADE_STEP = 30;
+import '../styles/overlays.css';
 
 /**
  * Desktop.jsx
  * Pure rendering component — receives the desktop object and renders it.
- * Never fetches data itself and never knows where it comes from;
- * DesktopPage owns loading.
+ * Never fetches data itself and never knows where it comes from; DesktopPage
+ * owns loading.
  *
- * Owns openedApplications: the set of windows currently open, each as
- * { id, title, x, y, zIndex, minimized, maximized, prevBounds }. This is
- * local UI state, separate from the fetched desktop data.
+ * All window state and the rules around it live in useWindowSession, and all
+ * system notifications in useSystemFeed. What is left here is the shell
+ * itself: the layers of the screen (wallpaper → icons → windows → system bar
+ * → overlays), the shortcut map, and the two menus that need to know about
+ * everything at once (the command palette and the context menu).
  *
- * activeAppId is never stored — it's derived from openedApplications (the
- * visible window with the highest zIndex) so Taskbar/WindowManager can
- * never fall out of sync with it (dev rule #6 — no duplicate state).
+ * Only one overlay is ever open, so they share a single `overlay` value
+ * rather than a boolean each — there is no state in which two of them could
+ * disagree about who has focus.
  */
 const Desktop = ({ desktop }) => {
     const { wallpaper, applications = [] } = desktop;
-    const { token } = useAuth();
+    const navigate = useNavigate();
+    const { investigation } = useInvestigation();
 
-    const [openedApplications, setOpenedApplications] = useState([]);
-    const zIndexCounter = useRef(10);
+    const feed = useSystemFeed();
+    const session = useWindowSession(feed.notify);
+    const { openedApplications, activeAppId } = session;
 
-    const activeAppId = useMemo(() => {
-        const visible = openedApplications.filter((opened) => !opened.minimized);
-        if (visible.length === 0) return null;
-        return visible.reduce((top, opened) => (opened.zIndex > top.zIndex ? opened : top)).id;
-    }, [openedApplications]);
+    const [overlay, setOverlay] = useState(null);
+    const [contextMenu, setContextMenu] = useState(null);
+    const [snapZone, setSnapZone] = useState(null);
+    const [booting, setBooting] = useState(true);
 
-    // The single entry point every launcher (desktop icon, and any future
-    // launcher) uses. Already open + visible → focus it. Already open +
-    // minimized → restore it. Not open → create it. Never creates a
-    // duplicate window (dev rule #12).
-    const openApplication = useCallback((app) => {
-        const nextZIndex = (zIndexCounter.current += 1);
+    const toggleOverlay = useCallback((name) => {
+        setOverlay((current) => (current === name ? null : name));
+    }, []);
 
-        setOpenedApplications((prev) => {
-            const existing = prev.find((opened) => opened.id === app.id);
+    const closeOverlay = useCallback(() => setOverlay(null), []);
+    const exitToMissionControl = useCallback(() => navigate('/mission'), [navigate]);
 
-            if (existing) {
-                return prev.map((opened) =>
-                    opened.id === app.id ? { ...opened, minimized: false, zIndex: nextZIndex } : opened
-                );
-            }
+    // Toasts are kept rare on purpose — opening a window is its own feedback,
+    // so routine window bookkeeping only goes to the feed. What does earn a
+    // toast is the arrival itself, and the one thing a new player cannot
+    // discover by looking: the palette hotkey.
+    const bootFinished = useRef(false);
+    const hintTimer = useRef(0);
 
-            logEvent('APPLICATION_OPENED', { appId: app.id }, token);
+    const handleBootFinish = useCallback(() => {
+        if (bootFinished.current) return;
+        bootFinished.current = true;
+        setBooting(false);
 
-            const offset = prev.length * WINDOW_CASCADE_STEP;
-
-            return [
-                ...prev,
-                {
-                    id: app.id,
-                    title: app.name,
-                    x: WINDOW_ORIGIN.x + offset,
-                    y: WINDOW_ORIGIN.y + offset,
-                    zIndex: nextZIndex,
-                    minimized: false,
-                    maximized: false,
-                    prevBounds: null,
-                },
-            ];
+        feed.notify({
+            level: 'success',
+            title: 'Workspace attached',
+            detail: `${applications.length} tools cleared for this case.`,
         });
-    }, [token]);
 
-    const closeApplication = useCallback((appId) => {
-        setOpenedApplications((prev) => prev.filter((opened) => opened.id !== appId));
-        logEvent('APPLICATION_CLOSED', { appId }, token);
-    }, [token]);
+        hintTimer.current = setTimeout(() => {
+            feed.notify({
+                level: 'info',
+                title: 'Press Ctrl K to search',
+                detail: 'Every tool and window action, one keystroke away.',
+            });
+        }, 2800);
+    }, [feed, applications.length]);
 
-    const focusApplication = useCallback((appId) => {
-        const nextZIndex = (zIndexCounter.current += 1);
+    useEffect(() => () => clearTimeout(hintTimer.current), []);
 
-        setOpenedApplications((prev) =>
-            prev.map((opened) => (opened.id === appId ? { ...opened, zIndex: nextZIndex } : opened))
-        );
-    }, []);
+    /* ── Window gestures ─────────────────────────────────────────────── */
 
-    // Keeps the application mounted (state intact) and only hides its
-    // window — WindowManager still renders it, Window just applies
-    // display:none (dev rule #17 — MINIMIZE must not destroy state).
-    const minimizeApplication = useCallback((appId) => {
-        setOpenedApplications((prev) =>
-            prev.map((opened) => (opened.id === appId ? { ...opened, minimized: true } : opened))
-        );
-    }, []);
+    // A drag either lands where it was dropped or, if a screen edge was
+    // armed at the moment of release, snaps to that zone instead.
+    const handleDragEnd = useCallback((appId, bounds, zone) => {
+        setSnapZone(null);
 
-    const restoreApplication = useCallback((appId) => {
-        const nextZIndex = (zIndexCounter.current += 1);
+        if (zone) {
+            session.snapApplication(appId, zone);
+            feed.notify({ level: 'muted', title: getSnapLabel(zone), detail: 'Window snapped into place.', toast: false });
+            return;
+        }
 
-        setOpenedApplications((prev) =>
-            prev.map((opened) =>
-                opened.id === appId ? { ...opened, minimized: false, zIndex: nextZIndex } : opened
-            )
-        );
-    }, []);
+        session.setApplicationBounds(appId, bounds);
+    }, [session, feed]);
 
-    // Commits a window's on-screen position once a header drag ends
-    // (Window.jsx tracks the drag locally and only reports the final
-    // x/y here — see dev rule #6, single source of truth for position).
-    const updateApplicationPosition = useCallback((appId, x, y) => {
-        setOpenedApplications((prev) =>
-            prev.map((opened) => (opened.id === appId ? { ...opened, x, y } : opened))
-        );
-    }, []);
+    const handleResizeEnd = useCallback((appId, bounds) => {
+        session.setApplicationBounds(appId, bounds);
+    }, [session]);
 
-    const toggleMaximize = useCallback((appId) => {
-        const nextZIndex = (zIndexCounter.current += 1);
+    /* ── Context menus ───────────────────────────────────────────────── */
 
-        setOpenedApplications((prev) =>
-            prev.map((opened) => {
-                if (opened.id !== appId) return opened;
+    const openDesktopMenu = useCallback((event) => {
+        event.preventDefault();
 
-                if (opened.maximized) {
-                    const restored = opened.prevBounds || { x: WINDOW_ORIGIN.x, y: WINDOW_ORIGIN.y };
-                    return { ...opened, maximized: false, prevBounds: null, ...restored, zIndex: nextZIndex };
-                }
+        const hasWindows = openedApplications.length > 0;
 
-                return {
-                    ...opened,
-                    maximized: true,
-                    prevBounds: { x: opened.x, y: opened.y },
-                    zIndex: nextZIndex,
-                };
-            })
-        );
-    }, []);
+        setContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: [
+                { id: 'search', label: 'Search tools & actions', icon: Search, shortcut: 'Ctrl K', run: () => setOverlay('palette') },
+                { id: 'sep-1', separator: true },
+                { id: 'tile', label: 'Tile windows', icon: LayoutGrid, disabled: !hasWindows, run: session.tileWindows },
+                { id: 'cascade', label: 'Cascade windows', icon: Layers, disabled: !hasWindows, run: session.cascadeWindows },
+                { id: 'show-desktop', label: 'Show desktop', icon: Minimize2, disabled: !hasWindows, run: session.minimizeAll },
+                { id: 'close-all', label: 'Close all windows', icon: XCircle, disabled: !hasWindows, danger: true, run: session.closeAll },
+                { id: 'sep-2', separator: true },
+                { id: 'shortcuts', label: 'Keyboard shortcuts', icon: Keyboard, run: () => setOverlay('shortcuts') },
+                { id: 'exit', label: 'Return to Mission Control', icon: LogOut, run: exitToMissionControl },
+            ],
+        });
+    }, [openedApplications.length, session, exitToMissionControl]);
 
-    // Taskbar click on a running application (dev rule #20): minimized →
-    // restore, already active → minimize (matches standard OS taskbar
-    // behaviour), otherwise → focus.
-    const handleTaskbarSelect = useCallback((appId) => {
-        const app = openedApplications.find((opened) => opened.id === appId);
-        if (!app) return;
+    const openIconMenu = useCallback((event, app) => {
+        event.preventDefault();
+        event.stopPropagation();
 
-        if (app.minimized) restoreApplication(appId);
-        else if (appId === activeAppId) minimizeApplication(appId);
-        else focusApplication(appId);
-    }, [openedApplications, activeAppId, restoreApplication, minimizeApplication, focusApplication]);
+        const opened = openedApplications.find((current) => current.id === app.id);
+
+        setContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            items: [
+                {
+                    id: 'open',
+                    label: opened ? `Focus ${app.name}` : `Open ${app.name}`,
+                    icon: opened ? PanelsTopLeft : Play,
+                    run: () => session.openApplication(app),
+                },
+                {
+                    id: 'minimize',
+                    label: 'Minimize',
+                    icon: Minus,
+                    disabled: !opened || opened.minimized,
+                    run: () => session.minimizeApplication(app.id),
+                },
+                {
+                    id: 'close',
+                    label: 'Close',
+                    icon: XCircle,
+                    disabled: !opened,
+                    danger: true,
+                    run: () => session.closeApplication(app.id),
+                },
+            ],
+        });
+    }, [openedApplications, session]);
+
+    /* ── Command palette + shortcuts ─────────────────────────────────── */
+
+    const commands = useMemo(() => {
+        return [
+            { id: 'tile', title: 'Tile windows', subtitle: 'Fit every open window into a grid', icon: LayoutGrid, keywords: 'arrange grid layout', shortcut: 'Ctrl Alt T', run: session.tileWindows },
+            { id: 'cascade', title: 'Cascade windows', subtitle: 'Restack windows from the top left', icon: Layers, keywords: 'arrange stack', run: session.cascadeWindows },
+            { id: 'show-desktop', title: 'Show desktop', subtitle: 'Minimize everything', icon: Minimize2, keywords: 'hide minimize all', shortcut: 'Ctrl Alt D', run: session.minimizeAll },
+            { id: 'switcher', title: 'Switch window', subtitle: 'Jump to another open window', icon: PanelsTopLeft, keywords: 'alt tab change focus', shortcut: 'Ctrl `', run: () => setOverlay('switcher') },
+            { id: 'close-all', title: 'Close all windows', subtitle: 'Clear the workspace', icon: XCircle, keywords: 'quit exit clear', run: session.closeAll },
+            { id: 'shortcuts', title: 'Keyboard shortcuts', subtitle: 'Every key the shell listens for', icon: Keyboard, keywords: 'help keys hotkeys', run: () => setOverlay('shortcuts') },
+            { id: 'exit', title: 'Return to Mission Control', subtitle: 'Leave the workspace', icon: LogOut, keywords: 'quit leave mission back', run: exitToMissionControl },
+        ];
+    }, [openedApplications.length, session, exitToMissionControl]);
+
+    const hotkeys = useMemo(() => {
+        const withActive = (action) => () => {
+            if (activeAppId) action(activeAppId);
+        };
+
+        const bindings = {
+            [comboFor('palette')]: () => toggleOverlay('palette'),
+            // Opens rather than toggles: once the switcher is up it owns the
+            // key itself, so holding Ctrl and tapping ` walks the cards.
+            [comboFor('switcher')]: () => openedApplications.length > 0 && setOverlay('switcher'),
+            [comboFor('shortcuts')]: () => toggleOverlay('shortcuts'),
+            [comboFor('snapLeft')]: withActive((id) => session.snapApplication(id, 'left')),
+            [comboFor('snapRight')]: withActive((id) => session.snapApplication(id, 'right')),
+            [comboFor('maximize')]: withActive(session.toggleMaximize),
+            [comboFor('minimize')]: withActive(session.minimizeApplication),
+            [comboFor('close')]: withActive(session.closeApplication),
+            [comboFor('tile')]: session.tileWindows,
+            [comboFor('showDesktop')]: session.minimizeAll,
+            escape: () => {
+                closeOverlay();
+                setContextMenu(null);
+            },
+        };
+
+        // Alt+1..9 launches the nth tool in the incident's own application
+        // order — the same order the icon column and launcher show.
+        applications.slice(0, 9).forEach((app, index) => {
+            bindings[`alt+${index + 1}`] = () => session.openApplication(app);
+        });
+
+        return bindings;
+    }, [applications, openedApplications.length, activeAppId, session, toggleOverlay, closeOverlay]);
+
+    useHotkeys(hotkeys, !booting);
+
+    /* ── Render ──────────────────────────────────────────────────────── */
 
     return (
         <div className="desktop">
             <Wallpaper wallpaper={wallpaper} />
-            <div className="desktop-icons">
-                {applications.map((app, index) => {
-                    const opened = openedApplications.find((o) => o.id === app.id);
-                    return (
-                        <DesktopIcon
-                            key={app.id}
-                            app={app}
-                            index={index}
-                            isRunning={Boolean(opened)}
-                            isActive={app.id === activeAppId}
-                            onClick={() => openApplication(app)}
-                        />
-                    );
-                })}
+
+            <div className="desktop-surface" onContextMenu={openDesktopMenu}>
+                <div className="desktop-icons">
+                    <span className="desktop-icons__label">Toolkit</span>
+                    {applications.map((app, index) => {
+                        const opened = openedApplications.find((current) => current.id === app.id);
+
+                        return (
+                            <DesktopIcon
+                                key={app.id}
+                                app={app}
+                                index={index}
+                                isRunning={Boolean(opened)}
+                                isActive={app.id === activeAppId}
+                                onClick={() => session.openApplication(app)}
+                                onContextMenu={(event) => openIconMenu(event, app)}
+                            />
+                        );
+                    })}
+                </div>
+
+                <CaseHud openedApplications={openedApplications} applicationCount={applications.length} />
             </div>
+
             <WindowManager
                 openedApplications={openedApplications}
                 activeAppId={activeAppId}
-                onClose={closeApplication}
-                onFocus={focusApplication}
-                onMinimize={minimizeApplication}
-                onMaximizeToggle={toggleMaximize}
-                onDragEnd={updateApplicationPosition}
+                onClose={session.closeApplication}
+                onFocus={session.focusApplication}
+                onMinimize={session.minimizeApplication}
+                onMaximizeToggle={session.toggleMaximize}
+                onDragEnd={handleDragEnd}
+                onResizeEnd={handleResizeEnd}
+                onSnapHint={setSnapZone}
             />
+
+            <SnapPreview zone={snapZone} />
+
             <Taskbar
+                applications={applications}
                 openedApplications={openedApplications}
                 activeAppId={activeAppId}
-                onSelect={handleTaskbarSelect}
+                feed={feed}
+                onSelect={session.selectApplication}
+                onLaunch={session.openApplication}
+                onOpenPalette={() => setOverlay('palette')}
+                onOpenShortcuts={() => setOverlay('shortcuts')}
+                onExit={exitToMissionControl}
             />
+
+            <Toasts toasts={feed.toasts} onDismiss={feed.dismissToast} />
+
+            {overlay === 'palette' && (
+                <CommandPalette
+                    applications={applications}
+                    openedApplications={openedApplications}
+                    commands={commands}
+                    onLaunch={session.openApplication}
+                    onClose={closeOverlay}
+                />
+            )}
+
+            {overlay === 'switcher' && (
+                <WindowSwitcher
+                    openedApplications={openedApplications}
+                    activeAppId={activeAppId}
+                    onSelect={session.restoreApplication}
+                    onClose={closeOverlay}
+                />
+            )}
+
+            {overlay === 'shortcuts' && <ShortcutsOverlay onClose={closeOverlay} />}
+
+            {contextMenu && (
+                <ContextMenu
+                    x={contextMenu.x}
+                    y={contextMenu.y}
+                    items={contextMenu.items}
+                    onClose={() => setContextMenu(null)}
+                />
+            )}
+
+            {booting && <BootSequence investigation={investigation} onFinish={handleBootFinish} />}
         </div>
     );
 };

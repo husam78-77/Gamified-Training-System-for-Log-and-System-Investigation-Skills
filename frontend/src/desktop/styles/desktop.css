@@ -1,22 +1,81 @@
-.desktop {
-    /* HUD design tokens — scoped to .desktop so nothing leaks into other pages. */
-    --db-bg: #050709;
-    --db-cyan: #00FFFF;
-    --db-red: #FF3B5C;
-    --db-text: #E8F6F8;
-    --db-text-dim: rgba(232, 246, 248, 0.55);
-    --db-mono: 'JetBrains Mono', monospace;
-    --db-tag: 'Rajdhani', sans-serif;
+/* =========================================================================
+   desktop.css — the shell's design system.
 
+   Every token is scoped to .desktop (and .desktop-status, which renders
+   before the desktop exists) so nothing leaks into any other page. Anything
+   drawn on the desktop reads its color, depth, and rhythm from here rather
+   than hardcoding a value: one edit to a token restyles the whole OS.
+   ========================================================================= */
+
+.desktop,
+.desktop-status {
+    /* Surfaces */
+    --db-bg: #04070A;
+    --db-bg-deep: #010305;
+    --db-panel: rgba(11, 16, 21, 0.86);
+    --db-panel-solid: #0C1116;
+    --db-panel-raised: #131A21;
+
+    /* Signal colors */
+    --db-cyan: #00E5FF;
+    --db-cyan-soft: rgba(0, 229, 255, 0.16);
+    --db-red: #FF3B5C;
+    --db-amber: #FFB347;
+    --db-green: #3BE8B0;
+
+    /* Text */
+    --db-text: #E8F6F8;
+    --db-text-dim: rgba(232, 246, 248, 0.58);
+    --db-text-faint: rgba(232, 246, 248, 0.34);
+
+    /* Lines & depth */
+    --db-line: rgba(255, 255, 255, 0.09);
+    --db-line-bright: rgba(0, 229, 255, 0.28);
+    --db-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    --db-shadow-lift: 0 26px 70px rgba(0, 0, 0, 0.72);
+    --db-glow: 0 0 24px -6px rgba(0, 229, 255, 0.5);
+
+    /* Type */
+    --db-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --db-tag: 'Rajdhani', 'Inter', sans-serif;
+
+    /* Geometry — the clipped corner that runs through the whole HUD */
+    --db-notch: 10px;
+    --db-clip: polygon(var(--db-notch) 0, 100% 0, 100% calc(100% - var(--db-notch)), calc(100% - var(--db-notch)) 100%, 0 100%, 0 var(--db-notch));
+
+    /* Layers. Windows sit between the surface and the system bar. */
+    --db-z-surface: 1;
+    --db-z-snap: 900;
+    --db-z-taskbar: 1000;
+    --db-z-panel: 1100;
+    --db-z-menu: 1200;
+    --db-z-overlay: 1400;
+    --db-z-toast: 1500;
+    --db-z-boot: 2000;
+
+    /* System bar height — windows and overlays measure from it. */
+    --db-bar: 46px;
+}
+
+.desktop {
     position: relative;
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     background: var(--db-bg);
+    color: var(--db-text);
     font-family: var(--db-tag);
+    -webkit-font-smoothing: antialiased;
 }
 
+/* =========================================================================
+   Wallpaper — image, aurora wash, survey grid, sweep, scanlines, vignette
+   ========================================================================= */
+
 .desktop-wallpaper {
+    --pointer-x: 0;
+    --pointer-y: 0;
+
     position: absolute;
     inset: 0;
     z-index: 0;
@@ -25,105 +84,512 @@
     background-position: center;
 }
 
-/* Fine cyan grid + slow scanline sweep, layered above the wallpaper image. */
-.desktop-wallpaper::before {
-    content: '';
+.desktop-wallpaper>* {
     position: absolute;
-    inset: 0;
-    background-image:
-        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 42px 42px;
-    mix-blend-mode: screen;
-    opacity: 0.35;
+    inset: -6%;
     pointer-events: none;
 }
 
-.desktop-wallpaper::after {
-    content: '';
-    position: absolute;
-    inset: 0;
+/* Two slow-drifting color fields. The pointer nudges them a few pixels,
+   which is enough to make the background feel like it has depth. */
+.desktop-wallpaper__aurora {
     background:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.15) 0px, transparent 1px, transparent 3px),
-        radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
-    pointer-events: none;
+        radial-gradient(42vw 42vw at 18% 22%, rgba(0, 229, 255, 0.16), transparent 62%),
+        radial-gradient(38vw 38vw at 82% 72%, rgba(120, 80, 255, 0.14), transparent 64%),
+        radial-gradient(30vw 30vw at 62% 12%, rgba(255, 59, 92, 0.07), transparent 60%);
+    transform: translate3d(calc(var(--pointer-x) * -22px), calc(var(--pointer-y) * -18px), 0);
+    transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+    animation: wallpaper-drift 26s ease-in-out infinite alternate;
+}
+
+.desktop-wallpaper__grid {
+    background-image:
+        linear-gradient(rgba(0, 229, 255, 0.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 229, 255, 0.055) 1px, transparent 1px);
+    background-size: 46px 46px;
+    mix-blend-mode: screen;
+    opacity: 0.5;
+    transform: translate3d(calc(var(--pointer-x) * 10px), calc(var(--pointer-y) * 10px), 0);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+    -webkit-mask-image: radial-gradient(ellipse at center, #000 20%, transparent 78%);
+    mask-image: radial-gradient(ellipse at center, #000 20%, transparent 78%);
+}
+
+/* A single bright line that crawls down the screen every 9 seconds. */
+.desktop-wallpaper__sweep {
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 229, 255, 0.11) 50%, transparent 100%);
+    height: 26vh;
+    inset: auto -6% auto -6%;
+    animation: wallpaper-sweep 9s linear infinite;
+    opacity: 0.75;
+}
+
+.desktop-wallpaper__scanlines {
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0px, transparent 1px, transparent 3px);
+    opacity: 0.6;
+}
+
+.desktop-wallpaper__vignette {
+    background:
+        linear-gradient(rgba(4, 7, 10, 0.34), rgba(4, 7, 10, 0.34)),
+        radial-gradient(ellipse at center, transparent 34%, rgba(0, 0, 0, 0.66) 100%),
+        linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 24%);
+}
+
+@keyframes wallpaper-drift {
+    from {
+        transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    to {
+        transform: translate3d(2%, -2%, 0) scale(1.06);
+    }
+}
+
+@keyframes wallpaper-sweep {
+    from {
+        top: -30vh;
+    }
+
+    to {
+        top: 110vh;
+    }
+}
+
+/* =========================================================================
+   Surface — the icon column and the case HUD live above the wallpaper and
+   below every window.
+   ========================================================================= */
+
+.desktop-surface {
+    position: absolute;
+    inset: var(--db-bar) 0 0 0;
+    z-index: var(--db-z-surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 22px 22px 22px 18px;
 }
 
 .desktop-icons {
-    position: relative;
-    z-index: 1;
     display: flex;
     flex-direction: column;
     flex-wrap: wrap;
     align-content: flex-start;
-    gap: 18px;
-    padding: 24px;
-    padding-top: 68px;
-    height: 100%;
+    gap: 10px;
+    max-height: 100%;
 }
+
+.desktop-icons__label {
+    width: 100%;
+    margin-bottom: 2px;
+    padding-left: 8px;
+    color: var(--db-text-faint);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+}
+
+/* =========================================================================
+   Case HUD — standing readout for the active investigation
+   ========================================================================= */
+
+.case-hud {
+    position: relative;
+    width: 250px;
+    padding: 16px 18px 14px;
+    background: var(--db-panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--db-line);
+    border-top: 1px solid var(--db-line-bright);
+    clip-path: var(--db-clip);
+    box-shadow: var(--db-shadow);
+    animation: hud-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards 0.25s;
+    transition: width 0.25s ease, padding 0.25s ease;
+}
+
+.case-hud--collapsed {
+    width: 52px;
+    padding: 16px 8px;
+    overflow: hidden;
+}
+
+.case-hud--collapsed>*:not(.case-hud__toggle) {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.case-hud__toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    padding: 4px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--db-text-faint);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease, transform 0.25s ease;
+}
+
+.case-hud__toggle:hover {
+    color: var(--db-cyan);
+    background: var(--db-cyan-soft);
+}
+
+.case-hud--collapsed .case-hud__toggle {
+    transform: rotate(180deg);
+    right: 14px;
+}
+
+.case-hud__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-right: 24px;
+}
+
+.case-hud__id {
+    color: var(--db-cyan);
+    font-family: var(--db-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+}
+
+.case-hud__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--db-green);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.case-hud__pulse {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--db-green);
+    box-shadow: 0 0 8px var(--db-green);
+    animation: hud-pulse 1.9s ease-in-out infinite;
+}
+
+.case-hud__name {
+    margin: 10px 0 0;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    color: var(--db-text);
+}
+
+.case-hud__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+}
+
+.case-hud__tag {
+    padding: 2px 8px;
+    border: 1px solid var(--db-line);
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--db-text-dim);
+    font-family: var(--db-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.case-hud__tag--difficulty {
+    border-color: rgba(255, 179, 71, 0.4);
+    color: var(--db-amber);
+}
+
+.case-hud__metrics {
+    margin: 14px 0 0;
+    padding-top: 12px;
+    border-top: 1px dashed var(--db-line);
+    display: grid;
+    gap: 7px;
+}
+
+.case-hud__metric {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.case-hud__metric dt {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--db-text-faint);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.case-hud__metric dd {
+    margin: 0;
+    color: var(--db-text);
+    font-family: var(--db-mono);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+@keyframes hud-in {
+    from {
+        opacity: 0;
+        transform: translateX(14px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes hud-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* =========================================================================
+   Snap preview — where a dragged window will land
+   ========================================================================= */
+
+.snap-preview {
+    position: absolute;
+    z-index: var(--db-z-snap);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, rgba(0, 229, 255, 0.14), rgba(0, 229, 255, 0.05));
+    border: 1px solid var(--db-line-bright);
+    box-shadow: inset 0 0 60px rgba(0, 229, 255, 0.12);
+    pointer-events: none;
+    animation: snap-in 0.14s ease-out;
+}
+
+.snap-preview__label {
+    padding: 6px 14px;
+    background: rgba(4, 7, 10, 0.8);
+    border: 1px solid var(--db-line-bright);
+    color: var(--db-cyan);
+    font-family: var(--db-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+@keyframes snap-in {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* =========================================================================
+   Pre-desktop states — connecting, error, idle (DesktopPage)
+   ========================================================================= */
 
 .desktop-status {
     position: relative;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
     width: 100vw;
     height: 100vh;
-    color: var(--db-text, #ffffff);
-    font-family: var(--db-mono, monospace);
-    font-size: 0.95rem;
-    letter-spacing: 0.02em;
-    background: radial-gradient(ellipse at center, #0a0d12 0%, #050709 70%);
-    text-align: center;
-    padding: 0 24px;
+    overflow: hidden;
+    padding: 24px;
+    background:
+        radial-gradient(ellipse at center, #0A1017 0%, var(--db-bg-deep) 72%);
+    font-family: var(--db-tag);
 }
 
-.desktop-status::before {
+.desktop-status::after {
     content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0px, transparent 1px, transparent 3px);
+    pointer-events: none;
+}
+
+.desktop-status__panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: min(420px, 90vw);
+    padding: 34px 30px 30px;
+    background: var(--db-panel);
+    border: 1px solid var(--db-line);
+    border-top: 1px solid var(--db-line-bright);
+    clip-path: var(--db-clip);
+    box-shadow: var(--db-shadow-lift);
+    text-align: center;
+}
+
+.desktop-status__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 46px;
     height: 46px;
+    border: 1px solid var(--db-line-bright);
     border-radius: 50%;
-    border: 2px solid rgba(0, 255, 255, 0.15);
-    border-top-color: var(--db-cyan, #00FFFF);
-    animation: desktop-status-spin 0.9s linear infinite;
+    color: var(--db-cyan);
+    box-shadow: 0 0 22px -6px var(--db-cyan);
 }
 
-.desktop-status--error::before {
-    border-top-color: var(--db-red, #FF3B5C);
-    animation: none;
-    border-color: rgba(255, 59, 92, 0.25);
-    border-top-color: var(--db-red, #FF3B5C);
+.desktop-status--loading .desktop-status__mark {
+    animation: status-breathe 1.8s ease-in-out infinite;
 }
 
-@keyframes desktop-status-spin {
-    to {
-        transform: rotate(360deg);
-    }
+.desktop-status--error .desktop-status__mark {
+    border-color: rgba(255, 59, 92, 0.45);
+    color: var(--db-red);
+    box-shadow: 0 0 22px -6px var(--db-red);
 }
 
-.desktop-status--error {
-    color: #ffb3bf;
+.desktop-status__title {
+    color: var(--db-text);
+    font-size: 1.16rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.desktop-status--error .desktop-status__title {
+    color: #FFB3BF;
+}
+
+.desktop-status__message {
+    color: var(--db-text-dim);
+    font-family: var(--db-mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.desktop-status__track {
+    position: relative;
+    width: 100%;
+    height: 2px;
+    margin-top: 6px;
+    background: rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+}
+
+.desktop-status__beam {
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--db-cyan), transparent);
+    animation: status-beam 1.3s ease-in-out infinite;
 }
 
 .desktop-status__link {
-    background: rgba(0, 255, 255, 0.06);
-    border: 1px solid rgba(0, 255, 255, 0.35);
-    color: var(--db-text, #ffffff);
-    font-family: var(--db-tag, sans-serif);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    font-size: 0.85rem;
+    margin-top: 8px;
     padding: 9px 22px;
+    background: var(--db-cyan-soft);
+    border: 1px solid var(--db-line-bright);
+    color: var(--db-text);
+    font-family: var(--db-tag);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    clip-path: var(--db-clip);
     cursor: pointer;
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
     transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .desktop-status__link:hover {
-    background: rgba(0, 255, 255, 0.14);
-    border-color: var(--db-cyan, #00FFFF);
-    box-shadow: 0 0 18px rgba(0, 255, 255, 0.25);
+    background: rgba(0, 229, 255, 0.2);
+    border-color: var(--db-cyan);
+    box-shadow: var(--db-glow);
+}
+
+@keyframes status-breathe {
+
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.6;
+        transform: scale(0.94);
+    }
+}
+
+@keyframes status-beam {
+    from {
+        left: -40%;
+    }
+
+    to {
+        left: 100%;
+    }
+}
+
+/* =========================================================================
+   Reduced motion — the desktop keeps its depth, but stops moving on its own
+   ========================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    .desktop-wallpaper__aurora,
+    .desktop-wallpaper__sweep,
+    .case-hud__pulse,
+    .desktop-status--loading .desktop-status__mark,
+    .desktop-status__beam {
+        animation: none;
+    }
+
+    .desktop-wallpaper__sweep {
+        display: none;
+    }
+
+    .desktop-wallpaper__aurora,
+    .desktop-wallpaper__grid {
+        transition: none;
+        transform: none;
+    }
+}
+
+/* =========================================================================
+   Narrow screens — the HUD is the first thing to go
+   ========================================================================= */
+
+@media (max-width: 900px) {
+    .case-hud {
+        display: none;
+    }
 }

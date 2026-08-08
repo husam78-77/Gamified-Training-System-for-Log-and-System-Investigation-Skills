@@ -1,7 +1,426 @@
+/* =========================================================================
+   window.css — the frame every application renders inside.
+
+   Windows are sized in JS (useWindowSession), so this file never sets width
+   or height except for the maximized case: what it owns is the chrome, the
+   focus states, and the invisible resize grips around the edge.
+
+   .window-body keeps its 16px padding deliberately — every application's
+   root style cancels it with `margin: -16px` to bleed to the frame, so the
+   value is part of the contract between the shell and the apps.
+   ========================================================================= */
+
+.window {
+    --accent: #00E5FF;
+    --accent-rgb: 0, 229, 255;
+
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--db-panel-solid, #0C1116);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 7px;
+    box-shadow: var(--db-shadow, 0 18px 44px rgba(0, 0, 0, 0.6));
+    transition: box-shadow 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
+    animation: window-open 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Both live gestures switch off transitions so the frame tracks the pointer
+   exactly, and lock text selection so a drag never highlights app content. */
+.window--dragging,
+.window--resizing {
+    transition: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.window--dragging {
+    opacity: 0.92;
+    box-shadow: var(--db-shadow-lift, 0 26px 70px rgba(0, 0, 0, 0.72));
+}
+
+.window--active {
+    border-color: rgba(var(--accent-rgb), 0.42);
+    box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(var(--accent-rgb), 0.08),
+        0 0 34px -10px rgba(var(--accent-rgb), 0.55);
+}
+
+.window--minimized {
+    display: none;
+}
+
+.window--maximized {
+    top: var(--db-bar, 46px);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+
+/* Corner ticks — the HUD detail that marks a frame as instrumentation
+   rather than a plain browser panel. Only drawn on the focused window. */
+.window__corner {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease;
+}
+
+.window--active .window__corner {
+    opacity: 0.75;
+}
+
+.window__corner--tl {
+    top: 0;
+    left: 0;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+}
+
+.window__corner--br {
+    right: 0;
+    bottom: 0;
+    border-bottom: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+}
+
+.window--maximized .window__corner {
+    display: none;
+}
+
+/* --- Header --- */
+
+.window-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 8px 9px 12px;
+    background: linear-gradient(180deg, #171D24 0%, #11161B 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    cursor: grab;
+}
+
+.window--dragging .window-header {
+    cursor: grabbing;
+}
+
+.window--maximized .window-header {
+    cursor: default;
+}
+
+/* Accent hairline along the top of the focused window's header. */
+.window-header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, var(--accent), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+}
+
+.window--active .window-header::before {
+    opacity: 0.85;
+}
+
+.window--active .window-header {
+    border-bottom-color: rgba(var(--accent-rgb), 0.2);
+}
+
+.window-header__identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.window-header__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    background: rgba(var(--accent-rgb), 0.12);
+    border: 1px solid rgba(var(--accent-rgb), 0.28);
+    border-radius: 3px;
+    color: var(--accent);
+}
+
+.window-header__title {
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
+    font-family: var(--db-mono, monospace);
+    font-size: 0.74rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.18s ease;
+}
+
+.window--active .window-header__title {
+    color: var(--db-text, #ffffff);
+}
+
+/* Dashed rail filling the space between the title and the controls, so the
+   header reads as one instrument strip at any window width. */
+.window-header__rail {
+    flex: 1;
+    height: 1px;
+    min-width: 12px;
+    background-image: linear-gradient(90deg, rgba(255, 255, 255, 0.16) 50%, transparent 50%);
+    background-size: 5px 1px;
+    opacity: 0.5;
+}
+
+/* --- Controls --- */
+
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+}
+
+.window-controls__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.window-controls__button--minimize:hover,
+.window-controls__button--maximize:hover {
+    background: rgba(var(--accent-rgb), 0.16);
+    color: var(--accent);
+}
+
+.window-controls__button--close:hover {
+    background: var(--db-red, #FF3B5C);
+    color: #ffffff;
+}
+
+.window-controls__button:focus-visible {
+    outline: 1px solid var(--accent);
+    outline-offset: -2px;
+}
+
+/* --- Body --- */
+
+.window-body {
+    flex: 1;
+    min-height: 0;
+    padding: 16px;
+    color: var(--db-text, #ffffff);
+    background: #0A0E12;
+    overflow: auto;
+}
+
+.window-body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.window-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.window-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.14);
+    border: 2px solid #0A0E12;
+    border-radius: 6px;
+}
+
+.window-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--accent-rgb), 0.45);
+}
+
+/* --- Contained application fault --- */
+
+.window-error {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin: -16px;
+    padding: 22px;
+    height: 100%;
+    box-sizing: border-box;
+    background:
+        linear-gradient(180deg, rgba(255, 59, 92, 0.06), transparent 40%),
+        #0A0E12;
+}
+
+.window-error__badge {
+    padding: 3px 9px;
+    border: 1px solid rgba(255, 59, 92, 0.45);
+    color: var(--db-red, #FF3B5C);
+    font-family: var(--db-mono, monospace);
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.window-error__message {
+    margin: 0;
+    max-width: 46ch;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
+    font-family: var(--db-tag, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.window-error__detail {
+    display: block;
+    width: 100%;
+    padding: 9px 11px;
+    background: rgba(0, 0, 0, 0.4);
+    border-left: 2px solid rgba(255, 59, 92, 0.5);
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
+    font-family: var(--db-mono, monospace);
+    font-size: 0.7rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.window-error__retry {
+    padding: 7px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 3px;
+    color: var(--db-text, #fff);
+    font-family: var(--db-tag, sans-serif);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.window-error__retry:hover {
+    background: rgba(var(--accent-rgb), 0.14);
+    border-color: var(--accent);
+}
+
+/* --- Resize grips ---
+   Invisible strips overlapping the frame's edge. Wider than the border so
+   they are actually catchable, and pulled outside the window's own bounds
+   only as far as the frame's shadow already extends. */
+
+.window-resize {
+    position: absolute;
+    z-index: 5;
+}
+
+.window-resize--n,
+.window-resize--s {
+    left: 10px;
+    right: 10px;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.window-resize--n {
+    top: 0;
+}
+
+.window-resize--s {
+    bottom: 0;
+}
+
+.window-resize--e,
+.window-resize--w {
+    top: 10px;
+    bottom: 10px;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.window-resize--e {
+    right: 0;
+}
+
+.window-resize--w {
+    left: 0;
+}
+
+.window-resize--ne,
+.window-resize--nw,
+.window-resize--se,
+.window-resize--sw {
+    width: 14px;
+    height: 14px;
+}
+
+.window-resize--nw {
+    top: 0;
+    left: 0;
+    cursor: nwse-resize;
+}
+
+.window-resize--ne {
+    top: 0;
+    right: 0;
+    cursor: nesw-resize;
+}
+
+.window-resize--sw {
+    bottom: 0;
+    left: 0;
+    cursor: nesw-resize;
+}
+
+.window-resize--se {
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+}
+
+/* The bottom-right grip is the only one that shows itself — the standard
+   hint that a frame can be resized at all. */
+.window-resize--se::after {
+    content: '';
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid rgba(255, 255, 255, 0.22);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.22);
+    transition: border-color 0.15s ease;
+}
+
+.window--active .window-resize--se::after {
+    border-color: rgba(var(--accent-rgb), 0.5);
+}
+
 @keyframes window-open {
     from {
         opacity: 0;
-        transform: scale(0.97) translateY(6px);
+        transform: scale(0.975) translateY(8px);
     }
 
     to {
@@ -10,130 +429,8 @@
     }
 }
 
-.window {
-    position: absolute;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background: #101317;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
-    transition: box-shadow 0.15s ease, border-color 0.15s ease;
-    animation: window-open 0.16s ease-out;
-}
-
-.window--dragging {
-    transition: none;
-    user-select: none;
-    -webkit-user-select: none;
-    cursor: grabbing;
-}
-
-/* Default window sizes by application weight (dev rule — Task 3.3).
-   Applied unless the window is maximized, in which case
-   .window--maximized takes over sizing entirely. */
-.window--small {
-    width: min(420px, 92vw);
-    height: min(360px, 82vh);
-}
-
-.window--medium {
-    width: min(560px, 92vw);
-    height: min(480px, 82vh);
-}
-
-.window--large {
-    width: min(900px, 94vw);
-    height: min(620px, 82vh);
-}
-
-.window--active {
-    border-color: rgba(0, 255, 255, 0.4);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 255, 255, 0.06), 0 0 28px -6px rgba(0, 255, 255, 0.22);
-}
-
-.window--minimized {
-    display: none;
-}
-
-.window--maximized {
-    top: 44px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: auto;
-    height: auto;
-    border-radius: 0;
-}
-
-.window-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 9px 8px 9px 14px;
-    background: linear-gradient(180deg, #191d23 0%, #14171b 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    cursor: grab;
-}
-
-.window--maximized .window-header {
-    cursor: default;
-}
-
-.window--active .window-header {
-    border-bottom-color: rgba(0, 255, 255, 0.18);
-}
-
-.window-header__title {
-    color: var(--db-text, #ffffff);
-    font-family: var(--db-mono, inherit);
-    font-size: 0.78rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-}
-
-.window--active .window-header__title {
-    color: #d7fdff;
-    text-shadow: 0 0 8px rgba(0, 255, 255, 0.35);
-}
-
-.window-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.window-controls__button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    height: 24px;
-    border: none;
-    border-radius: 4px;
-    background: transparent;
-    color: rgba(255, 255, 255, 0.75);
-    cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.window-controls__button--minimize:hover,
-.window-controls__button--maximize:hover {
-    background: rgba(0, 255, 255, 0.12);
-    color: var(--db-cyan, #00FFFF);
-}
-
-.window-controls__button--close:hover {
-    background: var(--db-red, #FF3B5C);
-    color: #ffffff;
-}
-
-.window-body {
-    flex: 1;
-    padding: 16px;
-    color: var(--db-text, #ffffff);
-    background: #0d1013;
-    overflow: auto;
+@media (prefers-reduced-motion: reduce) {
+    .window {
+        animation: none;
+    }
 }

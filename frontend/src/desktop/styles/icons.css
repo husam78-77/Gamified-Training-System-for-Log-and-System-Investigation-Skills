@@ -1,7 +1,161 @@
+/* =========================================================================
+   icons.css — the application tiles in the desktop's left column.
+
+   Each tile is tinted by its app's accent (--accent / --accent-rgb, set
+   inline by DesktopIcon) so the column reads as seven distinct signals
+   rather than seven identical squares.
+   ========================================================================= */
+
+.desktop-icon {
+    --accent: #00E5FF;
+    --accent-rgb: 0, 229, 255;
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 9px;
+    width: 96px;
+    padding: 12px 6px 10px;
+    border: 1px solid transparent;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+    animation: desktop-icon-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+    animation-delay: calc(var(--i, 0) * 50ms);
+}
+
+.desktop-icon:hover,
+.desktop-icon:focus-visible {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(var(--accent-rgb), 0.22);
+    outline: none;
+}
+
+.desktop-icon:focus-visible {
+    border-color: var(--accent);
+}
+
+.desktop-icon--active {
+    background: rgba(var(--accent-rgb), 0.09);
+    border-color: rgba(var(--accent-rgb), 0.3);
+}
+
+/* --- Glyph plate --- */
+
+.desktop-icon__glyph {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    overflow: hidden;
+    background:
+        linear-gradient(155deg, rgba(var(--accent-rgb), 0.14), rgba(255, 255, 255, 0.02) 55%),
+        rgba(8, 12, 16, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--db-text);
+    clip-path: var(--db-clip);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease, transform 0.16s ease;
+}
+
+.desktop-icon:hover .desktop-icon__glyph,
+.desktop-icon:focus-visible .desktop-icon__glyph {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow:
+        0 0 20px -4px var(--accent),
+        inset 0 0 22px -12px var(--accent);
+    transform: translateY(-2px);
+}
+
+.desktop-icon:active .desktop-icon__glyph {
+    transform: translateY(0) scale(0.97);
+}
+
+.desktop-icon--active .desktop-icon__glyph {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 16px -5px var(--accent);
+}
+
+/* A thin accent line that sweeps the plate once on hover — the tile
+   "reading" the tool before it launches. */
+.desktop-icon__scan {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -60%;
+    height: 60%;
+    background: linear-gradient(180deg, transparent, rgba(var(--accent-rgb), 0.4), transparent);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.desktop-icon:hover .desktop-icon__scan {
+    opacity: 1;
+    animation: desktop-icon-scan 0.9s ease-in-out;
+}
+
+/* --- Label, hotkey hint, running indicator --- */
+
+.desktop-icon__label {
+    color: var(--db-text);
+    font-family: var(--db-tag);
+    font-size: 0.84rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+    word-break: break-word;
+}
+
+.desktop-icon__hotkey {
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%) translateY(3px);
+    padding: 1px 6px;
+    background: rgba(4, 7, 10, 0.92);
+    border: 1px solid rgba(var(--accent-rgb), 0.35);
+    color: var(--accent);
+    font-family: var(--db-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.desktop-icon:hover .desktop-icon__hotkey,
+.desktop-icon:focus-visible .desktop-icon__hotkey {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.desktop-icon__running-dot {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: desktop-icon-running 2.4s ease-in-out infinite;
+}
+
 @keyframes desktop-icon-in {
     from {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(10px);
     }
 
     to {
@@ -10,81 +164,37 @@
     }
 }
 
-.desktop-icon {
-    --accent: #00FFFF;
+@keyframes desktop-icon-scan {
+    from {
+        top: -60%;
+    }
 
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    width: 88px;
-    padding: 10px 6px 8px;
-    border-radius: 4px;
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.15s ease;
-    animation: desktop-icon-in 0.35s ease-out backwards;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    to {
+        top: 110%;
+    }
 }
 
-.desktop-icon:hover {
-    background: rgba(255, 255, 255, 0.05);
+@keyframes desktop-icon-running {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
 }
 
-.desktop-icon--active {
-    background: rgba(255, 255, 255, 0.07);
-}
+@media (prefers-reduced-motion: reduce) {
 
-.desktop-icon__glyph {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 54px;
-    height: 54px;
-    background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: var(--db-text, #ffffff);
-    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.12s ease;
-}
+    .desktop-icon,
+    .desktop-icon__running-dot,
+    .desktop-icon:hover .desktop-icon__scan {
+        animation: none;
+    }
 
-.desktop-icon:hover .desktop-icon__glyph {
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 16px -2px var(--accent);
-    transform: translateY(-1px);
-}
-
-.desktop-icon:active .desktop-icon__glyph {
-    transform: translateY(0);
-}
-
-.desktop-icon--active .desktop-icon__glyph {
-    border-color: var(--accent);
-    color: var(--accent);
-    box-shadow: 0 0 12px -3px var(--accent);
-}
-
-.desktop-icon__running-dot {
-    position: absolute;
-    top: 6px;
-    right: 12px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent);
-}
-
-.desktop-icon__label {
-    color: var(--db-text, #ffffff);
-    font-family: var(--db-tag, inherit);
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    line-height: 1.25;
-    text-align: center;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
-    word-break: break-word;
+    .desktop-icon__scan {
+        display: none;
+    }
 }

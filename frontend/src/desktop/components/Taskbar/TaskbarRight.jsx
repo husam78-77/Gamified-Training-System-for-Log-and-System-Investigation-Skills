@@ -9,11 +9,16 @@ import SystemStatus from './SystemStatus';
  * self-contained, so new indicators can be added as siblings here without
  * touching Taskbar.
  */
-const TaskbarRight = () => {
+const TaskbarRight = ({ feed, openedApplications = [], panelOpen, onTogglePanel, onClosePanel }) => {
     return (
         <div className="taskbar-right">
-            <SystemStatus />
-            <NotificationCenter />
+            <SystemStatus openedApplications={openedApplications} />
+            <NotificationCenter
+                feed={feed}
+                open={panelOpen}
+                onToggle={onTogglePanel}
+                onClose={onClosePanel}
+            />
             <Clock />
         </div>
     );

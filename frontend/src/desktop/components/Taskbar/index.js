@@ -3,6 +3,7 @@ export { default as TaskbarLeft } from './TaskbarLeft';
 export { default as TaskbarCenter } from './TaskbarCenter';
 export { default as TaskbarRight } from './TaskbarRight';
 export { default as Clock } from './Clock';
+export { default as LauncherMenu } from './LauncherMenu';
 export { default as NotificationCenter } from './NotificationCenter';
 export { default as RunningApplications } from './RunningApplications';
 export { default as SystemStatus } from './SystemStatus';
