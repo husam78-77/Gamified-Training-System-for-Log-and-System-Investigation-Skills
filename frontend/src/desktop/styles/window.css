@@ -15,12 +15,19 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 8px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    background: #101317;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
     animation: window-open 0.16s ease-out;
+}
+
+.window--dragging {
+    transition: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grabbing;
 }
 
 /* Default window sizes by application weight (dev rule — Task 3.3).
@@ -42,8 +49,8 @@
 }
 
 .window--active {
-    border-color: rgba(255, 255, 255, 0.35);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+    border-color: rgba(0, 255, 255, 0.4);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(0, 255, 255, 0.06), 0 0 28px -6px rgba(0, 255, 255, 0.22);
 }
 
 .window--minimized {
@@ -51,7 +58,7 @@
 }
 
 .window--maximized {
-    top: 40px;
+    top: 44px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -64,16 +71,32 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
-    background: #222222;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 9px 8px 9px 14px;
+    background: linear-gradient(180deg, #191d23 0%, #14171b 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: grab;
+}
+
+.window--maximized .window-header {
+    cursor: default;
+}
+
+.window--active .window-header {
+    border-bottom-color: rgba(0, 255, 255, 0.18);
 }
 
 .window-header__title {
-    color: #ffffff;
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.01em;
+    color: var(--db-text, #ffffff);
+    font-family: var(--db-mono, inherit);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.window--active .window-header__title {
+    color: #d7fdff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.35);
 }
 
 .window-controls {
@@ -89,25 +112,28 @@
     width: 24px;
     height: 24px;
     border: none;
-    border-radius: 5px;
+    border-radius: 4px;
     background: transparent;
-    color: #ffffff;
+    color: rgba(255, 255, 255, 0.75);
     cursor: pointer;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .window-controls__button--minimize:hover,
 .window-controls__button--maximize:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 255, 255, 0.12);
+    color: var(--db-cyan, #00FFFF);
 }
 
 .window-controls__button--close:hover {
-    background: #e11d48;
+    background: var(--db-red, #FF3B5C);
+    color: #ffffff;
 }
 
 .window-body {
     flex: 1;
     padding: 16px;
-    color: #ffffff;
+    color: var(--db-text, #ffffff);
+    background: #0d1013;
     overflow: auto;
 }

@@ -1,4 +1,6 @@
 import React from 'react';
+import { getAppIcon } from '../../utils/appIcons';
+import { getAppAccent } from '../../utils/appAccents';
 
 /**
  * RunningApplications.jsx
@@ -15,20 +17,25 @@ const RunningApplications = ({ openedApplications = [], activeAppId = null, onSe
 
     return (
         <div className="running-applications">
-            {openedApplications.map((app) => (
-                <button
-                    key={app.id}
-                    type="button"
-                    className={
-                        'running-applications__item' +
-                        (app.id === activeAppId ? ' running-applications__item--active' : '') +
-                        (app.minimized ? ' running-applications__item--minimized' : '')
-                    }
-                    onClick={() => onSelect?.(app.id)}
-                >
-                    {app.title}
-                </button>
-            ))}
+            {openedApplications.map((app) => {
+                const Icon = getAppIcon(app.id);
+                return (
+                    <button
+                        key={app.id}
+                        type="button"
+                        style={{ '--accent': getAppAccent(app.id) }}
+                        className={
+                            'running-applications__item' +
+                            (app.id === activeAppId ? ' running-applications__item--active' : '') +
+                            (app.minimized ? ' running-applications__item--minimized' : '')
+                        }
+                        onClick={() => onSelect?.(app.id)}
+                    >
+                        <Icon size={13} strokeWidth={2} className="running-applications__icon" />
+                        <span>{app.title}</span>
+                    </button>
+                );
+            })}
         </div>
     );
 };

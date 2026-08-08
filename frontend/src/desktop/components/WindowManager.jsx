@@ -14,7 +14,7 @@ import { getWindowSize } from '../utils/windowSizes';
  * application works — it only looks up app.id in applicationRegistry and
  * renders whatever component comes back.
  */
-const WindowManager = ({ openedApplications, activeAppId, onClose, onFocus, onMinimize, onMaximizeToggle }) => {
+const WindowManager = ({ openedApplications, activeAppId, onClose, onFocus, onMinimize, onMaximizeToggle, onDragEnd }) => {
     return (
         <>
             {openedApplications.map((app) => {
@@ -35,6 +35,7 @@ const WindowManager = ({ openedApplications, activeAppId, onClose, onFocus, onMi
                         onFocus={() => onFocus(app.id)}
                         onMinimize={() => onMinimize(app.id)}
                         onMaximizeToggle={() => onMaximizeToggle(app.id)}
+                        onDragEnd={(x, y) => onDragEnd(app.id, x, y)}
                     >
                         {Component ? <Component /> : null}
                     </Window>

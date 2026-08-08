@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Bell } from 'lucide-react';
 
 /**
  * NotificationCenter.jsx
@@ -10,8 +11,11 @@ const NotificationCenter = () => {
     const [notifications] = useState([]);
 
     return (
-        <div className="notification-center">
-            <span className="notification-center__count">{notifications.length}</span>
+        <div className="notification-center" title="Notifications">
+            <Bell size={15} strokeWidth={2} />
+            {notifications.length > 0 && (
+                <span className="notification-center__count">{notifications.length}</span>
+            )}
         </div>
     );
 };

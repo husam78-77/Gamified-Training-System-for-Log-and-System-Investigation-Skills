@@ -1,58 +1,90 @@
+@keyframes desktop-icon-in {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .desktop-icon {
+    --accent: #00FFFF;
+
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     width: 88px;
-    padding: 10px 6px;
-    border-radius: 8px;
+    padding: 10px 6px 8px;
+    border-radius: 4px;
     cursor: pointer;
     user-select: none;
     transition: background-color 0.15s ease;
+    animation: desktop-icon-in 0.35s ease-out backwards;
+    animation-delay: calc(var(--i, 0) * 45ms);
 }
 
 .desktop-icon:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .desktop-icon--active {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.07);
 }
 
 .desktop-icon__glyph {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 56px;
-    height: 56px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    color: #ffffff;
+    width: 54px;
+    height: 54px;
+    background: linear-gradient(155deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: var(--db-text, #ffffff);
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+
+.desktop-icon:hover .desktop-icon__glyph {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 16px -2px var(--accent);
+    transform: translateY(-1px);
+}
+
+.desktop-icon:active .desktop-icon__glyph {
+    transform: translateY(0);
 }
 
 .desktop-icon--active .desktop-icon__glyph {
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px -3px var(--accent);
 }
 
 .desktop-icon__running-dot {
     position: absolute;
-    top: 8px;
-    right: 14px;
+    top: 6px;
+    right: 12px;
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #00ebf7;
-    box-shadow: 0 0 4px rgba(0, 235, 247, 0.8);
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
 }
 
 .desktop-icon__label {
-    color: #ffffff;
-    font-size: 0.8rem;
-    font-weight: 500;
-    letter-spacing: 0.01em;
+    color: var(--db-text, #ffffff);
+    font-family: var(--db-tag, inherit);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
     line-height: 1.25;
     text-align: center;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
     word-break: break-word;
 }

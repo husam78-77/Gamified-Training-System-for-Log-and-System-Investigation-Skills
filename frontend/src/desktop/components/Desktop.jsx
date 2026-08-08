@@ -107,6 +107,15 @@ const Desktop = ({ desktop }) => {
         );
     }, []);
 
+    // Commits a window's on-screen position once a header drag ends
+    // (Window.jsx tracks the drag locally and only reports the final
+    // x/y here — see dev rule #6, single source of truth for position).
+    const updateApplicationPosition = useCallback((appId, x, y) => {
+        setOpenedApplications((prev) =>
+            prev.map((opened) => (opened.id === appId ? { ...opened, x, y } : opened))
+        );
+    }, []);
+
     const toggleMaximize = useCallback((appId) => {
         const nextZIndex = (zIndexCounter.current += 1);
 
@@ -145,12 +154,13 @@ const Desktop = ({ desktop }) => {
         <div className="desktop">
             <Wallpaper wallpaper={wallpaper} />
             <div className="desktop-icons">
-                {applications.map((app) => {
+                {applications.map((app, index) => {
                     const opened = openedApplications.find((o) => o.id === app.id);
                     return (
                         <DesktopIcon
                             key={app.id}
                             app={app}
+                            index={index}
                             isRunning={Boolean(opened)}
                             isActive={app.id === activeAppId}
                             onClick={() => openApplication(app)}
@@ -165,6 +175,7 @@ const Desktop = ({ desktop }) => {
                 onFocus={focusApplication}
                 onMinimize={minimizeApplication}
                 onMaximizeToggle={toggleMaximize}
+                onDragEnd={updateApplicationPosition}
             />
             <Taskbar
                 openedApplications={openedApplications}

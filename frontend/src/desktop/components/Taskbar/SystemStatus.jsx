@@ -1,4 +1,5 @@
 import React from 'react';
+import { Wifi, BatteryFull } from 'lucide-react';
 
 /**
  * SystemStatus.jsx
@@ -8,8 +9,14 @@ import React from 'react';
 const SystemStatus = () => {
     return (
         <div className="system-status">
-            <span className="system-status__item">Network: Online</span>
-            <span className="system-status__item">Power: 100%</span>
+            <span className="system-status__item">
+                <Wifi size={13} strokeWidth={2} />
+                Online
+            </span>
+            <span className="system-status__item">
+                <BatteryFull size={13} strokeWidth={2} />
+                100%
+            </span>
         </div>
     );
 };

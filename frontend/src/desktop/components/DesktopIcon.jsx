@@ -1,5 +1,6 @@
 import React from 'react';
 import { getAppIcon } from '../utils/appIcons';
+import { getAppAccent } from '../utils/appAccents';
 import '../styles/icons.css';
 
 /**
@@ -10,9 +11,13 @@ import '../styles/icons.css';
  * isRunning/isActive come straight from Desktop's openedApplications state
  * — the same state WindowManager/Taskbar read — so the running indicator
  * can never fall out of sync with what's actually open (dev rule #6).
+ *
+ * `index` only drives the entrance-animation stagger delay (icons.css) —
+ * purely cosmetic, never used for identity or ordering logic.
  */
-const DesktopIcon = ({ app, isRunning, isActive, onClick }) => {
+const DesktopIcon = ({ app, isRunning, isActive, onClick, index = 0 }) => {
     const Icon = getAppIcon(app.id);
+    const accent = getAppAccent(app.id);
 
     const className = [
         'desktop-icon',
@@ -20,7 +25,7 @@ const DesktopIcon = ({ app, isRunning, isActive, onClick }) => {
     ].filter(Boolean).join(' ');
 
     return (
-        <div className={className} onClick={onClick}>
+        <div className={className} style={{ '--accent': accent, '--i': index }} onClick={onClick}>
             <div className="desktop-icon__glyph">
                 <Icon size={26} strokeWidth={1.75} />
             </div>

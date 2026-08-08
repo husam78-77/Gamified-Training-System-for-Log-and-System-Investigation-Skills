@@ -7,12 +7,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    height: 40px;
-    padding: 0 12px;
-    background: #141414;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-    font-size: 0.8rem;
+    height: 44px;
+    padding: 0 14px;
+    background: rgba(8, 10, 13, 0.82);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(0, 255, 255, 0.18);
+    box-shadow: 0 1px 0 rgba(0, 255, 255, 0.06), 0 6px 24px rgba(0, 0, 0, 0.35);
+    color: var(--db-text, #ffffff);
+    font-family: var(--db-mono, monospace);
+    font-size: 0.78rem;
 }
 
 .taskbar-left,
@@ -23,57 +27,164 @@
     gap: 12px;
 }
 
-.taskbar-left__brand {
-    font-weight: 700;
-    letter-spacing: 0.05em;
+/* --- Left: brand --- */
+
+.taskbar-left {
+    gap: 8px;
+    color: var(--db-cyan, #00FFFF);
 }
+
+.taskbar-left__icon {
+    color: var(--db-cyan, #00FFFF);
+    filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+}
+
+.taskbar-left__brand {
+    font-family: var(--db-tag, inherit);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.45);
+}
+
+.taskbar-left__live {
+    width: 6px;
+    height: 6px;
+    margin-left: 2px;
+    border-radius: 50%;
+    background: var(--db-cyan, #00FFFF);
+    box-shadow: 0 0 6px var(--db-cyan, #00FFFF);
+    animation: taskbar-live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes taskbar-live-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.25;
+    }
+}
+
+/* --- Center: running applications --- */
 
 .running-applications {
     display: flex;
-    gap: 8px;
+    gap: 6px;
 }
 
 .running-applications__item {
-    padding: 4px 10px;
-    background: rgba(255, 255, 255, 0.08);
-    border: none;
-    border-radius: 4px;
-    color: #ffffff;
+    --accent: #00FFFF;
+
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px 5px 9px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 2px solid transparent;
+    border-radius: 3px;
+    color: var(--db-text, #ffffff);
     font: inherit;
+    letter-spacing: 0.02em;
     cursor: pointer;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.running-applications__icon {
+    color: var(--accent);
+    flex-shrink: 0;
 }
 
 .running-applications__item:hover {
-    background: rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.09);
 }
 
 .running-applications__item--active {
-    background: rgba(255, 255, 255, 0.24);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.18);
+    border-bottom-color: var(--accent);
 }
 
 .running-applications__item--minimized {
-    opacity: 0.55;
+    opacity: 0.5;
 }
 
-.clock {
-    font-variant-numeric: tabular-nums;
-}
-
-.notification-center__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 9px;
-    background: rgba(255, 255, 255, 0.12);
-    font-size: 0.7rem;
-}
+/* --- Right: status, notifications, clock --- */
 
 .system-status {
     display: flex;
-    gap: 10px;
-    color: rgba(255, 255, 255, 0.7);
+    gap: 12px;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.7));
+}
+
+.system-status__item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.system-status__item svg {
+    color: var(--db-cyan, #00FFFF);
+    opacity: 0.85;
+}
+
+.notification-center {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.75));
+    border-radius: 3px;
+    cursor: default;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.notification-center:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--db-text, #ffffff);
+}
+
+.notification-center__count {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border-radius: 7px;
+    background: var(--db-red, #FF3B5C);
+    box-shadow: 0 0 6px rgba(255, 59, 92, 0.7);
+    color: #ffffff;
+    font-size: 0.62rem;
+    font-weight: 700;
+}
+
+.clock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    line-height: 1.15;
+}
+
+.clock__time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--db-text, #ffffff);
+}
+
+.clock__date {
+    font-size: 0.66rem;
+    color: var(--db-text-dim, rgba(255, 255, 255, 0.5));
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
