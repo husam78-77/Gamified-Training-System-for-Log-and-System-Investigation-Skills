@@ -4,6 +4,7 @@ import BrowserApp from './browser';
 import FilesApp from './files';
 import AlertsApp from './alerts';
 import AriaApp from './aria';
+import ReportApp from './report';
 
 /**
  * applicationRegistry.js
@@ -21,6 +22,7 @@ const applicationRegistry = {
     files: FilesApp,
     alerts: AlertsApp,
     aria: AriaApp,
+    report: ReportApp,
 };
 
 export default applicationRegistry;

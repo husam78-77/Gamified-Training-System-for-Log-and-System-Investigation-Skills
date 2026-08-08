@@ -32,12 +32,12 @@ const pool = require('../config/db');
  *
  * @param {Object} params
  * @param {number} params.scenarioId
- * @param {number} params.stepOrder
+ * @param {number} params.objectiveId
  * @param {number} params.hintLevel
  *
  * @returns {Promise<{ cache_id, hint_text, generated_count, is_approved } | null>}
  */
-const getCachedHint = async ({ scenarioId, stepOrder, hintLevel }) => {
+const getCachedHint = async ({ scenarioId, objectiveId, hintLevel }) => {
     const result = await pool.query(
         `SELECT
             cache_id,
@@ -49,7 +49,7 @@ const getCachedHint = async ({ scenarioId, stepOrder, hintLevel }) => {
          WHERE scenario_id = $1
            AND step_order   = $2
            AND hint_level   = $3`,
-        [scenarioId, stepOrder, hintLevel]
+        [scenarioId, objectiveId, hintLevel]
     );
     return result.rows[0] || null;
 };
@@ -97,14 +97,14 @@ const getCacheByScenario = async (scenarioId) => {
  *
  * @param {Object} params
  * @param {number} params.scenarioId
- * @param {number} params.stepOrder
+ * @param {number} params.objectiveId
  * @param {number} params.hintLevel
  * @param {string} params.hintText    - The generated hint to cache
  * @param {string} params.promptUsed  - The prompt that generated it (for debugging)
  *
  * @returns {Promise<Object>} - The hint_cache row
  */
-const storeCachedHint = async ({ scenarioId, stepOrder, hintLevel, hintText, promptUsed }) => {
+const storeCachedHint = async ({ scenarioId, objectiveId, hintLevel, hintText, promptUsed }) => {
     const result = await pool.query(
         `INSERT INTO hint_cache (
             scenario_id,
@@ -119,12 +119,12 @@ const storeCachedHint = async ({ scenarioId, stepOrder, hintLevel, hintText, pro
         ON CONFLICT (scenario_id, step_order, hint_level)
         DO NOTHING
         RETURNING *`,
-        [scenarioId, stepOrder, hintLevel, hintText, promptUsed || null]
+        [scenarioId, objectiveId, hintLevel, hintText, promptUsed || null]
     );
 
     // If DO NOTHING fired (race condition), fetch the existing row
     if (result.rows.length === 0) {
-        return await getCachedHint({ scenarioId, stepOrder, hintLevel });
+        return await getCachedHint({ scenarioId, objectiveId, hintLevel });
     }
 
     return result.rows[0];
@@ -160,19 +160,19 @@ const incrementCacheHitCount = async (cacheId) => {
  *
  * @param {Object} params
  * @param {number} params.scenarioId
- * @param {number} params.stepOrder
+ * @param {number} params.objectiveId
  * @param {number} params.hintLevel
  *
  * @returns {Promise<boolean>} - true if a row was deleted, false if key not found
  */
-const invalidateCachedHint = async ({ scenarioId, stepOrder, hintLevel }) => {
+const invalidateCachedHint = async ({ scenarioId, objectiveId, hintLevel }) => {
     const result = await pool.query(
         `DELETE FROM hint_cache
          WHERE scenario_id = $1
            AND step_order   = $2
            AND hint_level   = $3
          RETURNING cache_id`,
-        [scenarioId, stepOrder, hintLevel]
+        [scenarioId, objectiveId, hintLevel]
     );
     return result.rows.length > 0;
 };

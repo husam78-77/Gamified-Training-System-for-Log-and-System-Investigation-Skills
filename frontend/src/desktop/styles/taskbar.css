@@ -36,7 +36,24 @@
 .running-applications__item {
     padding: 4px 10px;
     background: rgba(255, 255, 255, 0.08);
+    border: none;
     border-radius: 4px;
+    color: #ffffff;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.running-applications__item:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.running-applications__item--active {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.running-applications__item--minimized {
+    opacity: 0.55;
 }
 
 .clock {

@@ -38,6 +38,23 @@ const loadIncident = async (incidentId) => {
 };
 
 /**
+ * Load an arbitrary JSON content file from an incident's folder
+ * (discoveries.json, objectives.json, review.json, ...). Single, generic
+ * entry point every content-driven engine should use instead of
+ * re-implementing its own file read.
+ * @param {string} incidentId
+ * @param {string} fileName - e.g. 'discoveries.json'
+ */
+const loadIncidentContent = async (incidentId, fileName) => {
+    const filePath = path.join(INCIDENTS_DIR, incidentId, fileName);
+    try {
+        return await readJson(filePath);
+    } catch (err) {
+        throw new Error(`Failed to load "${fileName}" for incident "${incidentId}" (${filePath}): ${err.message}`);
+    }
+};
+
+/**
  * Load a template's metadata.json.
  * @param {string} templateName - folder name under content/templates/
  */
@@ -69,4 +86,5 @@ const buildEnvironment = async (incidentId) => {
 
 module.exports = {
     buildEnvironment,
+    loadIncidentContent,
 };

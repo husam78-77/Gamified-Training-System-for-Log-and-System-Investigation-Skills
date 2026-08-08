@@ -96,11 +96,19 @@ const applyCreate = async (virtualFiles, createDir) => {
         const fileName = path.basename(entry.relPath);
 
         if (entry.isDirectory) {
-            virtualFiles.push({
-                file_name: fileName,
-                file_path: virtualPath,
-                file_type: 'directory',
-            });
+            // The template may already define this directory (e.g. /etc,
+            // /home) — assets/create only needs to add the entry when it
+            // doesn't already exist, otherwise every incident whose
+            // create/ tree shares a parent directory with the template
+            // would produce duplicate virtualFiles rows for that path.
+            const alreadyExists = virtualFiles.some(f => f.file_path === virtualPath);
+            if (!alreadyExists) {
+                virtualFiles.push({
+                    file_name: fileName,
+                    file_path: virtualPath,
+                    file_type: 'directory',
+                });
+            }
             continue;
         }
 

@@ -49,4 +49,17 @@ module.exports = {
     // ── Investigation ─────────────────────────────────────
     INVESTIGATION_FETCHED: 'Current investigation retrieved successfully',
     INVESTIGATION_NOT_FOUND: 'No active investigation for this user',
+
+    // ── Investigation Report ──────────────────────────────
+    REPORT_FETCHED: 'Investigation report retrieved successfully',
+    REPORT_SAVED: 'Investigation report saved',
+
+    // ── Investigation Events ──────────────────────────────
+    EVENT_LOGGED: 'Event logged',
+
+    // ── Submission / AI Review ────────────────────────────
+    SUBMISSION_INCOMPLETE: 'Submission requires a completed investigation report and terminal history',
+    INVESTIGATION_SUBMITTED: 'Investigation submitted for review',
+    REVIEW_FETCHED: 'AI review retrieved successfully',
+    REVIEW_NOT_FOUND: 'No review exists for this session yet',
 };

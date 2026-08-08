@@ -6,18 +6,28 @@ import React from 'react';
  * the same list WindowManager renders windows from, so this never falls
  * out of sync with what's actually open.
  *
- * No click behavior yet. Focus/minimize wiring plugs in later via an
- * onSelect-style prop without changing this component's shape.
+ * Clicking an item: minimized → restore, active → minimize, otherwise →
+ * focus. Desktop.handleTaskbarSelect owns that decision — this component
+ * only reports the click.
  */
-const RunningApplications = ({ openedApplications = [] }) => {
+const RunningApplications = ({ openedApplications = [], activeAppId = null, onSelect }) => {
     if (openedApplications.length === 0) return null;
 
     return (
         <div className="running-applications">
             {openedApplications.map((app) => (
-                <div key={app.id} className="running-applications__item">
+                <button
+                    key={app.id}
+                    type="button"
+                    className={
+                        'running-applications__item' +
+                        (app.id === activeAppId ? ' running-applications__item--active' : '') +
+                        (app.minimized ? ' running-applications__item--minimized' : '')
+                    }
+                    onClick={() => onSelect?.(app.id)}
+                >
                     {app.title}
-                </div>
+                </button>
             ))}
         </div>
     );

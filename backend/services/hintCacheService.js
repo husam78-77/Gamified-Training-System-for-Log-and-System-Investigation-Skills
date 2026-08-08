@@ -1,45 +1,31 @@
 /**
- * hintCacheService.js  ← backend/services/hintCacheService.js
- * Phase 5 — Passes isAutoTriggered flag through to hintService
- *
- * CHANGES FROM PHASE 3:
- *   1. resolveHint() accepts optional isAutoTriggered parameter
- *   2. Passes it into hintService.generateHint() on cache miss
- *   3. Cache hit path still skips AI — isAutoTriggered doesn't affect
- *      cache lookup, only prompt generation on miss
- *   4. Everything else identical to Phase 3
- *
- * NOTE ON CACHE BEHAVIOR WITH isAutoTriggered:
- *   Cache key is still (scenario_id, step_order, hint_level).
- *   Auto-triggered and manually-requested hints for the same key
- *   share the same cache entry. This is intentional — the hint text
- *   is identical regardless of how it was triggered. The auto-trigger
- *   intro phrase is generated at the prompt level, not stored in cache.
- *   If you want separate cache entries for auto vs manual, change the
- *   cache key to include a trigger_type column — but this is not recommended
- *   as it doubles cache population time.
- *
- * Path: backend/services/hintCacheService.js
+ * hintCacheService.js
+ * Phase 7 — cache key is now (scenario_id, objective_id, hint_level)
+ * instead of (scenario_id, step_order, hint_level). Cache-first strategy
+ * and behavior are otherwise unchanged from the original design.
  */
 
 const hintService = require('./hintService');
 const hintCacheModel = require('../models/hintCacheModel');
+const { analyzePlayerState } = require('./playerStateAnalyzer');
 
 /**
  * Resolve a hint using cache-first strategy.
  *
- * @param {Object}  params
- * @param {number}  params.scenarioId
- * @param {number}  params.stepOrder
- * @param {number}  params.hintLevel
- * @param {Array}   params.commandHistory
- * @param {Array}   params.expectedSteps
- * @param {Array}   params.completedStepOrders
- * @param {Array}   params.previousHints
- * @param {string}  params.scenarioTitle
- * @param {string}  params.missionBrief
- * @param {Date}    params.sessionStartTime
- * @param {boolean} [params.isAutoTriggered=false]  ← Phase 5
+ * @param {Object}   params
+ * @param {number}   params.scenarioId
+ * @param {string}   params.objectiveId
+ * @param {number}   params.hintLevel
+ * @param {Array}    params.commandHistory
+ * @param {string[]} params.candidateCommands
+ * @param {Object}   params.nextObjective
+ * @param {number}   params.completedCount
+ * @param {number}   params.totalCount
+ * @param {Array}    params.previousHints
+ * @param {string}   params.scenarioTitle
+ * @param {string}   params.missionBrief
+ * @param {Date}     params.sessionStartTime
+ * @param {boolean}  [params.isAutoTriggered=false]
  *
  * @returns {Promise<{
  *   hint: string,
@@ -52,40 +38,39 @@ const hintCacheModel = require('../models/hintCacheModel');
  */
 const resolveHint = async ({
     scenarioId,
-    stepOrder,
+    objectiveId,
     hintLevel,
     commandHistory,
-    expectedSteps,
-    completedStepOrders,
+    candidateCommands,
+    nextObjective,
+    completedCount,
+    totalCount,
     previousHints,
     scenarioTitle,
     missionBrief,
     sessionStartTime,
-    isAutoTriggered = false,   // Phase 5
+    isAutoTriggered = false,
 }) => {
     // ── Step 1: Cache check ───────────────────────────────────────────────
-    const cached = await hintCacheModel.getCachedHint({ scenarioId, stepOrder, hintLevel });
+    const cached = await hintCacheModel.getCachedHint({ scenarioId, objectiveId, hintLevel });
 
     if (cached) {
-        // Cache hit — still run analyzer for logging, skip AI
         hintCacheModel.incrementCacheHitCount(cached.cache_id).catch(err => {
             console.error('[HintCache] Failed to increment hit count:', err.message);
         });
 
-        const { analyzePlayerState } = require('./playerStateAnalyzer');
-        const nextStep = expectedSteps.find(s => !completedStepOrders.includes(s.step_order));
         const playerState = analyzePlayerState({
             commandHistory,
-            nextStep,
-            completedStepOrders,
-            totalSteps: expectedSteps.length,
+            candidateCommands,
+            completedCount,
+            totalCount,
             sessionStartTime,
         });
 
         const recentCommands = commandHistory.slice(-5).map(c => c.command_entered).join(', ');
 
         console.log('[HintCache] CACHE HIT:', {
-            scenarioId, stepOrder, hintLevel,
+            scenarioId, objectiveId, hintLevel,
             cacheId: cached.cache_id,
             timesServed: cached.generated_count,
             isAutoTriggered,
@@ -102,25 +87,25 @@ const resolveHint = async ({
     }
 
     // ── Step 2: Cache miss — generate via AI ─────────────────────────────
-    console.log('[HintCache] CACHE MISS — calling AI:', {
-        scenarioId, stepOrder, hintLevel, isAutoTriggered,
-    });
+    console.log('[HintCache] CACHE MISS — calling AI:', { scenarioId, objectiveId, hintLevel, isAutoTriggered });
 
     const { prompt, hint, triggerCommands, playerState } = await hintService.generateHint({
         commandHistory,
-        expectedSteps,
-        completedStepOrders,
+        candidateCommands,
+        nextObjective,
+        completedCount,
+        totalCount,
         previousHints,
         scenarioTitle,
         missionBrief,
         sessionStartTime,
         hintLevel,
-        isAutoTriggered,   // Phase 5: passed to prompt builder
+        isAutoTriggered,
     });
 
     // ── Step 3: Store in cache (fire and forget) ─────────────────────────
     hintCacheModel.storeCachedHint({
-        scenarioId, stepOrder, hintLevel,
+        scenarioId, objectiveId, hintLevel,
         hintText: hint,
         promptUsed: prompt,
     }).catch(err => {

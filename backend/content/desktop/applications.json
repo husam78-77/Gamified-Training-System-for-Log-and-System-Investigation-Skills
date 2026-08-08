@@ -4,5 +4,6 @@
     { "id": "browser", "name": "Browser" },
     { "id": "files", "name": "Files" },
     { "id": "alerts", "name": "Alerts" },
-    { "id": "aria", "name": "ARIA" }
+    { "id": "aria", "name": "ARIA" },
+    { "id": "report", "name": "Report" }
 ]

@@ -1,39 +1,26 @@
 /**
  * hintController.js
- * Phase 3 — Uses cache-first hint resolution
+ * ARIA's hint endpoint (Phase 7).
  *
- * CHANGES FROM PHASE 2:
- *   1. Replaces direct hintService.generateHint() call
- *      with hintCacheService.resolveHint()
- *   2. Passes cacheHit flag into hintModel.saveHint()
- *      so ai_hint_log.cache_hit is correctly recorded
- *   3. Response now includes cacheHit (optional, useful for dev/admin)
- *   4. Everything else is identical to Phase 2
+ * Hints are resolved from Discoveries, Objectives and command_history
+ * (Investigation Events' raw material) — never from a hardcoded
+ * expected-command answer key (development_rules.md #14).
  *
- * FLOW:
- *   Request → validate → resolve level → resolveHint() →
- *     ├── cache hit  → return cached text, log cache_hit=true
- *     └── cache miss → AI generates → store in cache → log cache_hit=false
- *
- * API CONTRACT:
- *   Request:  POST /api/hints/request { session_id }   ← UNCHANGED
- *   Response: {
- *     hint: string,
- *     hintsRemaining: number,
- *     hintLevel: number,
- *     hintsRemainingForStep: number,
- *     cacheHit: boolean          ← NEW (Phase 3, useful for admin/debug)
- *   }
- *
- * Path: backend/controllers/hintController.js
+ * Routes served:
+ *   POST /api/hints/request        → requestHint
+ *   GET  /api/hints/:sessionId     → getHintLog
  */
 
 const hintModel = require('../models/hintModel');
 const sessionModel = require('../models/sessionModel');
 const scenarioModel = require('../models/scenarioModel');
 const terminalModel = require('../models/terminalModel');
+const investigationDiscoveryModel = require('../models/investigationDiscoveryModel');
+const discoveryEngine = require('../services/investigation/discoveryEngine');
+const objectiveEngine = require('../services/investigation/objectiveEngine');
 const hintLevelService = require('../services/hintLevelService');
-const hintCacheService = require('../services/hintCacheService');  // Phase 3
+const hintCacheService = require('../services/hintCacheService');
+const { resolveIncidentId } = require('../services/environment/incidentResolver');
 const response = require('../utils/responseHelper');
 const MESSAGES = require('../constants/messages');
 
@@ -69,65 +56,66 @@ const requestHint = async (req, res) => {
             return response.error(res, 429, MESSAGES.HINT_LIMIT_REACHED);
         }
 
-        // ── Load data ─────────────────────────────────────────────────────
-        const [commandHistory, expectedSteps, previousHintRows, scenario] = await Promise.all([
+        // ── Load content + progress ───────────────────────────────────────
+        const scenario = await scenarioModel.getScenarioById(session.scenario_id);
+        const incidentId = resolveIncidentId(scenario.type);
+
+        const [discoveries, objectives, unlockedKeys, commandHistory, previousHintRows] = await Promise.all([
+            discoveryEngine.getDiscoveries(incidentId),
+            objectiveEngine.getObjectives(incidentId),
+            investigationDiscoveryModel.getUnlockedKeys(sessionId),
             terminalModel.getCommandHistory(sessionId),
-            scenarioModel.getExpectedStepsByScenario(session.scenario_id),
             hintModel.getHintsBySession(sessionId),
-            scenarioModel.getScenarioById(session.scenario_id),
         ]);
 
-        const matchedHistory = await terminalModel.getMatchedCommands(sessionId);
-        const completedStepOrders = matchedHistory.map(c => c.match_step_order);
         const previousHints = previousHintRows.map(h => h.hint_returned);
+        const completedObjectiveIds = objectiveEngine.resolveCompletedObjectives(objectives, unlockedKeys);
+        const nextObjective = objectives.find(o => !completedObjectiveIds.includes(o.id));
 
-        // ── Derive next step (backend source of truth) ───────────────────
-        const nextStep = expectedSteps.find(
-            s => !completedStepOrders.includes(s.step_order)
-        );
-        if (!nextStep) {
-            return response.error(res, 400, 'All steps are already completed.');
+        if (!nextObjective) {
+            return response.error(res, 400, 'All objectives are already completed.');
         }
 
-        // ── Resolve hint level for this step (Phase 2) ───────────────────
-        const { hintLevel, hintCount, stepLevelCapped } =
-            await hintLevelService.resolveNextHintLevel({
-                sessionId,
-                scenarioId: session.scenario_id,
-                stepOrder: nextStep.step_order,
-            });
+        const candidateCommands = discoveryEngine.getCandidateCommands(discoveries, nextObjective, unlockedKeys);
 
-        // ── Phase 3: Cache-first hint resolution ─────────────────────────
-        // Replaces direct hintService.generateHint() call from Phase 2.
-        // hintCacheService checks cache first, only calls AI on miss.
+        // ── Resolve hint level for this objective ─────────────────────────
+        const { hintLevel, hintCount } = await hintLevelService.resolveNextHintLevel({
+            sessionId,
+            scenarioId: session.scenario_id,
+            objectiveId: nextObjective.id,
+        });
+
+        // ── Cache-first hint resolution ───────────────────────────────────
         const { hint, prompt, triggerCommands, playerState, cacheHit, cacheId } =
             await hintCacheService.resolveHint({
                 scenarioId: session.scenario_id,
-                stepOrder: nextStep.step_order,
+                objectiveId: nextObjective.id,
                 hintLevel,
                 commandHistory,
-                expectedSteps,
-                completedStepOrders,
+                candidateCommands,
+                nextObjective,
+                completedCount: completedObjectiveIds.length,
+                totalCount: objectives.length,
                 previousHints,
                 scenarioTitle: scenario.title,
                 missionBrief: scenario.mission_brief,
                 sessionStartTime: session.start_time,
             });
 
-        // ── Save hint log with cache_hit flag ────────────────────────────
+        // ── Save hint log ──────────────────────────────────────────────────
         await hintModel.saveHint({
             sessionId,
             triggerCommands,
             promptSent: prompt,
             hintReturned: hint,
             scenarioId: session.scenario_id,
-            stepOrder: nextStep.step_order,
+            stepOrder: nextObjective.id,
             hintLevel,
             playerState,
-            cacheHit,       // Phase 3: recorded in ai_hint_log.cache_hit
+            cacheHit,
         });
 
-        // ── Update session player state summary ──────────────────────────
+        // ── Update session player state summary ────────────────────────────
         await hintModel.upsertSessionPlayerState({
             sessionId,
             scenarioId: session.scenario_id,
@@ -135,10 +123,9 @@ const requestHint = async (req, res) => {
             hintsUsed: hintsUsed + 1,
         });
 
-        // ── Observability ─────────────────────────────────────────────────
-        console.log('[HintEngine] Phase3:', {
+        console.log('[HintEngine] Phase7:', {
             sessionId,
-            stepOrder: nextStep.step_order,
+            objectiveId: nextObjective.id,
             hintLevel,
             cacheHit,
             cacheId: cacheId || 'n/a',
@@ -147,17 +134,14 @@ const requestHint = async (req, res) => {
         });
 
         // ── Response ──────────────────────────────────────────────────────
-        const hintsRemainingForStep = Math.max(
-            0,
-            hintLevelService.MAX_HINT_LEVEL - hintCount
-        );
+        const hintsRemainingForStep = Math.max(0, hintLevelService.MAX_HINT_LEVEL - hintCount);
 
         return response.success(res, 200, MESSAGES.HINT_GENERATED, {
             hint,
             hintsRemaining: MAX_HINTS_PER_SESSION - (hintsUsed + 1),
             hintLevel,
             hintsRemainingForStep,
-            cacheHit,               // Phase 3 addition
+            cacheHit,
         });
 
     } catch (err) {
@@ -167,7 +151,7 @@ const requestHint = async (req, res) => {
 };
 
 // =============================================================================
-// GET /api/hints/:sessionId — Unchanged from Phase 2
+// GET /api/hints/:sessionId
 // =============================================================================
 
 const getHintLog = async (req, res) => {

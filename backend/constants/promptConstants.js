@@ -222,9 +222,9 @@ followed immediately by the hint. Do not explain why you are intervening.`;
  * @param {string} params.missionBrief
  * @param {string} params.recentCommands
  * @param {Object} params.playerState
- * @param {Object} params.nextStep
+ * @param {Object} params.nextObjective
  * @param {number} params.completedCount
- * @param {number} params.totalSteps
+ * @param {number} params.totalCount
  * @param {Array}  params.previousHints
  * @param {number} params.hintLevel
  * @param {boolean} [params.isAutoTriggered=false]   ← Phase 5
@@ -236,23 +236,23 @@ const buildPrompt = ({
     missionBrief,
     recentCommands,
     playerState,
-    nextStep,
+    nextObjective,
     completedCount,
-    totalSteps,
+    totalCount,
     previousHints,
     hintLevel,
     isAutoTriggered = false,
 }) => {
     // Phase 5: dynamic persona based on progress
-    const completionRatio = totalSteps > 0 ? completedCount / totalSteps : 0;
+    const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
     const persona = buildPersona(completionRatio);
 
     const levelMeta = LEVEL_INSTRUCTIONS[hintLevel] || LEVEL_INSTRUCTIONS[1];
     const behaviorTone = BEHAVIOR_TONE[playerState.behaviorType] || BEHAVIOR_TONE.progressing;
     const stuckTone = STUCK_SCORE_TONE(playerState.stuckScore);
 
-    const stepDescription = nextStep
-        ? `Current objective: "${nextStep.description}"`
+    const stepDescription = nextObjective
+        ? `Current objective: "${nextObjective.description}"`
         : 'The investigator is approaching mission completion.';
 
     const previousHintBlock = previousHints.length > 0
@@ -276,7 +276,7 @@ Scenario: ${scenarioTitle}
 Mission Brief: ${missionBrief}
 
 ━━━ INVESTIGATION STATUS ━━━
-Progress: ${completedCount} of ${totalSteps} steps completed (${Math.round(completionRatio * 100)}%)
+Progress: ${completedCount} of ${totalCount} objectives completed (${Math.round(completionRatio * 100)}%)
 ${stepDescription}
 Recent terminal input: ${recentCommands || '[no commands entered yet]'}
 Wrong attempts since last correct step: ${playerState.wrongCommandCount}
@@ -304,6 +304,121 @@ Respond with ONLY the hint text. Nothing else.`;
 };
 
 // =============================================================================
+// AI REVIEW PROMPT (Phase 9)
+// A separate persona from ARIA — an instructor grading the finished
+// investigation report, not a hint-giver mid-investigation. Every
+// criterion comes from the incident's review.json; nothing here is
+// scenario-specific (dev rule #18).
+// =============================================================================
+
+const REVIEW_INSTRUCTOR_PERSONA = `You are a senior cybersecurity incident response instructor grading a student's investigation.
+You are rigorous but fair. You reward claims that are backed by evidence the student actually collected,
+and you penalize unsupported speculation presented as fact. You do not reward guessing the right answer
+without demonstrating the reasoning or evidence behind it.
+
+You are evaluating the INVESTIGATOR, not only the document they handed in. The terminal command history
+and investigation analytics below are your record of how they actually worked — a polished report sitting
+on top of a scattershot, inefficient process is not the same submission as an equally polished report
+sitting on top of a focused, methodical one, even when the two reports read identically.`;
+
+/**
+ * @param {Object} params
+ * @param {string} params.scenarioTitle
+ * @param {string} params.missionBrief
+ * @param {Array}  params.criteria         - review.json criteria: [{ id, title, weight, required }]
+ * @param {string} params.reportContent
+ * @param {string[]} params.terminalCommands
+ * @param {Object} params.analytics        - analyticsEngine.buildAnalytics() output
+ * @returns {string}
+ */
+const buildReviewPrompt = ({
+    scenarioTitle,
+    missionBrief,
+    criteria,
+    reportContent,
+    terminalCommands,
+    analytics,
+}) => {
+    const criteriaList = criteria
+        .map(c => `- id: "${c.id}" — ${c.title} (weight ${c.weight}%)`)
+        .join('\n');
+
+    const commandsBlock = terminalCommands.length > 0
+        ? terminalCommands.join('\n')
+        : '[no commands recorded]';
+
+    const formatFrequencyList = (rows, keyName) => rows.length > 0
+        ? rows.map(r => `${r[keyName]} (${r.count}x)`).join(', ')
+        : 'none';
+
+    return `${REVIEW_INSTRUCTOR_PERSONA}
+
+━━━ ACTIVE INCIDENT ━━━
+Scenario: ${scenarioTitle}
+Mission Brief: ${missionBrief}
+
+━━━ GRADING CRITERIA ━━━
+Score each criterion 0-100, representing how completely and accurately the report satisfies it:
+${criteriaList}
+
+━━━ STUDENT'S INVESTIGATION REPORT ━━━
+"""
+${reportContent || '[empty report]'}
+"""
+
+━━━ TERMINAL COMMAND HISTORY (${terminalCommands.length} commands, in order) ━━━
+${commandsBlock}
+
+━━━ INVESTIGATION ANALYTICS (compact behavioural summary, not raw events) ━━━
+Discoveries found: ${analytics.discoveriesFoundCount}/${analytics.totalDiscoveries}
+Objectives completed: ${analytics.objectivesCompletedCount}/${analytics.totalObjectives}
+Commands executed: ${analytics.totalCommands} total (${analytics.matchedCommandCount} advanced the investigation, ${analytics.unmatchedCommandCount} did not)
+Most used commands: ${formatFrequencyList(analytics.mostUsedCommands, 'command')}
+Most investigated files: ${formatFrequencyList(analytics.mostInvestigatedFiles, 'path')}
+Applications opened: ${analytics.applicationsUsed.join(', ') || 'none'}
+Distinct files viewed (File Manager): ${analytics.evidenceViewed.length}
+Browser articles read: ${analytics.articlesRead.length}
+Emails read: ${analytics.emailsOpened.length}
+Report activity: ${analytics.reportActivity.edits} edits, ${analytics.reportActivity.saves} saves
+Hints used: ${analytics.hintsUsed}
+Session duration: ${analytics.sessionDurationMinutes} minute(s)
+
+━━━ DIRECTIVE ━━━
+Evaluate this submission across three dimensions, using only the material above — never assume evidence
+the player didn't record just because it would make a "better" investigation story:
+
+1. REPORT QUALITY — Is each conclusion accurate, complete, and specific? Does it cite the evidence that
+   actually supports it, rather than asserting a conclusion with no traceable source?
+2. INVESTIGATION METHODOLOGY — Does the command history and analytics show a logical, evidence-driven
+   process (e.g. searching before concluding, cross-referencing multiple sources) that plausibly produced
+   the report's conclusions? Or does the report's confidence outrun what the recorded process shows —
+   e.g. a correct conclusion reached with far too little supporting investigation to justify it?
+3. INVESTIGATION EFFICIENCY — Relative to the evidence available, was the process focused (targeted,
+   mostly-successful commands) or scattershot (a high unmatched-command count, heavy repetition of the
+   same command in "most used commands", excessive hint use for the mission's difficulty)?
+
+Score each criterion in the grading list 0-100 based on dimension 1 (what the report says), but let
+dimensions 2 and 3 pull a criterion's score down when the process evidence contradicts or fails to support
+what's being claimed — especially for any criterion whose title concerns methodology or process. Always
+reflect dimensions 2 and 3 explicitly in "strengths"/"weaknesses"/"feedback", even when no single criterion
+is dedicated to them: a thorough investigator with an average report and a lucky investigator with the same
+report text should read differently in your feedback, not just look identical.
+
+Respond with STRICT JSON only — no markdown fences, no commentary outside the JSON — in exactly this shape:
+
+{
+  "criteria": [
+    { "id": "<criterion id from the list above>", "score": <integer 0-100>, "comment": "<one sentence>" }
+  ],
+  "strengths": ["<short strength>", "..."],
+  "weaknesses": ["<short weakness>", "..."],
+  "feedback": "<2-4 sentence overall feedback addressed directly to the investigator, covering both the report and how they investigated>"
+}
+
+Include exactly one entry in "criteria" for every id listed above, in the same order.`;
+};
+
+// =============================================================================
 // EXPORTS
 // =============================================================================
 
@@ -316,4 +431,5 @@ module.exports = {
     BEHAVIOR_TONE,
     STUCK_SCORE_TONE,
     AUTO_TRIGGER_INTRO,
+    buildReviewPrompt,
 };

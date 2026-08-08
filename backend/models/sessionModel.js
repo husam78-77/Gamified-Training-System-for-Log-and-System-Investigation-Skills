@@ -74,6 +74,27 @@ const closeSession = async ({ sessionId, finalScore, status }) => {
 };
 
 /**
+ * Freeze a session on submission (Phase 8) — sets submitted_at, end_time,
+ * final_score, and status in one update. Distinct from closeSession only
+ * in that it also stamps submitted_at, so "submitted" is queryable
+ * separately from "closed" if a future flow ever needs that distinction.
+ */
+const submitSession = async ({ sessionId, finalScore }) => {
+    const result = await pool.query(
+        `UPDATE sessions
+         SET
+            submitted_at = CURRENT_TIMESTAMP,
+            end_time     = CURRENT_TIMESTAMP,
+            final_score  = $2,
+            status       = 'completed'
+         WHERE session_id = $1
+         RETURNING *`,
+        [sessionId, finalScore]
+    );
+    return result.rows[0] || null;
+};
+
+/**
  * Discard a session on early exit in timed mode
  * Sets status to 'abandoned', no score saved
  */
@@ -96,5 +117,6 @@ module.exports = {
     getActiveSession,
     getActiveSessionForUser,
     closeSession,
+    submitSession,
     abandonSession,
 };

@@ -1,0 +1,47 @@
+{
+  "submission": {
+    "requiresReport": true,
+    "requiresTerminalHistory": true
+  },
+  "grading": {
+    "maxScore": 100
+  },
+  "criteria": [
+    {
+      "id": "incident_summary",
+      "title": "Incident Summary",
+      "weight": 15,
+      "required": true
+    },
+    {
+      "id": "attack_source",
+      "title": "Attack Source Identification",
+      "weight": 20,
+      "required": true
+    },
+    {
+      "id": "authentication_result",
+      "title": "Authentication Assessment",
+      "weight": 20,
+      "required": true
+    },
+    {
+      "id": "compromised_account",
+      "title": "Compromised Account Identification",
+      "weight": 20,
+      "required": true
+    },
+    {
+      "id": "supporting_evidence",
+      "title": "Evidence Quality",
+      "weight": 15,
+      "required": true
+    },
+    {
+      "id": "investigation_methodology",
+      "title": "Investigation Methodology",
+      "weight": 10,
+      "required": true
+    }
+  ]
+}

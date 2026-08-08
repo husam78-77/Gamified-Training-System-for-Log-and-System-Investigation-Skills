@@ -5,5 +5,7 @@
     "difficulty": "Beginner",
     "template": "ubuntu_server",
     "estimated_time": 20,
-    "xp": 250
+    "xp": 250,
+    "version": "1.0.0",
+    "status": "active"
 }

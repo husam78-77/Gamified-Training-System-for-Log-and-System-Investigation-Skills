@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useInvestigation } from '../../context/InvestigationContext';
 import { useTerminal } from '../../hooks/useTerminal';
 import TerminalPanel from '../../components/TerminalPanel';
-import { fetchFullScenarioData } from '../../services/scenarioService';
+import { getFiles } from '../files/services/fileService';
 import { abandonSession } from '../../services/sessionService';
 import './styles/terminal-app.css';
 
@@ -16,21 +16,26 @@ import './styles/terminal-app.css';
  * useInvestigation) and hands them to the same hooks/component
  * GamingEnvironment already uses. It does not create or resume a session
  * itself — that already happened once, before Desktop ever mounted.
+ *
+ * initialFiles comes from the same GET /api/files the File Manager uses
+ * (Environment Engine + report overlay) — not the legacy scenario-table
+ * endpoint — so Terminal and File Manager always start from identical
+ * content (dev rule #11).
  */
 const TerminalApp = () => {
     const navigate = useNavigate();
     const { token } = useAuth();
     const { investigation } = useInvestigation();
-    const [scenarioData, setScenarioData] = useState(null);
+    const [initialFiles, setInitialFiles] = useState([]);
     const [exiting, setExiting] = useState(false);
 
     useEffect(() => {
-        if (!investigation?.scenarioId || !token) return;
+        if (!investigation?.incidentId) return;
 
         let cancelled = false;
-        fetchFullScenarioData(investigation.scenarioId, token)
-            .then((data) => {
-                if (!cancelled) setScenarioData(data);
+        getFiles(investigation.incidentId, investigation.sessionId)
+            .then((files) => {
+                if (!cancelled) setInitialFiles(files);
             })
             .catch(() => {
                 // Terminal still mounts with an empty filesystem on failure.
@@ -39,12 +44,12 @@ const TerminalApp = () => {
         return () => {
             cancelled = true;
         };
-    }, [investigation?.scenarioId, token]);
+    }, [investigation?.incidentId, investigation?.sessionId]);
 
     const terminal = useTerminal({
         sessionId: investigation?.sessionId,
         token,
-        initialFiles: scenarioData?.virtualFiles || [],
+        initialFiles,
     });
 
     // Temporary way to close out the active session from the Desktop —

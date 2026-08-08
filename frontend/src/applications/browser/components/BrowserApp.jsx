@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../../../context/AuthContext';
 import { useInvestigation } from '../../../context/InvestigationContext';
 import { useBrowser } from '../hooks/useBrowser';
 import BrowserSidebar from './BrowserSidebar';
 import BrowserViewer from './BrowserViewer';
+import { logEvent } from '../../../services/investigationService';
 import '../styles/browser.css';
 
 /**
@@ -15,9 +17,18 @@ import '../styles/browser.css';
  * this component never fetches or hardcodes it itself.
  */
 const BrowserApp = () => {
+    const { token } = useAuth();
     const { investigation } = useInvestigation();
     const { homePage, pages, loading, error } = useBrowser(investigation?.incidentId);
     const [currentPageId, setCurrentPageId] = useState(null);
+
+    const handleNavigate = useCallback((pageId) => {
+        setCurrentPageId(pageId);
+        const page = pages.find((p) => p.id === pageId);
+        if (page?.type === 'article') {
+            logEvent('ARTICLE_OPENED', { articleId: pageId }, token);
+        }
+    }, [pages, token]);
 
     useEffect(() => {
         if (!currentPageId && homePage) {
@@ -44,8 +55,8 @@ const BrowserApp = () => {
 
     return (
         <div className="browser-app">
-            <BrowserSidebar items={sidebarItems} currentPageId={currentPageId} onNavigate={setCurrentPageId} />
-            <BrowserViewer page={currentPage} pages={pages} onNavigate={setCurrentPageId} />
+            <BrowserSidebar items={sidebarItems} currentPageId={currentPageId} onNavigate={handleNavigate} />
+            <BrowserViewer page={currentPage} pages={pages} onNavigate={handleNavigate} />
         </div>
     );
 };

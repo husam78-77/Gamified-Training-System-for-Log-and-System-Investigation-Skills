@@ -50,18 +50,18 @@ const PROXIMITY_DISTANCE_THRESHOLD = 4;
  *
  * @param {Object}   params
  * @param {Array}    params.commandHistory        - All command_history rows for this session
- * @param {Object}   params.nextStep              - The next expected_steps row (may be null if complete)
- * @param {Array}    params.completedStepOrders   - step_order values already matched
- * @param {number}   params.totalSteps            - Total expected steps for the scenario
+ * @param {string[]} [params.candidateCommands]   - Base command verbs that would earn progress right now (from Discoveries), used for proximity detection instead of a single "correct" command
+ * @param {number}   params.completedCount        - Objectives/discoveries already completed
+ * @param {number}   params.totalCount            - Total objectives/discoveries for the scenario
  * @param {Date}     params.sessionStartTime      - When the session started (session.start_time)
  *
  * @returns {PlayerState}
  */
 const analyzePlayerState = ({
     commandHistory,
-    nextStep,
-    completedStepOrders,
-    totalSteps,
+    candidateCommands = [],
+    completedCount,
+    totalCount,
     sessionStartTime,
 }) => {
     const now = Date.now();
@@ -85,10 +85,10 @@ const analyzePlayerState = ({
     const behaviorType = classifyBehavior(recentHistory, wrongHistory);
 
     // ── Proximity to correct answer ──────────────────────────────────────
-    const proximityResult = detectProximity(commandHistory, nextStep);
+    const proximityResult = detectProximity(commandHistory, candidateCommands);
 
     // ── Progress metrics ─────────────────────────────────────────────────
-    const completionRatio = totalSteps > 0 ? completedStepOrders.length / totalSteps : 0;
+    const completionRatio = totalCount > 0 ? completedCount / totalCount : 0;
     const wrongSinceMatch = wrongHistory.length;
 
     // ── Composite stuck score (0–100) ────────────────────────────────────
@@ -106,8 +106,8 @@ const analyzePlayerState = ({
         // Raw counts
         wrongCommandCount: wrongSinceMatch,
         totalCommandCount: commandHistory.length,
-        completedStepCount: completedStepOrders.length,
-        totalSteps,
+        completedCount,
+        totalCount,
         completionRatio,
 
         // Time signals
@@ -220,24 +220,28 @@ const classifyBehavior = (recentHistory, wrongHistory) => {
 // ─── Proximity Detection ─────────────────────────────────────────────────────
 
 /**
- * Detect if the player's most recent command is "close" to the correct one.
- * Uses Levenshtein distance on the base command (first token only).
+ * Detect if the player's most recent command is "close" to earning progress.
+ * Uses Levenshtein distance on the base command (first token only) against
+ * every candidate command that would currently unlock a needed discovery.
  *
- * "close" means the player likely knows WHAT to do but got the syntax wrong.
- * This should produce a more confirmatory hint ("you're on the right track")
- * rather than a redirectional one.
+ * "close" means the player likely has the right tool but the wrong target
+ * or search term. This should produce a more confirmatory hint ("you're on
+ * the right track") rather than a redirectional one.
  *
- * @param {Array}       commandHistory - Full command history
- * @param {Object|null} nextStep       - The next expected_steps row
+ * Unlike a single "correct command", candidateCommands is derived from
+ * Discoveries — there is no one right answer, only tools that currently
+ * matter. This keeps proximity detection content-driven (dev rule #14).
+ *
+ * @param {Array}    commandHistory    - Full command history
+ * @param {string[]} candidateCommands - Base command verbs that would earn progress right now
  * @returns {{ isClose: boolean, distance: number|null, closestCommand: string|null }}
  */
-const detectProximity = (commandHistory, nextStep) => {
+const detectProximity = (commandHistory, candidateCommands) => {
     const NULL_RESULT = { isClose: false, distance: null, closestCommand: null };
 
-    if (!nextStep || commandHistory.length === 0) return NULL_RESULT;
-
-    const expectedBase = nextStep.command_expected?.toLowerCase()?.split(' ')[0];
-    if (!expectedBase) return NULL_RESULT;
+    if (!candidateCommands || candidateCommands.length === 0 || commandHistory.length === 0) {
+        return NULL_RESULT;
+    }
 
     // Check last 3 commands only (recency matters for proximity)
     const recents = commandHistory.slice(-3).map(c => c.command_entered?.toLowerCase()?.split(' ')[0] || '');
@@ -247,10 +251,12 @@ const detectProximity = (commandHistory, nextStep) => {
 
     for (const cmd of recents) {
         if (!cmd) continue;
-        const dist = levenshtein(cmd, expectedBase);
-        if (dist < minDistance) {
-            minDistance = dist;
-            closestCmd = cmd;
+        for (const candidate of candidateCommands) {
+            const dist = levenshtein(cmd, candidate.toLowerCase());
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestCmd = cmd;
+            }
         }
     }
 

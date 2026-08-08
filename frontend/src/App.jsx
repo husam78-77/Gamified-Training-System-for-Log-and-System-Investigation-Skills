@@ -37,7 +37,6 @@ function App() {
               {/* ── Public routes ──────────────────────────── */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/desktop" element={<Desktop />} />
 
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -46,6 +45,12 @@ function App() {
               <Route path="/auth/callback" element={<AuthCallback />} />
 
               {/* ── Protected routes ───────────────────────── */}
+              <Route path="/desktop" element={
+                <ProtectedRoute>
+                  <Desktop />
+                </ProtectedRoute>
+              } />
+
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Layout><Dashboard /></Layout>

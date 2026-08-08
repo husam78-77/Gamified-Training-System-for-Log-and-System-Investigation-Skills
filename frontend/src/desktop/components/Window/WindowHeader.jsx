@@ -5,11 +5,11 @@ import WindowControls from './WindowControls';
  * WindowHeader.jsx
  * Renders the application title and the window controls.
  */
-const WindowHeader = ({ title, onClose }) => {
+const WindowHeader = ({ title, maximized, onClose, onMinimize, onMaximizeToggle }) => {
     return (
-        <div className="window-header">
+        <div className="window-header" onDoubleClick={onMaximizeToggle}>
             <span className="window-header__title">{title}</span>
-            <WindowControls onClose={onClose} />
+            <WindowControls maximized={maximized} onClose={onClose} onMinimize={onMinimize} onMaximizeToggle={onMaximizeToggle} />
         </div>
     );
 };

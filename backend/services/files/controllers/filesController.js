@@ -11,19 +11,22 @@ const response = require('../../../utils/responseHelper');
 const MESSAGES = require('../../../constants/messages');
 
 /**
- * GET /api/files?incidentId=...
- * Returns the virtual filesystem for the given incident. incidentId comes
- * from the frontend's Investigation Context (GET /api/investigation/current).
+ * GET /api/files?incidentId=...&sessionId=...
+ * Returns the virtual filesystem for the given incident. incidentId and
+ * sessionId come from the frontend's Investigation Context
+ * (GET /api/investigation/current). sessionId is optional but required to
+ * see live Investigation Report edits (falls back to the starter template
+ * without it).
  */
 const getFilesHandler = async (req, res) => {
     try {
-        const { incidentId } = req.query;
+        const { incidentId, sessionId } = req.query;
 
         if (!incidentId) {
             return response.error(res, 400, MESSAGES.INVALID_INPUT);
         }
 
-        const virtualFiles = await getFiles(incidentId);
+        const virtualFiles = await getFiles(incidentId, sessionId ? parseInt(sessionId, 10) : null);
 
         return response.success(res, 200, MESSAGES.FILES_FETCHED, virtualFiles);
     } catch (err) {

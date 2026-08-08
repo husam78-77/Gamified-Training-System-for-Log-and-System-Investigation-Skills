@@ -1,4 +1,4 @@
-import { Terminal, Mail, Globe, Folder, Bell, Bot, HelpCircle } from 'lucide-react';
+import { Terminal, Mail, Globe, Folder, Bell, Bot, FileText, HelpCircle } from 'lucide-react';
 
 /**
  * appIcons.js
@@ -14,6 +14,7 @@ const APP_ICONS = {
     files: Folder,
     alerts: Bell,
     aria: Bot,
+    report: FileText,
 };
 
 /**

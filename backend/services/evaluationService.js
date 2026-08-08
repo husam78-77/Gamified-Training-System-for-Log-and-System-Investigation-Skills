@@ -18,6 +18,7 @@
 
 const { normalizeForEvaluation, normalizePath } = require('../utils/terminalParser');
 const { calculateDiscoveryPathScore } = require('./discoveryService');
+const discoveryEngine = require('./investigation/discoveryEngine');
 
 /**
  * Match a single parsed command against the scenario's expected steps.
@@ -205,6 +206,64 @@ const calculateScore = ({
 };
 
 /**
+ * Calculate the mechanical completion score for a content-driven session
+ * (Phase 8/9) — the same 100-point breakdown as calculateScore, sourced
+ * from discoveries.json/objectives.json instead of expected_steps.
+ *
+ * This score measures investigation *mechanics* (evidence found, command
+ * efficiency, objectives reached, hints used) and drives XP/badges. It is
+ * independent of — and computed before — the qualitative AI Review score,
+ * which grades the written report itself against review.json.
+ *
+ * @param {Object}   params
+ * @param {Array}    params.discoveries          - all discoveries for the incident
+ * @param {string[]} params.unlockedKeys         - discovery keys unlocked this session
+ * @param {Array}    params.objectives           - all objectives for the incident
+ * @param {string[]} params.completedObjectiveIds
+ * @param {number}   params.totalCommandsCount
+ * @param {number}   params.hintsUsed
+ */
+const calculateContentScore = ({
+    discoveries,
+    unlockedKeys,
+    objectives,
+    completedObjectiveIds,
+    totalCommandsCount,
+    hintsUsed,
+}) => {
+    // --- PATH SCORE (50 pts max) ---
+    const pathScore = discoveryEngine.calculatePathScore(discoveries, unlockedKeys);
+
+    // --- COMMAND USAGE SCORE (30 pts max) ---
+    const requiredDiscoveries = discoveries.filter(d => d.required);
+    const extraCommands = Math.max(0, totalCommandsCount - requiredDiscoveries.length);
+    const commandPenalty = Math.floor(extraCommands / 3) * 5;
+    const commandUsageScore = Math.max(0, 30 - commandPenalty);
+
+    // --- CONCLUSION SCORE (20 pts max) ---
+    const conclusionScore = objectives.length > 0
+        ? Math.round((completedObjectiveIds.length / objectives.length) * 20)
+        : 0;
+
+    // --- HINT PENALTY ---
+    const hintPenalty = hintsUsed * 5;
+
+    // --- TOTAL ---
+    const raw = pathScore + commandUsageScore + conclusionScore;
+    const totalWeightedScore = Math.max(0, raw - hintPenalty);
+
+    const partialCredit = unlockedKeys.length > 0 && unlockedKeys.length < requiredDiscoveries.length;
+
+    return {
+        commandUsageScore,
+        pathScore,
+        conclusionScore,
+        totalWeightedScore,
+        partialCredit,
+    };
+};
+
+/**
  * Calculate XP reward based on score and scenario difficulty.
  */
 const calculateXp = (score, difficulty, hintsUsed) => {
@@ -235,6 +294,7 @@ const resolveCompletedObjectives = (objectives, matchedStepOrders) => {
 module.exports = {
     matchCommand,
     calculateScore,
+    calculateContentScore,
     calculateXp,
     resolveCompletedObjectives,
 };

@@ -1,0 +1,219 @@
+.report-app {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 320px;
+    margin: -16px;
+    padding: 12px;
+    box-sizing: border-box;
+    color: #ffffff;
+    font-family: "Fira Code", "Courier New", monospace;
+}
+
+.report-app__status {
+    padding: 16px;
+    color: #ffffff;
+}
+
+.report-app__status--error {
+    color: #ff6b6b;
+}
+
+.report-app__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 4px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 10px;
+}
+
+.report-app__path {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.report-app__save-state {
+    font-size: 0.72rem;
+    min-width: 70px;
+    text-align: right;
+}
+
+.report-app__save-state--saved { color: #00ff88; }
+.report-app__save-state--saving { color: rgba(255, 255, 255, 0.5); }
+.report-app__save-state--error { color: #ff6b6b; }
+
+.report-app__banner {
+    background: rgba(0, 235, 247, 0.12);
+    border: 1px solid rgba(0, 235, 247, 0.4);
+    color: #00ebf7;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    margin-bottom: 10px;
+}
+
+.report-app__editor {
+    flex: 1;
+    width: 100%;
+    resize: none;
+    background: #0d0d0d;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #e0e0e0;
+    font-family: "Fira Code", "Courier New", monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.report-app__editor:focus {
+    outline: none;
+    border-color: #00ebf7;
+}
+
+.report-app__footer {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.report-app__btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.report-app__btn:hover {
+    border-color: #ffffff;
+}
+
+.report-app__btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.report-app__btn--primary {
+    background: #ff003c;
+    border-color: #ff003c;
+}
+
+.report-app__btn--primary:hover {
+    background: #d4002f;
+}
+
+.report-app__error {
+    margin-top: 8px;
+    color: #ff6b6b;
+    font-size: 0.78rem;
+}
+
+.report-app__confirm {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 0, 60, 0.4);
+    background: rgba(255, 0, 60, 0.08);
+    font-size: 0.8rem;
+}
+
+.report-app__confirm-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* ── Review result ─────────────────────────────────────────────────── */
+
+.report-app--review {
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.review__title {
+    margin: 0 0 14px;
+    font-size: 1.1rem;
+    letter-spacing: 0.03em;
+}
+
+.review__scores {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.review__score-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.review__score-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #00ebf7;
+}
+
+.review__score-label {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+    margin-top: 4px;
+}
+
+.review__section {
+    margin-bottom: 14px;
+}
+
+.review__section h3 {
+    font-size: 0.82rem;
+    margin: 0 0 6px;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.review__section ul {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+}
+
+.review__criteria {
+    list-style: none;
+    padding: 0;
+}
+
+.review__criteria li {
+    display: flex;
+    gap: 10px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.78rem;
+}
+
+.review__criteria-score {
+    min-width: 30px;
+    font-weight: 700;
+    color: #00ff88;
+}
+
+.review__feedback p {
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: #e0e0e0;
+}
+
+.review__meta {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin-bottom: 14px;
+}

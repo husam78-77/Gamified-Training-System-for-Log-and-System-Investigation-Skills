@@ -1,7 +1,17 @@
+@keyframes window-open {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
 .window {
     position: absolute;
-    width: 480px;
-    min-height: 320px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -9,6 +19,45 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    animation: window-open 0.16s ease-out;
+}
+
+/* Default window sizes by application weight (dev rule — Task 3.3).
+   Applied unless the window is maximized, in which case
+   .window--maximized takes over sizing entirely. */
+.window--small {
+    width: min(420px, 92vw);
+    height: min(360px, 82vh);
+}
+
+.window--medium {
+    width: min(560px, 92vw);
+    height: min(480px, 82vh);
+}
+
+.window--large {
+    width: min(900px, 94vw);
+    height: min(620px, 82vh);
+}
+
+.window--active {
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+}
+
+.window--minimized {
+    display: none;
+}
+
+.window--maximized {
+    top: 40px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    border-radius: 0;
 }
 
 .window-header {
@@ -45,6 +94,11 @@
     color: #ffffff;
     cursor: pointer;
     transition: background-color 0.15s ease;
+}
+
+.window-controls__button--minimize:hover,
+.window-controls__button--maximize:hover {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .window-controls__button--close:hover {

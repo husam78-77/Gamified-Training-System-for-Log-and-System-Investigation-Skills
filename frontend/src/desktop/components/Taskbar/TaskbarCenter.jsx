@@ -7,10 +7,10 @@ import RunningApplications from './RunningApplications';
  * own component so other center-region features can be added as siblings
  * without touching Taskbar.
  */
-const TaskbarCenter = ({ openedApplications = [] }) => {
+const TaskbarCenter = ({ openedApplications = [], activeAppId = null, onSelect }) => {
     return (
         <div className="taskbar-center">
-            <RunningApplications openedApplications={openedApplications} />
+            <RunningApplications openedApplications={openedApplications} activeAppId={activeAppId} onSelect={onSelect} />
         </div>
     );
 };

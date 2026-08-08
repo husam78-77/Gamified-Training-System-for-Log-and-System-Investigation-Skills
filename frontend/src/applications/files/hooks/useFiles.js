@@ -14,8 +14,9 @@ import { getFiles } from '../services/fileService';
 /**
  * @param {string} incidentId - from the current investigation (InvestigationContext).
  *                              Fetch waits until this is known.
+ * @param {number} [sessionId] - overlays the session's saved Investigation Report
  */
-export const useFiles = (incidentId) => {
+export const useFiles = (incidentId, sessionId) => {
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -27,7 +28,7 @@ export const useFiles = (incidentId) => {
             setLoading(true);
             setError(null);
             try {
-                const data = await getFiles(incidentId);
+                const data = await getFiles(incidentId, sessionId);
                 setFiles(data);
             } catch (err) {
                 setError(err.message);
@@ -37,7 +38,7 @@ export const useFiles = (incidentId) => {
         };
 
         fetchFiles();
-    }, [incidentId]);
+    }, [incidentId, sessionId]);
 
     return { files, loading, error };
 };

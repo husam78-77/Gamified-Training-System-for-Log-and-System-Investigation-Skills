@@ -3,34 +3,42 @@
  * The core terminal engine — processes every command the user types.
  *
  * Routes served:
- *   POST /api/terminal/execute   → executeCommand
+ *   POST /api/terminal/execute            → executeCommand
  *   GET  /api/terminal/history/:sessionId → getHistory
+ *   GET  /api/terminal/resume/:sessionId  → getResumeState
  *
- * Architecture note — dual evaluation strategy:
+ * Architecture (Phase 2/3/4/5 — content-driven):
  *
- *   1. DIRECT STEP MATCH (legacy, always runs)
- *      Checks the command against expected_steps exactly.
- *      Keeps the hint level system 100% functional.
+ *   The virtual filesystem always comes from the Environment Engine
+ *   (template + incident evidence pack), overlaid with the player's saved
+ *   Investigation Report so Terminal and File Manager show identical
+ *   content (dev rules #4, #10, #11).
  *
- *   2. DISCOVERY MATCH (new, runs in parallel when scenario has discoveries)
- *      Checks the command against discovery_triggers.
- *      Any trigger in any discovery can fire for the same command.
- *      When a discovery fires it optionally credits maps_to_step_order
- *      so the hint system stays in sync even when the player used an
- *      alternative investigation path.
+ *   Progress is evidence-based, not command-based: every command is
+ *   checked against the incident's discoveries.json. Any of a discovery's
+ *   registered triggers can fire it — there is no single "correct"
+ *   command (dev rule #7). Objectives complete when their required
+ *   discoveries are all unlocked (dev rule #8) — never from command or
+ *   filename matching.
  *
- *   The two systems are additive: a command can satisfy both, one, or neither.
- *   File revelation and objective completion respond to both systems.
+ *   Every command is recorded in command_history — the single official
+ *   source of terminal history (dev rule #28). Discovery unlocks and
+ *   objective completions are recorded as generic Investigation Events
+ *   (dev rule #15); commands are NOT duplicated into investigation_events
+ *   (dev rule #29) — Event Analytics reads command_history directly for
+ *   command-derived metrics and investigation_events for everything else.
  */
 
 const terminalModel = require('../models/terminalModel');
 const scenarioModel = require('../models/scenarioModel');
 const sessionModel = require('../models/sessionModel');
 const hintModel = require('../models/hintModel');
-const discoveryModel = require('../models/discoveryModel');
+const investigationDiscoveryModel = require('../models/investigationDiscoveryModel');
 const { parseCommand, buildErrorOutput } = require('../utils/terminalParser');
-const evaluationService = require('../services/evaluationService');
-const { matchDiscoveries } = require('../services/discoveryService');
+const discoveryEngine = require('../services/investigation/discoveryEngine');
+const objectiveEngine = require('../services/investigation/objectiveEngine');
+const eventEngine = require('../services/investigation/eventEngine');
+const reportEngine = require('../services/investigation/reportEngine');
 const { evaluateAutoTrigger, generateAutoHint } = require('../services/autoTriggerService');
 const { buildEnvironment } = require('../services/environment/environmentEngine');
 const { resolveIncidentId } = require('../services/environment/incidentResolver');
@@ -39,24 +47,7 @@ const MESSAGES = require('../constants/messages');
 
 /**
  * POST /api/terminal/execute
- * Processes a single terminal command.
- *
  * Body: { session_id, command, current_path }
- *
- * Flow:
- *  1. Validate session ownership and in_progress status
- *  2. Parse the raw command string
- *  3. If invalid → return error, save to history as unmatched
- *  4. Load scenario data (steps, files, objectives, discoveries) in parallel
- *  5. Run direct step match + discovery match
- *  6. Determine effective match state (union of both systems)
- *  7. Save command to history (with match_type)
- *  8. Save newly unlocked discoveries to session_discoveries
- *  9. Build terminal output from virtual filesystem
- * 10. Resolve revealed files (step-based + discovery-based)
- * 11. Resolve newly completed objectives
- * 12. Auto-trigger hint evaluation (non-blocking)
- * 13. Return response including newDiscoveries
  */
 const executeCommand = async (req, res) => {
     try {
@@ -94,48 +85,56 @@ const executeCommand = async (req, res) => {
             return response.success(res, 200, MESSAGES.COMMAND_PROCESSED, {
                 output: buildErrorOutput(parsed),
                 matched: false,
-                newlyRevealedFiles: [],
                 completedObjectiveIds: [],
                 newDiscoveries: [],
             });
         }
 
-        // ── Load all scenario data in parallel ────────────────────────────────
-        const [scenario, expectedSteps, objectives, discoveries] = await Promise.all([
-            scenarioModel.getScenarioById(session.scenario_id),
-            scenarioModel.getExpectedStepsByScenario(session.scenario_id),
-            scenarioModel.getObjectivesByScenario(session.scenario_id),
-            discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
-        ]);
-
-        // ── Virtual filesystem source: template + evidence injection ─────────
+        // ── Resolve incident + load content in parallel ────────────────────────
         // incidentId is resolved from this session's own scenario — never
         // trusted from the client, never hardcoded.
-        const environment = await buildEnvironment(resolveIncidentId(scenario.type));
-        const virtualFiles = environment.virtualFiles;
+        const scenario = await scenarioModel.getScenarioById(session.scenario_id);
+        const incidentId = resolveIncidentId(scenario.type);
 
-        // ── Current progress state ────────────────────────────────────────────
-        const [matchedHistory, completedDiscoveryIds] = await Promise.all([
-            terminalModel.getMatchedCommands(sessionId),
-            discoveryModel.getSessionDiscoveryIds(sessionId),
+        const [environment, discoveries, objectives, unlockedKeysBefore] = await Promise.all([
+            buildEnvironment(incidentId),
+            discoveryEngine.getDiscoveries(incidentId),
+            objectiveEngine.getObjectives(incidentId),
+            investigationDiscoveryModel.getUnlockedKeys(sessionId),
         ]);
-        const completedStepOrders = matchedHistory.map(c => c.match_step_order);
 
-        // ── Strategy 1: Direct step match ────────────────────────────────────
-        const { matched: directMatch, step: matchedStep } = evaluationService.matchCommand(
-            parsed,
-            expectedSteps,
-            completedStepOrders,
-            current_path
+        // The player's saved report overrides the starter template so
+        // Terminal `cat` always shows their latest edits.
+        await reportEngine.applyReportOverlay(environment.virtualFiles, environment.incident, sessionId);
+
+        // ── Discovery matching ───────────────────────────────────────────────
+        const newDiscoveries = discoveryEngine.matchDiscoveries(
+            parsed, discoveries, unlockedKeysBefore, current_path
         );
 
-        // ── Strategy 2: Discovery match ───────────────────────────────────────
-        const newDiscoveries = matchDiscoveries(
-            parsed,
-            discoveries,
-            completedDiscoveryIds,
-            current_path
-        );
+        for (const discovery of newDiscoveries) {
+            await investigationDiscoveryModel.saveDiscovery({
+                sessionId,
+                discoveryKey: discovery.key,
+                triggeredByCommand: command,
+            });
+            await eventEngine.logEvent(sessionId, eventEngine.EVENT_TYPES.DISCOVERY_UNLOCKED, {
+                key: discovery.key,
+                title: discovery.title,
+                source: 'command',
+            });
+        }
+
+        const unlockedKeysAfter = [...unlockedKeysBefore, ...newDiscoveries.map(d => d.key)];
+
+        // ── Objective completion ─────────────────────────────────────────────
+        const completedBefore = objectiveEngine.resolveCompletedObjectives(objectives, unlockedKeysBefore);
+        const completedObjectiveIds = objectiveEngine.resolveCompletedObjectives(objectives, unlockedKeysAfter);
+        const newlyCompletedObjectiveIds = completedObjectiveIds.filter(id => !completedBefore.includes(id));
+
+        for (const objectiveId of newlyCompletedObjectiveIds) {
+            await eventEngine.logEvent(sessionId, eventEngine.EVENT_TYPES.OBJECTIVE_COMPLETED, { objectiveId });
+        }
 
         // ── Fetch prior history for the `history` command (before saving) ─────
         let commandHistoryForOutput = [];
@@ -143,126 +142,24 @@ const executeCommand = async (req, res) => {
             commandHistoryForOutput = await terminalModel.getCommandHistory(sessionId);
         }
 
-        // ── Determine effective match for command_history record ──────────────
-        //
-        // Priority:
-        //  - If direct match fired: use that step_order, type='direct'
-        //  - Else if a discovery credits an uncompleted step: use that, type='discovery'
-        //  - Else: no match
-        //
-        // If BOTH fire for the same step_order, only one record is saved (direct wins).
-        let saveMatchExpected = directMatch;
-        let saveStepOrder = directMatch ? matchedStep.step_order : null;
-        let saveMatchType = directMatch ? 'direct' : null;
-        let resolvedStep = directMatch ? matchedStep : null;
-
-        if (!directMatch && newDiscoveries.length > 0) {
-            // Find the first discovery that credits a step not yet completed
-            const discoveryWithStep = newDiscoveries.find(d =>
-                d.maps_to_step_order !== null &&
-                d.maps_to_step_order !== undefined &&
-                !completedStepOrders.includes(d.maps_to_step_order)
-            );
-            if (discoveryWithStep) {
-                saveMatchExpected = true;
-                saveStepOrder = discoveryWithStep.maps_to_step_order;
-                saveMatchType = 'discovery';
-                resolvedStep = expectedSteps.find(s => s.step_order === saveStepOrder);
-            }
-        }
-
         // ── Save command to history ───────────────────────────────────────────
+        const matched = newDiscoveries.length > 0;
         await terminalModel.saveCommand({
             sessionId,
             commandEntered: command,
-            matchExpected: saveMatchExpected,
-            matchStepOrder: saveStepOrder,
-            matchType: saveMatchType,
+            matchExpected: matched,
+            matchStepOrder: null,
+            matchType: matched ? 'discovery' : null,
         });
-
-        // ── Save newly unlocked discoveries ───────────────────────────────────
-        for (const discovery of newDiscoveries) {
-            await discoveryModel.saveDiscovery({
-                sessionId,
-                discoveryId: discovery.discovery_id,
-                discoveryKey: discovery.discovery_key,
-                triggeredByCommand: command,
-            });
-        }
-
-        // ── Build all updated step orders (for reveal + objective resolution) ─
-        const updatedStepOrders = [...completedStepOrders];
-        if (saveMatchExpected && saveStepOrder && !updatedStepOrders.includes(saveStepOrder)) {
-            updatedStepOrders.push(saveStepOrder);
-        }
-        // Credit any additional discovery-mapped steps (for scenarios where one
-        // command unlocks multiple discoveries mapping to different steps)
-        for (const disc of newDiscoveries) {
-            if (disc.maps_to_step_order && !updatedStepOrders.includes(disc.maps_to_step_order)) {
-                updatedStepOrders.push(disc.maps_to_step_order);
-            }
-        }
-
-        // ── Resolve newly revealed files ──────────────────────────────────────
-        // Two revelation systems run in parallel:
-        //   reveal_at_step         : revealed when a specific step_order is credited
-        //   reveal_at_discovery_key: revealed when a named discovery is unlocked
-
-        const newDiscoveryKeys = newDiscoveries.map(d => d.discovery_key);
-
-        let newlyRevealedFiles = [];
-
-        // Step-based reveals (direct match OR discovery credited the same step)
-        if (resolvedStep) {
-            newlyRevealedFiles.push(...virtualFiles.filter(
-                f => f.is_hidden && f.reveal_at_step === resolvedStep.step_order
-            ));
-        }
-        if (saveMatchType === 'discovery' && saveStepOrder) {
-            newlyRevealedFiles.push(...virtualFiles.filter(
-                f => f.is_hidden && f.reveal_at_step === saveStepOrder &&
-                    !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
-            ));
-        }
-
-        // Discovery-key-based reveals (new system)
-        if (newDiscoveryKeys.length > 0) {
-            newlyRevealedFiles.push(...virtualFiles.filter(
-                f => f.is_hidden &&
-                    f.reveal_at_discovery_key &&
-                    newDiscoveryKeys.includes(f.reveal_at_discovery_key) &&
-                    !newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)
-            ));
-        }
 
         // ── Build terminal output ─────────────────────────────────────────────
-        // The backend is stateless for file visibility; we must dynamically unhide files
-        // that were unlocked either in past turns or in this exact turn.
-        const allDiscoveryKeys = [
-            ...discoveries.filter(d => completedDiscoveryIds.includes(d.discovery_id)).map(d => d.discovery_key),
-            ...newDiscoveryKeys
-        ];
+        // The new content-driven filesystem has no hidden/reveal mechanic
+        // (dev rule: "the scenario intentionally avoids hidden information") —
+        // every evidence file is visible from the start.
+        const output = buildTerminalOutput(parsed, environment.virtualFiles, current_path, commandHistoryForOutput);
 
-        const visibleFiles = virtualFiles.filter(f => {
-            if (!f.is_hidden) return true;
-            if (f.reveal_at_step && updatedStepOrders.includes(f.reveal_at_step)) return true;
-            if (f.reveal_at_discovery_key && allDiscoveryKeys.includes(f.reveal_at_discovery_key)) return true;
-            // Also include files explicitly pushed to newlyRevealedFiles
-            if (newlyRevealedFiles.some(r => r.virtual_file_id === f.virtual_file_id)) return true;
-            return false;
-        });
-        const output = buildTerminalOutput(parsed, visibleFiles, current_path, commandHistoryForOutput);
-
-        // ── Resolve newly completed objectives ────────────────────────────────
-        const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
-            objectives,
-            updatedStepOrders
-        );
-
-        // ── Phase 5: Auto-trigger evaluation ─────────────────────────────────
-        // Runs after all processing. Never blocks or alters the command result.
+        // ── Auto-trigger hint evaluation (non-blocking, never affects response) ─
         let autoHint = null;
-
         try {
             const freshHistory = await terminalModel.getCommandHistory(sessionId);
 
@@ -270,8 +167,9 @@ const executeCommand = async (req, res) => {
                 sessionId,
                 scenarioId: session.scenario_id,
                 commandHistory: freshHistory,
-                expectedSteps,
-                completedStepOrders: updatedStepOrders,
+                discoveries,
+                objectives,
+                unlockedKeys: unlockedKeysAfter,
                 sessionStartTime: session.start_time,
             });
 
@@ -283,8 +181,9 @@ const executeCommand = async (req, res) => {
                     sessionId,
                     scenarioId: session.scenario_id,
                     commandHistory: freshHistory,
-                    expectedSteps,
-                    completedStepOrders: updatedStepOrders,
+                    discoveries,
+                    objectives,
+                    unlockedKeys: unlockedKeysAfter,
                     previousHints,
                     scenarioTitle: scenario.title,
                     missionBrief: scenario.mission_brief,
@@ -293,28 +192,22 @@ const executeCommand = async (req, res) => {
                 });
             }
         } catch (autoTriggerErr) {
-            // Auto-trigger failure must NEVER affect the command response
             console.error('[AutoTrigger] Evaluation error (suppressed):', autoTriggerErr.message);
         }
 
         // ── Response ──────────────────────────────────────────────────────────
         return response.success(res, 200, MESSAGES.COMMAND_PROCESSED, {
             output,
-            matched: directMatch || newDiscoveries.length > 0,
-            matchedStep: resolvedStep ? {
-                step_order: resolvedStep.step_order,
-                description: resolvedStep.description,
-            } : null,
-            newlyRevealedFiles,
+            matched,
             completedObjectiveIds,
+            newlyCompletedObjectiveIds,
             newDiscoveries: newDiscoveries.map(d => ({
-                discovery_key: d.discovery_key,
+                key: d.key,
                 title: d.title,
                 description: d.description,
-                evidence_tags: d.evidence_tags,
-                is_critical: d.is_critical,
-                reveal_hint: d.reveal_hint,
-                severity_level: d.severity_level || null,
+                category: d.category,
+                weight: d.weight,
+                required: d.required,
             })),
             auto_hint: autoHint,
         });
@@ -328,7 +221,6 @@ const executeCommand = async (req, res) => {
 /**
  * GET /api/terminal/history/:sessionId
  * Returns full command history for a session.
- * Used to restore terminal output on page refresh.
  */
 const getHistory = async (req, res) => {
     try {
@@ -355,22 +247,9 @@ const getHistory = async (req, res) => {
 
 /**
  * GET /api/terminal/resume/:sessionId
- * Read-only rehydration snapshot for an in-progress session.
- *
- * Why this exists: hidden virtual_files (path + content) are intentionally
- * never sent to the client until the engine reveals them (see
- * getFullScenarioData — hidden rows are redacted to {virtual_file_id,
- * reveal_at_step} only). That's correct anti-cheat behavior, but it means
- * the frontend has no data of its own to reconstruct "which hidden files
- * has this session already earned" after a page refresh. Objective
- * completion has the same gap: it's derived from the full command_history
- * table, which the frontend never receives in aggregate form.
- *
- * This endpoint runs the exact same reveal/completion rules executeCommand
- * uses (resolveCompletedObjectives + the is_hidden/reveal_at_step/
- * reveal_at_discovery_key filter), just without processing a new command or
- * writing anything. It only returns what this session has already
- * legitimately unlocked — no new capability, no spoilers.
+ * Read-only rehydration snapshot for an in-progress session — what this
+ * session has already legitimately unlocked, so a page refresh doesn't
+ * lose progress state the frontend has no other way to reconstruct.
  */
 const getResumeState = async (req, res) => {
     try {
@@ -386,37 +265,23 @@ const getResumeState = async (req, res) => {
             return response.error(res, 404, MESSAGES.SESSION_NOT_FOUND);
         }
 
-        const [virtualFiles, objectives, discoveries, matchedHistory, completedDiscoveryIds] =
-            await Promise.all([
-                scenarioModel.getVirtualFilesByScenario(session.scenario_id),
-                scenarioModel.getObjectivesByScenario(session.scenario_id),
-                discoveryModel.getDiscoveriesWithTriggers(session.scenario_id),
-                terminalModel.getMatchedCommands(sessionId),
-                discoveryModel.getSessionDiscoveryIds(sessionId),
-            ]);
+        const scenario = await scenarioModel.getScenarioById(session.scenario_id);
+        const incidentId = resolveIncidentId(scenario.type);
 
-        const matchedStepOrders = matchedHistory.map(c => c.match_step_order);
-        const completedObjectiveIds = evaluationService.resolveCompletedObjectives(
-            objectives,
-            matchedStepOrders
-        );
+        const [discoveries, objectives, unlockedKeys] = await Promise.all([
+            discoveryEngine.getDiscoveries(incidentId),
+            objectiveEngine.getObjectives(incidentId),
+            investigationDiscoveryModel.getUnlockedKeys(sessionId),
+        ]);
 
-        const unlockedDiscoveryKeys = discoveries
-            .filter(d => completedDiscoveryIds.includes(d.discovery_id))
-            .map(d => d.discovery_key);
-
-        // Same rule executeCommand uses to build visibleFiles — a hidden file
-        // is earned once its credited step or discovery key has been reached.
-        const revealedFiles = virtualFiles.filter(f =>
-            f.is_hidden && (
-                (f.reveal_at_step && matchedStepOrders.includes(f.reveal_at_step)) ||
-                (f.reveal_at_discovery_key && unlockedDiscoveryKeys.includes(f.reveal_at_discovery_key))
-            )
-        );
+        const completedObjectiveIds = objectiveEngine.resolveCompletedObjectives(objectives, unlockedKeys);
+        const unlockedDiscoveries = discoveries
+            .filter(d => unlockedKeys.includes(d.key))
+            .map(d => ({ key: d.key, title: d.title, description: d.description, category: d.category }));
 
         return response.success(res, 200, MESSAGES.RESUME_STATE_FETCHED, {
             completedObjectiveIds,
-            revealedFiles,
+            unlockedDiscoveries,
         });
     } catch (err) {
         console.error('getResumeState error:', err);
@@ -426,7 +291,7 @@ const getResumeState = async (req, res) => {
 
 // =============================================================================
 // TERMINAL OUTPUT BUILDER
-// Simulates a real Linux filesystem from virtual_files rows.
+// Simulates a real Linux filesystem from virtualFiles entries.
 // =============================================================================
 
 /**
@@ -434,7 +299,7 @@ const getResumeState = async (req, res) => {
  * against the virtual filesystem.
  *
  * @param {Object} parsed       - Parsed command object
- * @param {Array}  virtualFiles - Visible virtual_files rows for this scenario
+ * @param {Array}  virtualFiles - Virtual filesystem entries for this incident
  * @param {string} currentPath  - User's current directory
  * @param {Array}  commandHistory - Prior command history (for `history` command)
  * @returns {string} Terminal output to display
@@ -518,10 +383,6 @@ const handleCd = (target, virtualFiles, currentPath) => {
     const entry = virtualFiles.find(f =>
         normalizePath(f.file_path) === normalizedPath
     );
-
-    // [DEBUG] Remove after validation confirms correct behavior
-    console.log(`[cd] input="${target}" resolved="${normalizedPath}" entry=${entry ? `"${entry.file_path}" type=${entry.file_type}` : 'none'
-        }`);
 
     if (entry) {
         // Explicit entry found — accept only if it is a directory
