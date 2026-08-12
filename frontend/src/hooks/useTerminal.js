@@ -729,10 +729,22 @@ export const useTerminal = ({
         window.addEventListener('resize', handleResize);
         window.addEventListener('orientationchange', handleResize);
 
+        // The Desktop Window System resizes/maximizes windows by changing
+        // React state → inline style, not by resizing the browser window —
+        // so the listeners above never fire for it. A ResizeObserver on the
+        // terminal's own container catches any container size change
+        // regardless of cause, keeping xterm's grid in sync with it.
+        let resizeObserver;
+        if (typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(handleResize);
+            resizeObserver.observe(container);
+        }
+
         return () => {
             container.removeEventListener('paste', handleNativePaste, true);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('orientationchange', handleResize);
+            resizeObserver?.disconnect();
             term.dispose();
             xtermRef.current = null;
         };
