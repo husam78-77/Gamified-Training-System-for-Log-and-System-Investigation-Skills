@@ -88,24 +88,13 @@
 
 .taskbar-left__icon {
     color: var(--db-cyan, #00E5FF);
-    filter: drop-shadow(0 0 5px rgba(0, 229, 255, 0.6));
 }
 
 .taskbar-left__brand {
     font-family: var(--db-tag, sans-serif);
     font-weight: 700;
-    font-size: 0.86rem;
-    letter-spacing: 0.14em;
-    text-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
-}
-
-.taskbar-left__live {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--db-cyan, #00E5FF);
-    box-shadow: 0 0 7px var(--db-cyan, #00E5FF);
-    animation: taskbar-live-pulse 1.8s ease-in-out infinite;
+    font-size: 0.84rem;
+    letter-spacing: 0.12em;
 }
 
 .taskbar-left__caret {
@@ -115,18 +104,6 @@
 
 .taskbar-left__launcher--open .taskbar-left__caret {
     transform: rotate(180deg);
-}
-
-@keyframes taskbar-live-pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.25;
-    }
 }
 
 /* --- Launcher menu --- */
@@ -472,45 +449,19 @@
    Right — status, notifications, clock
    ========================================================================= */
 
-.system-status {
-    display: flex;
-    gap: 10px;
-    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
-}
-
 .system-status__item {
     display: flex;
     align-items: center;
     gap: 5px;
     padding: 3px 7px;
-    border: 1px solid transparent;
-    border-radius: 3px;
+    color: var(--db-text-faint, rgba(255, 255, 255, 0.34));
     font-size: 0.7rem;
     letter-spacing: 0.04em;
-    transition: border-color 0.15s ease, color 0.15s ease;
-}
-
-.system-status__item:hover {
-    border-color: rgba(255, 255, 255, 0.09);
-    color: var(--db-text-dim, rgba(255, 255, 255, 0.6));
 }
 
 .system-status__item svg {
-    color: var(--db-cyan, #00E5FF);
-    opacity: 0.8;
-}
-
-.system-status__item--warn {
-    color: var(--db-amber, #FFB347);
-}
-
-.system-status__item--warn svg {
-    color: var(--db-amber, #FFB347);
-    opacity: 1;
-}
-
-.system-status__item--secure svg {
     color: var(--db-green, #3BE8B0);
+    opacity: 0.85;
 }
 
 .notification-center {
@@ -732,7 +683,7 @@
 }
 
 @media (max-width: 960px) {
-    .system-status__item--secure {
+    .system-status__item {
         display: none;
     }
 
@@ -743,7 +694,6 @@
 
 @media (prefers-reduced-motion: reduce) {
 
-    .taskbar-left__live,
     .launcher,
     .notification-panel {
         animation: none;

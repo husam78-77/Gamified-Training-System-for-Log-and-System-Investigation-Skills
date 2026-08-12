@@ -3,7 +3,7 @@ import WindowHeader from './WindowHeader';
 import WindowBody from './WindowBody';
 import WindowResizeHandles from './WindowResizeHandles';
 import { getAppAccent, getAppAccentRgb } from '../../utils/appAccents';
-import { MIN_WINDOW_SIZE, TASKBAR_HEIGHT, getWorkArea } from '../../utils/windowSizes';
+import { getWindowMinSize, TASKBAR_HEIGHT, getWorkArea } from '../../utils/windowSizes';
 import { getSnapZone } from '../../utils/snapping';
 import '../../styles/window.css';
 
@@ -12,6 +12,14 @@ import '../../styles/window.css';
 const DRAG_MARGIN = 48;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+// Explicit map rather than string concatenation (`window--${gesture}ing`) —
+// 'resize' + 'ing' produces 'resizeing', which silently never matches the
+// CSS class '.window--resizing'. That's not just a lint nit: without that
+// class applying, `user-select: none` never kicks in during a resize, so
+// dragging an edge over the window's own text content starts a native
+// browser text-selection instead of only resizing.
+const GESTURE_CLASS = { drag: 'window--dragging', resize: 'window--resizing' };
 
 /**
  * Window.jsx
@@ -119,6 +127,7 @@ const Window = ({
         const startY = event.clientY;
         const origin = { x, y, width, height };
         const workArea = getWorkArea();
+        const minSize = getWindowMinSize(appId);
 
         const nextBounds = (clientX, clientY) => {
             const deltaX = clientX - startX;
@@ -126,26 +135,26 @@ const Window = ({
             const bounds = { ...origin };
 
             if (edge.includes('e')) {
-                bounds.width = clamp(origin.width + deltaX, MIN_WINDOW_SIZE.width, workArea.width - origin.x);
+                bounds.width = clamp(origin.width + deltaX, minSize.width, workArea.width - origin.x);
             }
 
             if (edge.includes('s')) {
                 bounds.height = clamp(
                     origin.height + deltaY,
-                    MIN_WINDOW_SIZE.height,
+                    minSize.height,
                     workArea.top + workArea.height - origin.y
                 );
             }
 
             if (edge.includes('w')) {
                 const right = origin.x + origin.width;
-                bounds.width = clamp(origin.width - deltaX, MIN_WINDOW_SIZE.width, right);
+                bounds.width = clamp(origin.width - deltaX, minSize.width, right);
                 bounds.x = right - bounds.width;
             }
 
             if (edge.includes('n')) {
                 const bottom = origin.y + origin.height;
-                bounds.height = clamp(origin.height - deltaY, MIN_WINDOW_SIZE.height, bottom - workArea.top);
+                bounds.height = clamp(origin.height - deltaY, minSize.height, bottom - workArea.top);
                 bounds.y = bottom - bounds.height;
             }
 
@@ -163,7 +172,7 @@ const Window = ({
                 onResizeEnd?.(bounds);
             }
         );
-    }, [maximized, x, y, width, height, onFocus, onResizeEnd, trackPointer]);
+    }, [maximized, appId, x, y, width, height, onFocus, onResizeEnd, trackPointer]);
 
     const bounds = preview || { x, y, width, height };
 
@@ -185,7 +194,7 @@ const Window = ({
         minimized && 'window--minimized',
         active && 'window--active',
         snapped && 'window--snapped',
-        gesture && `window--${gesture}ing`,
+        gesture && GESTURE_CLASS[gesture],
     ].filter(Boolean).join(' ');
 
     return (

@@ -28,9 +28,8 @@ const TaskbarLeft = ({
                 aria-expanded={menuOpen}
                 aria-label="Open system launcher"
             >
-                <Radar size={16} strokeWidth={2} className="taskbar-left__icon" />
+                <Radar size={15} strokeWidth={2} className="taskbar-left__icon" />
                 <span className="taskbar-left__brand">KINETIC BREACH</span>
-                <span className="taskbar-left__live" aria-hidden="true" />
                 <ChevronDown size={12} strokeWidth={2.5} className="taskbar-left__caret" />
             </button>
 

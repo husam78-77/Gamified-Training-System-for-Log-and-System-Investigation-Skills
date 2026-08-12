@@ -7,13 +7,13 @@
  * everything else falls back to the house cyan.
  */
 const APP_ACCENTS = {
-    terminal: '#00FFFF',
-    email: '#4DA3FF',
-    browser: '#3BE8B0',
-    files: '#FFB347',
-    alerts: '#FF3B5C',
-    aria: '#B983FF',
-    report: '#F5F07A',
+    terminal: '#00E5FF',
+    browser: '#38BDF8',
+    email: '#5B8DEF',
+    files: '#D98C3D',
+    alerts: '#FF4D4D',
+    aria: '#A78BFA',
+    report: '#EAC54F',
 };
 
 const DEFAULT_ACCENT = '#00FFFF';

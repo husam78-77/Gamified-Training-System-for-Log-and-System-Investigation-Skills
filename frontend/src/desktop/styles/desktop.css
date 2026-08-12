@@ -276,8 +276,7 @@
     height: 5px;
     border-radius: 50%;
     background: var(--db-green);
-    box-shadow: 0 0 8px var(--db-green);
-    animation: hud-pulse 1.9s ease-in-out infinite;
+    box-shadow: 0 0 6px var(--db-green);
 }
 
 .case-hud__name {
@@ -355,18 +354,6 @@
     to {
         opacity: 1;
         transform: translateX(0);
-    }
-}
-
-@keyframes hud-pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.3;
     }
 }
 
@@ -567,7 +554,6 @@
 
     .desktop-wallpaper__aurora,
     .desktop-wallpaper__sweep,
-    .case-hud__pulse,
     .desktop-status--loading .desktop-status__mark,
     .desktop-status__beam {
         animation: none;

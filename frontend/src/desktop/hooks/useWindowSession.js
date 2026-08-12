@@ -18,7 +18,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { logEvent } from '../../services/investigationService';
-import { getWindowSize, fitToWorkArea, getWorkArea, MIN_WINDOW_SIZE } from '../utils/windowSizes';
+import { getWindowDefaultSize, getWindowMinSize, fitToWorkArea, getWorkArea } from '../utils/windowSizes';
 import { getSnapBounds } from '../utils/snapping';
 
 // Each newly opened window cascades slightly from the last so they don't all
@@ -70,7 +70,11 @@ export const useWindowSession = (notify) => {
 
             setOpenedApplications((prev) =>
                 prev.map((opened) => {
-                    const size = fitToWorkArea({ width: opened.width, height: opened.height }, workArea);
+                    const size = fitToWorkArea(
+                        { width: opened.width, height: opened.height },
+                        workArea,
+                        getWindowMinSize(opened.id)
+                    );
                     return { ...opened, ...clampToWorkArea({ ...opened, ...size }, workArea) };
                 })
             );
@@ -100,7 +104,7 @@ export const useWindowSession = (notify) => {
             notify?.({ level: 'info', title: `${app.name} launched`, detail: 'Application window opened.', toast: false });
 
             const workArea = getWorkArea();
-            const size = fitToWorkArea(getWindowSize(app.id), workArea);
+            const size = fitToWorkArea(getWindowDefaultSize(app.id), workArea, getWindowMinSize(app.id));
             const offset = Math.min(prev.length, MAX_CASCADE_STEPS) * WINDOW_CASCADE_STEP;
 
             const bounds = clampToWorkArea(
@@ -186,17 +190,17 @@ export const useWindowSession = (notify) => {
     // rectangle — see dev rule #6, single source of truth for position).
     const setApplicationBounds = useCallback((appId, bounds) => {
         setOpenedApplications((prev) =>
-            prev.map((opened) =>
-                opened.id === appId
-                    ? {
-                        ...opened,
-                        ...bounds,
-                        width: Math.max(MIN_WINDOW_SIZE.width, bounds.width ?? opened.width),
-                        height: Math.max(MIN_WINDOW_SIZE.height, bounds.height ?? opened.height),
-                        snapped: null,
-                    }
-                    : opened
-            )
+            prev.map((opened) => {
+                if (opened.id !== appId) return opened;
+                const minSize = getWindowMinSize(appId);
+                return {
+                    ...opened,
+                    ...bounds,
+                    width: Math.max(minSize.width, bounds.width ?? opened.width),
+                    height: Math.max(minSize.height, bounds.height ?? opened.height),
+                    snapped: null,
+                };
+            })
         );
     }, []);
 
@@ -225,6 +229,13 @@ export const useWindowSession = (notify) => {
 
         const bounds = getSnapBounds(zone);
         if (!bounds) return;
+
+        // A quarter-snap on a short/narrow viewport could otherwise offer this
+        // app's window less room than it needs to stay usable — same floor
+        // every other resize path respects (Task 4: sensible minimum size).
+        const minSize = getWindowMinSize(appId);
+        bounds.width = Math.max(minSize.width, bounds.width);
+        bounds.height = Math.max(minSize.height, bounds.height);
 
         setOpenedApplications((prev) =>
             prev.map((opened) =>
@@ -305,7 +316,7 @@ export const useWindowSession = (notify) => {
             return prev.map((opened) => {
                 if (opened.minimized) return opened;
 
-                const size = fitToWorkArea(getWindowSize(opened.id), workArea);
+                const size = fitToWorkArea(getWindowDefaultSize(opened.id), workArea, getWindowMinSize(opened.id));
                 const offset = Math.min(step, MAX_CASCADE_STEPS) * WINDOW_CASCADE_STEP;
                 step += 1;
 
@@ -319,20 +330,6 @@ export const useWindowSession = (notify) => {
         });
         notify?.({ level: 'info', title: 'Windows cascaded', toast: false });
     }, [notify]);
-
-    /**
-     * Focus the next/previous window in the open order — the model behind
-     * both the window switcher overlay and its hotkey.
-     * @param {number} direction 1 = forward, -1 = backward
-     */
-    const cycleWindows = useCallback((direction = 1) => {
-        if (openedApplications.length === 0) return;
-
-        const index = openedApplications.findIndex((opened) => opened.id === activeAppId);
-        const next = openedApplications[(index + direction + openedApplications.length) % openedApplications.length];
-
-        restoreApplication(next.id);
-    }, [openedApplications, activeAppId, restoreApplication]);
 
     return {
         openedApplications,
@@ -350,6 +347,5 @@ export const useWindowSession = (notify) => {
         closeAll,
         tileWindows,
         cascadeWindows,
-        cycleWindows,
     };
 };

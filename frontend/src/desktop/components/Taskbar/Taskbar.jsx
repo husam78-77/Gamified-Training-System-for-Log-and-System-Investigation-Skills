@@ -56,7 +56,6 @@ const Taskbar = ({
             />
             <TaskbarRight
                 feed={feed}
-                openedApplications={openedApplications}
                 panelOpen={openPanel === 'notifications'}
                 onTogglePanel={() => togglePanel('notifications')}
                 onClosePanel={closePanel}
