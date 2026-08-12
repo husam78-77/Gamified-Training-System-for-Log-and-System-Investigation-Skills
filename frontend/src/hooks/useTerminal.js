@@ -84,6 +84,89 @@ const SUPPORTED_COMMANDS = [
 // Investigator notes virtual file path — frontend-only, never in DB
 const NOTES_FILE_PATH = '/tmp/investigator_notes.txt';
 
+// ── Paste planning (pure, no React/xterm deps — unit tested) ─────────────────
+//
+// xterm.js never routes pasted text through onKey (see useTerminal init
+// effect for why) — it arrives as one bulk string via a native 'paste'
+// event. A real terminal treats embedded newlines in pasted text as if the
+// user typed the line and hit Enter; only a trailing, newline-less
+// remainder stays in the input for the user to review. buildPastePlan
+// turns that raw pasted string (plus the current input line + cursor
+// position) into a plan of commands to run and/or text to leave in the
+// buffer, without touching any DOM/xterm/React state itself.
+//
+// bufferBefore          - current inputBuffer.current
+// cursorDistFromEnd     - cursorPosRef.current (0 = cursor at end)
+// pastedText            - raw clipboard text
+const buildPastePlan = (bufferBefore, cursorDistFromEnd, pastedText) => {
+    const insertIdx = bufferBefore.length - cursorDistFromEnd;
+    const before = bufferBefore.slice(0, insertIdx);
+    const after = bufferBefore.slice(insertIdx);
+    const segments = pastedText.split(/\r\n|\r|\n/);
+
+    if (segments.length === 1) {
+        // No newline pasted — behaves exactly like typing: insert at the
+        // cursor, do not execute (requirement: paste should just "appear
+        // in the input" for a single command with no trailing newline).
+        return {
+            isInline: true,
+            inlineText: segments[0],
+            commands: [],
+            remainingBuffer: before + segments[0] + after,
+            remainingCursorDistFromEnd: after.length,
+            clearTail: false,
+        };
+    }
+
+    // Multi-line paste — every line becomes its own independent command.
+    // Any pre-existing typed prefix is glued onto the first line; any
+    // pre-existing typed suffix (cursor was mid-line) is glued onto the
+    // last line so nothing pasted or previously typed is silently lost.
+    const lastIdx = segments.length - 1;
+    const commands = segments.map((seg, i) => ({
+        full: (i === 0 ? before : '') + seg + (i === lastIdx ? after : ''),
+        // echo = only the NEW text to write to the terminal for this line.
+        // `before` is already visible on screen from earlier keystrokes,
+        // so it must not be echoed a second time.
+        echo: seg + (i === lastIdx ? after : ''),
+    }));
+
+    return {
+        isInline: false,
+        inlineText: null,
+        commands,
+        remainingBuffer: '',
+        remainingCursorDistFromEnd: 0,
+        // 'after' was already visible on screen before the paste (cursor
+        // was mid-line); clear it so it isn't drawn twice once it's
+        // re-echoed as part of the last queued command.
+        clearTail: after.length > 0,
+    };
+};
+
+// Sequentially executes a multi-command paste plan produced by
+// buildPastePlan. Pure aside from the injected term/submit/getPromptText —
+// contains no xterm/React internals itself, so it's unit-testable with
+// simple mocks. Empty lines reprint the prompt (matching the existing
+// Enter-on-empty-input behavior) without submitting anything, so blank
+// pasted lines never create fake commands, errors, or history entries.
+// A rejected/erroring `submit` does not stop the loop — same as a normal
+// "command not found" response, which submitCommand already turns into
+// terminal output rather than a thrown error.
+const runPastePlan = async (plan, { term, submit, getPromptText }) => {
+    if (plan.clearTail) term.write('\x1b[K');
+    for (const { full, echo } of plan.commands) {
+        const trimmed = full.trim();
+        if (trimmed.length === 0) {
+            term.write(getPromptText());
+            continue;
+        }
+        term.write(echo);
+        term.writeln('');
+        await submit(trimmed, term);
+    }
+};
+
 /**
  * @param {object} params
  * @param {number}   params.sessionId           - Active session ID
@@ -110,6 +193,12 @@ export const useTerminal = ({
     const fitAddonRef = useRef(null);   // FitAddon instance
     const inputBuffer = useRef('');     // Current line being typed
     const isProcessing = useRef(false);  // Prevent double-submit while awaiting API
+
+    // Serializes every command submission (typed Enter + pasted batches) onto
+    // a single promise chain so they can never interleave — the next command
+    // (from either source) only starts once the previous one has fully
+    // finished (output printed, prompt redrawn).
+    const commandChainRef = useRef(Promise.resolve());
 
     // cursorPosRef: distance from the END of inputBuffer.current (0 = cursor at end)
     const cursorPosRef = useRef(0);
@@ -429,7 +518,7 @@ export const useTerminal = ({
                 return;
             }
             term.writeln('');
-            submitCommand(cmd, term);
+            commandChainRef.current = commandChainRef.current.then(() => submitCommand(cmd, term));
             return;
         }
 
@@ -609,6 +698,27 @@ export const useTerminal = ({
             handleKeyInput(key, domEvent, term);
         });
 
+        // Paste (Ctrl+V, right-click → Paste, or any other native paste
+        // mechanism) never reaches term.onKey — xterm.js fires its paste
+        // text straight through onData, bypassing onKey entirely, and this
+        // hook never listens on onData. Intercepting the native 'paste'
+        // DOM event on the container (an ancestor of xterm's own textarea)
+        // in the CAPTURE phase lets us read the clipboard text ourselves
+        // and stop it before xterm's own paste handler (attached to its
+        // textarea/element in the bubble phase) ever sees it — so there is
+        // exactly one handler for pasted text, not two racing ones.
+        const container = terminalRef.current;
+        const handleNativePaste = (event) => {
+            const text = event.clipboardData?.getData('text/plain')
+                ?? event.clipboardData?.getData('text')
+                ?? '';
+            event.preventDefault();
+            event.stopPropagation();
+            if (!text) return;
+            processPastedText(text, term);
+        };
+        container.addEventListener('paste', handleNativePaste, true);
+
         const handleResize = () => {
             try {
                 fitAddon.fit();
@@ -620,6 +730,7 @@ export const useTerminal = ({
         window.addEventListener('orientationchange', handleResize);
 
         return () => {
+            container.removeEventListener('paste', handleNativePaste, true);
             window.removeEventListener('resize', handleResize);
             window.removeEventListener('orientationchange', handleResize);
             term.dispose();
@@ -856,6 +967,42 @@ export const useTerminal = ({
         }
     }, []);
 
+    // ── Paste handling ──────────────────────────────────────────────────────
+    // Single-line paste (no newline) just inserts into the input buffer, same
+    // as typing. Multi-line paste queues each line as its own independent
+    // command and runs them sequentially through the exact same submitCommand
+    // pipeline as manually typed commands — same discovery matching, ARIA
+    // hints, scoring, and history recording. Chained onto commandChainRef so
+    // a paste that arrives while a previous command (typed or pasted) is
+    // still in flight waits its turn instead of racing it.
+    const processPastedText = useCallback((text, term) => {
+        if (!text) return;
+        const buf = inputBuffer.current;
+        const pos = cursorPosRef.current;
+        const plan = buildPastePlan(buf, pos, text);
+
+        if (plan.isInline) {
+            inputBuffer.current = plan.remainingBuffer;
+            cursorPosRef.current = plan.remainingCursorDistFromEnd;
+            if (pos === 0) {
+                term.write(plan.inlineText);
+            } else {
+                redrawCurrentLineRef.current(term);
+            }
+            return;
+        }
+
+        historyIndexRef.current = -1;
+        inputBuffer.current = '';
+        cursorPosRef.current = 0;
+
+        commandChainRef.current = commandChainRef.current.then(() => runPastePlan(plan, {
+            term,
+            submit: submitCommand,
+            getPromptText: () => getPrompt(currentPathRef.current),
+        }));
+    }, []);
+
     // ── Path tracking for cd ──────────────────────────────────────────────
     const handleCdPath = useCallback((target, output, currentPathValue) => {
         if (output?.includes('No such file') || output?.includes('Not a directory')) return;
@@ -978,6 +1125,10 @@ export const useTerminal = ({
         fit,
     };
 };
+
+// Exported for unit testing (pure, no React/xterm deps) — see
+// useTerminal.paste.test.js.
+export { buildPastePlan, runPastePlan };
 
 // ── Boot sequence ─────────────────────────────────────────────────────────────
 

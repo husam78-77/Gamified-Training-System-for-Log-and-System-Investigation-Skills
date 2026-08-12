@@ -1,0 +1,65 @@
+cat /var/log/auth.log
+grep Failed /var/log/auth.log
+grep 203.0.113.25 /var/log/auth.log
+grep Accepted /var/log/auth.log
+cat /home/admin/.bash_history
+
+
+================================================
+Investigation Report
+================================================
+
+Incident Summary
+
+The investigation identified a successful SSH brute force attack against the production server (server01). The attacker performed multiple password guessing attempts before successfully authenticating to the system using a valid account. After gaining access, the attacker executed a few basic reconnaissance commands and disconnected shortly afterward. No evidence of persistence or destructive activity was found during this investigation.
+
+Attack Source
+
+The source of the attack was identified as IP address 203.0.113.25.
+
+Evidence collected from /var/log/auth.log shows repeated authentication attempts originating from this IP address. The attacker first attempted to authenticate using invalid usernames before targeting valid system accounts. After multiple failed password attempts, the attacker successfully logged in.
+
+Compromised Account
+
+The compromised account was identified as "admin".
+
+The authentication log contains an "Accepted password for admin" entry confirming successful authentication. Cross-checking /etc/passwd confirms that the admin account is a legitimate system account.
+
+Post-Authentication Activity
+
+The attacker's command history was recovered from /home/admin/.bash_history.
+
+The recorded commands include:
+
+- whoami
+- pwd
+- hostname
+- ls
+- ls /home
+- cat /etc/os-release
+
+These commands indicate that the attacker only performed basic system reconnaissance. No evidence of privilege escalation, malware installation, persistence mechanisms, or data exfiltration was observed.
+
+Evidence Collected
+
+The following files were examined during the investigation:
+
+- /var/log/auth.log
+- /etc/passwd
+- /home/admin/.bash_history
+
+The authentication log was used to identify the attack timeline, the attacker IP address, and the successful login. The passwd file confirmed that the compromised account exists on the system, while the bash history demonstrated the attacker's actions after authentication.
+
+Conclusion
+
+The investigation confirms that the server experienced a successful SSH brute force attack from IP address 203.0.113.25 against the admin account.
+
+Although the attacker successfully accessed the system, the available evidence suggests that only basic reconnaissance activities were performed before disconnecting. No evidence of persistence, malicious software, or additional compromise was identified during the investigation.
+
+Recommendations
+
+- Reset the password for the admin account immediately.
+- Review all SSH authentication logs for additional suspicious activity.
+- Enable stronger password policies.
+- Configure SSH rate limiting or Fail2Ban to reduce brute force attacks.
+- Consider disabling password authentication in favor of SSH public key authentication.
